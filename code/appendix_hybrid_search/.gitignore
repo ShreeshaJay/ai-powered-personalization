@@ -3,8 +3,11 @@ cache/
 *.npy
 *.npz
 
-# Evaluation outputs (regenerable)
-outputs/
+# Evaluation outputs (large plots and raw data excluded, key results kept)
+outputs/plots/
+!outputs/metrics/
+!outputs/metrics/*.json
+!outputs/metrics/*.csv
 
 # Python
 __pycache__/
