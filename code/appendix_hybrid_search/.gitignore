@@ -1,0 +1,38 @@
+# Cached indexes (large, regenerable from scripts)
+cache/
+*.npy
+*.npz
+
+# Evaluation outputs (regenerable)
+outputs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+recsys_venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# LLM labeling artifacts (not part of this appendix)
+*labeling*.json
+*disagreements*.json
+*disagreements*.txt
