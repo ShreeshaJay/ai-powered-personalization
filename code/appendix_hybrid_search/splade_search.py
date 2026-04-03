@@ -132,11 +132,23 @@ class SPLADEEncoder:
         Returns a vocab_size-dimensional vector (not sparse).
         """
         if self.config.use_sparse_encoder:
-            outputs = self.sparse_encoder.encode([text])
+            outputs = self.sparse_encoder.encode(
+                [text], convert_to_tensor=False, convert_to_sparse_tensor=False,
+            )
             if isinstance(outputs, (sp.spmatrix, sp.sparray)):
                 return outputs.toarray().flatten()
-            elif isinstance(outputs, list) and torch.is_tensor(outputs[0]):
-                return outputs[0].cpu().numpy()
+            elif isinstance(outputs, list) and len(outputs) > 0:
+                v = outputs[0]
+                if torch.is_tensor(v):
+                    v = v.cpu().numpy()
+                elif not isinstance(v, np.ndarray):
+                    v = np.array(v)
+                # Pad to vocab_size if needed
+                if v.shape[0] < self.config.vocab_size:
+                    padded = np.zeros(self.config.vocab_size, dtype=v.dtype)
+                    padded[:v.shape[0]] = v
+                    return padded
+                return v
             elif torch.is_tensor(outputs):
                 return outputs[0].cpu().numpy()
             return self._sparse_output_to_dense(outputs[0])

@@ -17,6 +17,7 @@ Usage:
   python hybrid_search.py --mode demo --demo_query "wireless bluetooth headphones"
 """
 
+import gc
 import numpy as np
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
@@ -213,16 +214,23 @@ def run_curated_pool_evaluation(
     pool_ids_set = pool_product_ids
     curated_pool_results = {}
 
+    # Over-retrieval factor: retrieve more than top_k to ensure enough pool hits
+    # after filtering. 5x is sufficient since pool products cluster in top results.
+    over_retrieve_k = top_k * 5
+
     # --- BM25 retrieval within curated pool ---
     if bm25_engine is not None:
         retrieved = {}
-        for qid, qdata in tqdm(query_data.items(), desc="BM25 (curated)"):
-            result_ids, result_scores = bm25_engine.search(qdata["query_text"], top_k=top_k * 10)
+        for i, (qid, qdata) in enumerate(tqdm(query_data.items(), desc="BM25 (curated)")):
+            result_ids, result_scores = bm25_engine.search(qdata["query_text"], top_k=over_retrieve_k)
             # Filter to pool only
             filtered = [pid for pid in result_ids if pid in pool_ids_set][:top_k]
             retrieved[qid] = filtered
+            if i % 500 == 0:
+                gc.collect()
         result = evaluate_curated_pool(retrieved, query_data, k_values, eval_config.curated_pool_gains)
         curated_pool_results["BM25"] = result
+        gc.collect()
 
     # --- SPLADE variants retrieval within curated pool ---
     for model_key, (encoder, index) in splade_components.items():
@@ -233,7 +241,7 @@ def run_curated_pool_evaluation(
         retrieved = {}
         for qid, qdata in tqdm(query_data.items(), desc=f"{method_name} (curated)"):
             qv = encoder.encode_single(qdata["query_text"])
-            result_ids, _ = index.search(qv, top_k=top_k * 10)
+            result_ids, _ = index.search(qv, top_k=over_retrieve_k)
             filtered = [pid for pid in result_ids if pid in pool_ids_set][:top_k]
             retrieved[qid] = filtered
         result = evaluate_curated_pool(retrieved, query_data, k_values, eval_config.curated_pool_gains)
@@ -244,7 +252,7 @@ def run_curated_pool_evaluation(
         retrieved = {}
         for qid, qdata in tqdm(query_data.items(), desc="Dense (curated)"):
             qe = dense_encoder.encode_query(qdata["query_text"])
-            result_ids, _ = dense_index.search(qe, top_k=top_k * 10)
+            result_ids, _ = dense_index.search(qe, top_k=over_retrieve_k)
             filtered = [pid for pid in result_ids if pid in pool_ids_set][:top_k]
             retrieved[qid] = filtered
         result = evaluate_curated_pool(retrieved, query_data, k_values, eval_config.curated_pool_gains)
@@ -267,13 +275,13 @@ def run_curated_pool_evaluation(
         for qid, qdata in tqdm(query_data.items(), desc="Hybrid RRF (curated)"):
             ranked_lists = []
             if bm25_engine is not None:
-                bids, _ = bm25_engine.search(qdata["query_text"], top_k=top_k * 10)
+                bids, _ = bm25_engine.search(qdata["query_text"], top_k=over_retrieve_k)
                 ranked_lists.append([pid for pid in bids if pid in pool_ids_set][:top_k])
             qv = sp_enc.encode_single(qdata["query_text"])
-            sids, _ = sp_idx.search(qv, top_k=top_k * 10)
+            sids, _ = sp_idx.search(qv, top_k=over_retrieve_k)
             ranked_lists.append([pid for pid in sids if pid in pool_ids_set][:top_k])
             qe = dense_encoder.encode_query(qdata["query_text"])
-            dids, _ = dense_index.search(qe, top_k=top_k * 10)
+            dids, _ = dense_index.search(qe, top_k=over_retrieve_k)
             ranked_lists.append([pid for pid in dids if pid in pool_ids_set][:top_k])
 
             rrf_result = reciprocal_rank_fusion(ranked_lists, k=hybrid_config.rrf_k, top_n=top_k)
@@ -287,7 +295,7 @@ def run_curated_pool_evaluation(
         for qid, qdata in tqdm(query_data.items(), desc="BM25 Rerank Dense (curated)"):
             # Get Dense candidates
             qe = dense_encoder.encode_query(qdata["query_text"])
-            dids, _ = dense_index.search(qe, top_k=top_k * 10)
+            dids, _ = dense_index.search(qe, top_k=over_retrieve_k)
             dense_candidates = [pid for pid in dids if pid in pool_ids_set][:top_k]
             # Get BM25 scores for these candidates
             bm25_ids, bm25_scores = bm25_engine.search(qdata["query_text"], top_k=eval_config.bm25_rerank_cache_top_k)
@@ -306,7 +314,7 @@ def run_curated_pool_evaluation(
         retrieved = {}
         for qid, qdata in tqdm(query_data.items(), desc=f"BM25 Rerank {sp_label} (curated)"):
             qv = sp_enc.encode_single(qdata["query_text"])
-            sids, _ = sp_idx.search(qv, top_k=top_k * 10)
+            sids, _ = sp_idx.search(qv, top_k=over_retrieve_k)
             splade_candidates = [pid for pid in sids if pid in pool_ids_set][:top_k]
             bm25_ids, bm25_scores = bm25_engine.search(qdata["query_text"], top_k=eval_config.bm25_rerank_cache_top_k)
             bm25_score_dict = dict(zip(bm25_ids, bm25_scores.tolist()))

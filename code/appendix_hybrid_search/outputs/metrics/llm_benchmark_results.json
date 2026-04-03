@@ -1,0 +1,106 @@
+{
+  "benchmark_date": "2026-03-17 08:42:02",
+  "num_pairs": 2499,
+  "label_distribution": {
+    "E": 1741,
+    "S": 492,
+    "I": 214,
+    "C": 52
+  },
+  "models": [
+    {
+      "model_name": "Gemini 2.5 Flash Lite",
+      "num_pairs": 2499,
+      "num_valid": 2497,
+      "num_errors": 2,
+      "overall_agreement": 0.7113,
+      "per_label_agreement": {
+        "E": {
+          "agreement": 0.816771970132108,
+          "count": 1741,
+          "correct": 1422
+        },
+        "S": {
+          "agreement": 0.43380855397148677,
+          "count": 491,
+          "correct": 213
+        },
+        "C": {
+          "agreement": 0.5769230769230769,
+          "count": 52,
+          "correct": 30
+        },
+        "I": {
+          "agreement": 0.5211267605633803,
+          "count": 213,
+          "correct": 111
+        }
+      },
+      "top_confusion_patterns": {
+        "E->S": 206,
+        "S->E": 173,
+        "S->I": 86,
+        "E->I": 66,
+        "E->C": 47,
+        "I->S": 38,
+        "I->E": 34,
+        "I->C": 30,
+        "S->C": 19,
+        "C->E": 13
+      },
+      "latency_mean_ms": 535.9,
+      "latency_p50_ms": 373.4,
+      "latency_p95_ms": 1267.0,
+      "total_time_s": 1391.9,
+      "cost_estimate_usd": 0.052,
+      "throughput_pairs_per_sec": 1.8
+    },
+    {
+      "model_name": "GPT-4o-mini",
+      "num_pairs": 2499,
+      "num_valid": 2499,
+      "num_errors": 0,
+      "overall_agreement": 0.6803,
+      "per_label_agreement": {
+        "E": {
+          "agreement": 0.7668006892590465,
+          "count": 1741,
+          "correct": 1335
+        },
+        "S": {
+          "agreement": 0.41260162601626016,
+          "count": 492,
+          "correct": 203
+        },
+        "C": {
+          "agreement": 0.38461538461538464,
+          "count": 52,
+          "correct": 20
+        },
+        "I": {
+          "agreement": 0.6635514018691588,
+          "count": 214,
+          "correct": 142
+        }
+      },
+      "top_confusion_patterns": {
+        "E->S": 273,
+        "S->I": 152,
+        "S->E": 131,
+        "E->I": 112,
+        "I->S": 41,
+        "I->E": 24,
+        "E->C": 21,
+        "C->I": 14,
+        "C->E": 12,
+        "I->C": 7
+      },
+      "latency_mean_ms": 448.8,
+      "latency_p50_ms": 391.6,
+      "latency_p95_ms": 762.9,
+      "total_time_s": 1175.0,
+      "cost_estimate_usd": 0.078,
+      "throughput_pairs_per_sec": 2.1
+    }
+  ]
+}
