@@ -4,7 +4,7 @@ This repository contains the working drafts, code examples, diagrams, and resear
 
 ## Context for this book
 
-I have been in Machine Learning for nearly a decade. For the last 3+ years, I have been leading ML teams building ML/AI models at Best Buy focused on Recommender Systems, Adtech, Personalization, and Marketing use cases. My contribution as a leader spans both ML Science (algorithm development) and ML Engineering (building out the overall systems). At Best Buy, I am responsible for customer-facing models that serve 100+ million users annually.
+I have been in Machine Learning for nearly a decade. For the last 4+ years, I have been leading ML teams building ML/AI models at Best Buy focused on Recommender Systems, Adtech, Personalization, and Marketing use cases. My contribution as a leader spans both ML Science (algorithm development) and ML Engineering (building out the overall systems). At Best Buy, I am responsible for customer-facing models that serve 100+ million users annually.
 
 When I entered RecSys/Personalization, I noticed that as an industry practitioner, I had to cobble together disparate sources of information — blogs, videos, research articles — to ramp up. This appears to be the case for many others I have spoken to. While there are excellent books on ML systems, they usually focus on general principles and do not go deep into the specifics of building RecSys engines. Nor do they guide engineering leaders on how to implement an enterprise strategy for a portfolio of RecSys/personalization use cases at their company. This book presents a unified narrative on the industry-standard ways of implementing RecSys/Personalization solutions and guides leaders on successful execution.
 
