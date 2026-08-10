@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Chapter companion code: generated artifacts (models, embeddings, experiment outputs)
+code/chapter*/outputs/
+code/chapter*/cache/

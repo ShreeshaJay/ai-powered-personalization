@@ -67,8 +67,15 @@ While this is not a code-oriented book, there is just enough code within each ch
 
 | Folder | Description |
 |--------|-------------|
-| `chapter5_retrieval/` through `chapter13_deployment/` | Python code tutorials for each chapter |
-| `appendix_rexbert/`, `appendix_superlinked/`, `Appendix Hybrid Search/` | Code for the appendices |
+| `chapters/` | Chapter drafts (docx + PDF) |
+| `code/chapter5_retrieval/` | Chapter 5 — Retrieval (two-tower models, FAISS) |
+| `code/chapter6_ranking/` | Chapter 6 — Ranking basics (XGBoost, DeepFM) |
+| `code/chapter7_advanced_ranking/` | Chapter 7 — Advanced ranking (DCN-V2, DLRM, MMoE) |
+| `code/chapter8_value_functions/` | Chapter 8 — Value functions, MMR diversity, business rules |
+| `code/chapter9_adtech/` | Chapter 9 — Adtech (ESMM, federated Split NN, calibration) |
+| `code/chapter10_item_embeddings/` | Chapter 10 — Item embeddings (SBERT, Item2Vec, contrastive fine-tuning, multimodal fusion) |
+| `code/chapter11_user_embeddings/` | Chapter 11 — User embeddings (aggregation, SASRec/GRU4Rec, LightGCN) |
+| `code/chapter12_llms_for_recs/`, `code/appendix_hybrid_search/` | LLM-recommendation methodology notes and hybrid-search appendix code |
 | Chapter-specific `README.md` files | Setup instructions, dataset notes, and expected outputs per chapter |
 
 Each chapter's code folder is self-contained with its own requirements, data loaders, training scripts, and evaluation utilities.
