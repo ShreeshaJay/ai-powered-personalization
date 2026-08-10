@@ -1,0 +1,28 @@
+# Chapter 6: Ranking
+# Dependencies for ranking model examples
+#
+# Install with: pip install -r requirements.txt
+
+# Core data processing
+pyarrow>=14.0.0          # Memory-efficient parquet reading (essential!)
+pandas>=2.0.0            # DataFrame operations
+numpy>=1.24.0            # Numerical computing
+polars>=0.20.0           # Fast alternative to pandas (optional)
+
+# Machine Learning
+scikit-learn>=1.3.0      # Preprocessing, metrics
+xgboost>=2.0.0           # Gradient boosting baseline
+
+# Deep Learning (for later sections)
+torch>=2.0.0             # Neural ranking models
+
+# Visualization
+matplotlib>=3.7.0        # Plotting
+seaborn>=0.12.0          # Statistical visualization
+
+# Progress bars
+tqdm>=4.65.0             # Progress tracking
+
+# Utilities
+typing-extensions>=4.0.0  # Type hints
+
