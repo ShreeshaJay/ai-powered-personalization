@@ -1,0 +1,41 @@
+# Chapter 10: Item Embeddings - Dependencies
+
+# Core ML/Data
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+
+# Text Encoding (Sentence-BERT)
+sentence-transformers>=2.2.0
+transformers>=4.30.0
+torch>=2.0.0
+datasets>=2.14.0       # Required by sentence-transformers .fit() for Section 10.2
+accelerate>=1.1.0      # Required by HuggingFace Trainer (used internally by .fit())
+
+# Fast Similarity Search (optional but recommended)
+faiss-cpu>=1.7.0
+# OR for GPU:
+# faiss-gpu>=1.7.0
+
+# Item2Vec / Word2Vec (Section 10.2)
+gensim>=4.3.0
+
+# Parquet support (for Yandex dataset)
+pyarrow>=12.0.0
+
+# PCA for multi-modal fusion baseline (Section 10.4)
+# scikit-learn already listed above
+
+# Superlinked multi-modal integration (Appendix — optional)
+# superlinked
+
+# Progress bars and utilities
+tqdm>=4.60.0
+
+# Visualization (for future sections)
+matplotlib>=3.5.0
+seaborn>=0.11.0
+
+# Notebook support (optional)
+jupyter>=1.0.0
+ipywidgets>=7.6.0
