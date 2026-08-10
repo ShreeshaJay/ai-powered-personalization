@@ -1,0 +1,21 @@
+# Chapter 11: User/Customer Embeddings
+# Section 11.1: Aggregation Baselines (No Training)
+# Section 11.2: Sequence Models (SASRec / GRU4Rec)
+
+# Core scientific computing
+numpy>=1.24.0
+polars>=0.20.0        # Memory-efficient DataFrames (replaces pandas per constraint)
+
+# Similarity search
+faiss-cpu>=1.7.4      # Or faiss-gpu if CUDA available
+
+# Deep learning (Section 11.2)
+torch>=2.0.0          # PyTorch for SASRec and GRU4Rec
+
+# Logging and utilities
+tqdm>=4.65.0
+
+# Chapter 10 dependencies (for cached embeddings)
+# These are only needed if re-running Chapter 10:
+# sentence-transformers>=2.2.0
+# gensim>=4.3.0
