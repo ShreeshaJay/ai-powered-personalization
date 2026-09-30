@@ -76,7 +76,7 @@ While this is not a code-oriented book, there is just enough code within each ch
 | `code/chapter10_item_embeddings/` | Chapter 10 — Item embeddings (SBERT, Item2Vec, contrastive fine-tuning, multimodal fusion) |
 | `code/chapter11_user_embeddings/` | Chapter 11 — User embeddings (aggregation, SASRec/GRU4Rec, LightGCN) |
 | `code/chapter12_llms_for_recs/`, `code/appendix_hybrid_search/` | LLM-recommendation methodology notes and hybrid-search appendix code |
-| `code/appendix_system_one_benchmark/` | Structured-output scoring benchmark (majority, Laya, Jev, Kev-0.8B) |
+| `code/appendix_system_one_benchmark/` | Structured-output scoring benchmark (majority, Laya, Jev, Kev-0.8B, Kev-4B, JevLite) |
 | Chapter-specific `README.md` files | Setup instructions, dataset notes, and expected outputs per chapter |
 
 Each chapter's code folder is self-contained with its own requirements, data loaders, training scripts, and evaluation utilities.

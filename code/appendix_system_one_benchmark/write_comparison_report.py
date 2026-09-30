@@ -67,7 +67,8 @@ def render(summaries: dict[str, dict[str, Any]]) -> str:
         "",
         "Laya is `convaiinnovations/laya` (`typed-decisions`). "
         "Jev is pinned `jev-1.13.0` via the TypeSafe API. "
-        "Kev is `jaredpalmer/kev-0.8b` served locally over `/v1/systemone`. "
+        "Kev is `jaredpalmer/kev-0.8b` locally; Kev-4B and JevLite are the "
+        "open Jev-scale checkpoints (Colab A100). "
         "Majority is an a priori class prior and does not peek at evaluation labels. "
         "Compatibility, query, and brand/category use dual-judge field consensus; "
         "disagreements are withheld. ESCI is a balanced 8,000-pair human US test slice "
@@ -121,12 +122,16 @@ def render(summaries: dict[str, dict[str, Any]]) -> str:
             "on these commerce schemas.",
             "- Jev is the hosted System One reference. Compare it to Laya and Kev on "
             "the same frozen questions and compact states, not to supervised controls.",
-            "- Kev-0.8B is the first open TypeSafe-compatible checkpoint in this "
-            "drop. It is much weaker than hosted Jev on compatibility, query axes, "
-            "and ESCI, but brand and category choice are already usable.",
-            "- JevLite and larger Kev checkpoints have adapters and a Colab notebook "
-            "in this package, but those full-slice runs are not part of this "
-            "published result drop.",
+            "- Kev-0.8B is the first open TypeSafe-compatible checkpoint that fits "
+            "an 8 GB GPU. It is much weaker than hosted Jev on compatibility, "
+            "query axes, and ESCI, but brand and category choice are already usable.",
+            "- Kev-4B (`jaredpalmer/kev-4b` on Colab) is in Jev's neighborhood on "
+            "brand/category and commerce scope, but it still trails hosted Jev on "
+            "compatibility, query axes, and ESCI.",
+            "- JevLite (`vagmi/jev-lite` on Colab, 4-bit Gemma 4 E4B) is the closest "
+            "open match to hosted Jev on compatibility and the query/brand fields. "
+            "ESCI remains well below Jev for both open models. Few-shot and "
+            "supervised controls are still pending.",
             "",
         ]
     )

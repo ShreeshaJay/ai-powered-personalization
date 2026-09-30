@@ -17,29 +17,26 @@ that can sit on top of retrieved candidates.
 
 ## Finished experiments in this drop
 
-The committed comparison covers four **completed, laptop-reproducible**
-zero-shot runs:
+The committed comparison covers six **completed** zero-shot runs:
 
-| Adapter | Checkpoint / endpoint | Notes |
-|---------|------------------------|--------|
-| `majority` | class prior | Does not peek at evaluation labels. |
-| `laya` | `convaiinnovations/laya` (`typed-decisions`) | Local classifier. |
-| `jev` | TypeSafe `jev-1.13.0` | Hosted `/v1/systemone` API. |
-| `kev` | `jaredpalmer/kev-0.8b` | Local TypeSafe-compatible server. |
+| Adapter | Checkpoint / endpoint | Where it ran |
+|---------|------------------------|--------------|
+| `majority` | class prior | CPU |
+| `laya` | `convaiinnovations/laya` (`typed-decisions`) | Laptop GPU |
+| `jev` | TypeSafe `jev-1.13.0` | Hosted `/v1/systemone` API |
+| `kev` | `jaredpalmer/kev-0.8b` | Laptop GPU |
+| `kev` | `jaredpalmer/kev-4b` | Colab A100 |
+| `jevlite` | `vagmi/jev-lite` | Colab A100 |
 
 Headline numbers are in
 [`outputs/benchmark/ZERO_SHOT_RESULTS.md`](outputs/benchmark/ZERO_SHOT_RESULTS.md).
-Machine-readable `summary.json` files for those four runs are under
-`outputs/benchmark/<model>/`.
+Machine-readable `summary.json` files are under `outputs/benchmark/<model>/`.
+Raw prediction JSONL files are not shipped.
 
 Compatibility, query, and brand/category use dual-judge field consensus
 (Claude Opus 5 and GPT-5.6 Sol). Agreement is the label; disagreement is
 withheld. ESCI uses existing Amazon human labels only — no new Opus/Sol ESCI
 labels.
-
-JevLite (`vagmi/jev-lite`) and larger Kev checkpoints have adapters and a
-Colab notebook in this folder, but those full-slice runs are **not** part of
-this published result drop.
 
 ## What is not shipped
 
@@ -143,11 +140,11 @@ and can be resumed.
 A 100-item smoke uses `--dataset pilot` once pilot consensus rows exist under
 `outputs/consensus/`.
 
-## Colab notebook (open models, not in this result drop)
+## Colab notebook
 
-[`colab/open_models_colab.ipynb`](colab/open_models_colab.ipynb) runs JevLite
-and Kev-4B on a Colab Pro+ L4 or A100. Pack a bundle **only if** you have the
-private reference JSONL files:
+[`colab/open_models_colab.ipynb`](colab/open_models_colab.ipynb) is the
+reproduction path for JevLite and Kev-4B (Pro+ L4 or A100). Pack a bundle
+**only if** you have the private reference JSONL files:
 
 ```bash
 python pack_colab_bundle.py
@@ -155,8 +152,8 @@ python pack_colab_bundle.py
 
 Upload the notebook, set a Hugging Face token if the checkpoints are gated,
 and upload `outputs/benchmark/colab_bundle.zip` when asked. Download
-`open_model_results.zip` at the end. Those numbers are not claimed in
-`ZERO_SHOT_RESULTS.md`.
+`open_model_results.zip` at the end. The committed `summary.json` files and
+`ZERO_SHOT_RESULTS.md` already include those full-slice numbers.
 
 ## Layout
 

@@ -1,19 +1,19 @@
 # Frozen Zero-Shot Comparison
 
-Laya is `convaiinnovations/laya` (`typed-decisions`). Jev is pinned `jev-1.13.0` via the TypeSafe API. Kev is `jaredpalmer/kev-0.8b` served locally over `/v1/systemone`. Majority is an a priori class prior and does not peek at evaluation labels. Compatibility, query, and brand/category use dual-judge field consensus; disagreements are withheld. ESCI is a balanced 8,000-pair human US test slice (2,000 per E/S/C/I).
+Laya is `convaiinnovations/laya` (`typed-decisions`) on the local RTX 4060. Jev is pinned `jev-1.13.0` via the TypeSafe API. Kev is `jaredpalmer/kev-0.8b` locally; Kev-4B and JevLite are the open Jev-scale checkpoints (Colab L4/A100 when they do not fit the laptop). Majority is an a priori class prior and does not peek at evaluation labels. Compatibility, query, and brand/category use dual-judge field consensus; disagreements are withheld. ESCI is a balanced 8,000-pair human US test slice (2,000 per E/S/C/I).
 
-| Field | majority acc | majority macro-F1 | majority ECE | laya acc | laya macro-F1 | laya ECE | jev acc | jev macro-F1 | jev ECE | kev acc | kev macro-F1 | kev ECE |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Compatibility | 70.9% | 0.207 | 0.291 | 20.8% | 0.151 | 0.177 | 74.0% | 0.569 | 0.068 | 15.8% | 0.133 | 0.053 |
-| Query goal | 42.4% | 0.099 | 0.576 | 47.9% | 0.328 | 0.348 | 79.3% | 0.762 | 0.032 | 27.6% | 0.306 | 0.070 |
-| Query object | 38.3% | 0.111 | 0.617 | 30.2% | 0.215 | 0.263 | 79.6% | 0.703 | 0.033 | 37.8% | 0.310 | 0.196 |
-| Query specificity | 31.9% | 0.081 | 0.681 | 41.0% | 0.299 | 0.331 | 80.6% | 0.771 | 0.056 | 19.4% | 0.257 | 0.063 |
-| Query commerce scope | 51.3% | 0.226 | 0.487 | 53.5% | 0.438 | 0.512 | 93.1% | 0.884 | 0.081 | 28.3% | 0.285 | 0.139 |
-| Brand intent | 52.3% | 0.172 | 0.477 | 41.6% | 0.164 | 0.367 | 94.6% | 0.688 | 0.071 | 36.2% | 0.262 | 0.174 |
-| Brand choice | 56.3% | 0.080 | 0.437 | 45.4% | 0.393 | 0.429 | 96.4% | 0.948 | 0.035 | 89.8% | 0.852 | 0.501 |
-| Category choice | 41.4% | 0.065 | 0.586 | 31.9% | 0.185 | 0.288 | 91.3% | 0.921 | 0.011 | 72.9% | 0.751 | 0.417 |
-| Multi-target | 100.0% | 0.500 | 0.001 | 1.2% | 0.012 | 0.553 | 99.0% | 0.543 | 0.112 | 80.7% | 0.449 | 0.219 |
-| ESCI (human slice) | 25.0% | 0.100 | 0.750 | 25.5% | 0.184 | 0.217 | 60.4% | 0.603 | 0.105 | 30.9% | 0.226 | 0.114 |
+| Field | majority acc | majority macro-F1 | majority ECE | laya acc | laya macro-F1 | laya ECE | jev acc | jev macro-F1 | jev ECE | kev acc | kev macro-F1 | kev ECE | kev4 acc | kev4 macro-F1 | kev4 ECE | jevlite acc | jevlite macro-F1 | jevlite ECE |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Compatibility | 70.9% | 0.207 | 0.291 | 20.8% | 0.151 | 0.177 | 74.0% | 0.569 | 0.068 | 15.8% | 0.133 | 0.053 | 59.8% | 0.295 | 0.073 | 76.3% | 0.428 | 0.061 |
+| Query goal | 42.4% | 0.099 | 0.576 | 47.9% | 0.328 | 0.348 | 79.3% | 0.762 | 0.032 | 27.6% | 0.306 | 0.070 | 60.1% | 0.536 | 0.182 | 78.6% | 0.712 | 0.136 |
+| Query object | 38.3% | 0.111 | 0.617 | 30.2% | 0.215 | 0.263 | 79.6% | 0.703 | 0.033 | 37.8% | 0.310 | 0.196 | 60.7% | 0.508 | 0.246 | 72.5% | 0.585 | 0.098 |
+| Query specificity | 31.9% | 0.081 | 0.681 | 41.0% | 0.299 | 0.331 | 80.6% | 0.771 | 0.056 | 19.4% | 0.257 | 0.063 | 60.9% | 0.629 | 0.285 | 61.4% | 0.573 | 0.045 |
+| Query commerce scope | 51.3% | 0.226 | 0.487 | 53.5% | 0.438 | 0.512 | 93.1% | 0.884 | 0.081 | 28.3% | 0.285 | 0.139 | 85.9% | 0.743 | 0.337 | 86.9% | 0.748 | 0.161 |
+| Brand intent | 52.3% | 0.172 | 0.477 | 41.6% | 0.164 | 0.367 | 94.6% | 0.688 | 0.071 | 36.2% | 0.262 | 0.174 | 92.0% | 0.518 | 0.200 | 91.1% | 0.534 | 0.132 |
+| Brand choice | 56.3% | 0.080 | 0.437 | 45.4% | 0.393 | 0.429 | 96.4% | 0.948 | 0.035 | 89.8% | 0.852 | 0.501 | 85.6% | 0.775 | 0.506 | 92.9% | 0.911 | 0.176 |
+| Category choice | 41.4% | 0.065 | 0.586 | 31.9% | 0.185 | 0.288 | 91.3% | 0.921 | 0.011 | 72.9% | 0.751 | 0.417 | 78.0% | 0.752 | 0.437 | 83.7% | 0.858 | 0.032 |
+| Multi-target | 100.0% | 0.500 | 0.001 | 1.2% | 0.012 | 0.553 | 99.0% | 0.543 | 0.112 | 80.7% | 0.449 | 0.219 | 86.7% | 0.468 | 0.179 | 80.2% | 0.448 | 0.184 |
+| ESCI (human slice) | 25.0% | 0.100 | 0.750 | 25.5% | 0.184 | 0.217 | 60.4% | 0.603 | 0.105 | 30.9% | 0.226 | 0.114 | 45.8% | 0.414 | 0.114 | 43.2% | 0.395 | 0.247 |
 
 ## Serving
 
@@ -33,11 +33,20 @@ Laya is `convaiinnovations/laya` (`typed-decisions`). Jev is pinned `jev-1.13.0`
 - **kev query_segmentation:** p50 1836.4 ms; 0.5 items/s; VRAM reserved 7874 MB
 - **kev brand_category:** p50 1103.4 ms; 0.8 items/s; VRAM reserved 7896 MB
 - **kev esci:** p50 867.6 ms; 1.1 items/s; VRAM reserved 7906 MB
+- **kev4 compatibility:** p50 106.7 ms; 6.0 items/s; VRAM reserved 21166 MB
+- **kev4 query_segmentation:** p50 427.7 ms; 2.3 items/s; VRAM reserved 23138 MB
+- **kev4 brand_category:** p50 253.9 ms; 3.8 items/s; VRAM reserved 23298 MB
+- **kev4 esci:** p50 67.3 ms; 13.1 items/s; VRAM reserved 23532 MB
+- **jevlite compatibility:** p50 223.5 ms; 4.4 items/s; VRAM reserved 9834 MB
+- **jevlite query_segmentation:** p50 902.6 ms; 1.1 items/s; VRAM reserved 9860 MB
+- **jevlite brand_category:** p50 887.7 ms; 1.1 items/s; VRAM reserved 9860 MB
+- **jevlite esci:** p50 223.6 ms; 4.4 items/s; VRAM reserved 9860 MB
 
 ## Reading the numbers
 
 - Majority wins accuracy on imbalanced tasks because `incompatible` and `multi_target=false` dominate the consensus labels.
 - Laya is fast locally but is not a strong frozen zero-shot classifier on these commerce schemas.
 - Jev is the hosted System One reference. Compare it to Laya and Kev on the same frozen questions and compact states, not to supervised controls.
-- Kev-0.8B is the first open TypeSafe-compatible checkpoint in this drop. It is much weaker than hosted Jev on compatibility, query axes, and ESCI, but brand and category choice are already usable.
-- JevLite and larger Kev checkpoints have adapters and a Colab notebook in this package, but those full-slice runs are not part of this published result drop.
+- Kev-0.8B is the first open TypeSafe-compatible checkpoint that fits the local 8 GB GPU. It is much weaker than hosted Jev on compatibility, query axes, and ESCI, but brand and category choice are already usable.
+- Kev-4B (`jaredpalmer/kev-4b` on Colab) is the first open checkpoint that is in Jev's neighborhood on brand/category and commerce scope, but it still trails hosted Jev on compatibility, query axes, and ESCI.
+- JevLite (`vagmi/jev-lite` on Colab, 4-bit Gemma 4 E4B) is the closest open match to hosted Jev on compatibility and the query/brand fields. ESCI remains well below Jev for both open models. Few-shot and supervised controls are still pending.
