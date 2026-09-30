@@ -1,0 +1,1041 @@
+{
+  "model": "majority",
+  "model_id": "majority_prior_v1",
+  "dataset": "reference",
+  "batch_size": 8,
+  "device": "cpu",
+  "tasks": {
+    "compatibility": {
+      "items": 2000,
+      "fields": {
+        "label": {
+          "accuracy": 0.7091,
+          "macro_f1": 0.2075,
+          "micro_f1": 0.7091,
+          "per_class": {
+            "explicit_fit": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 41
+            },
+            "generic_compatible": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 322
+            },
+            "incompatible": {
+              "precision": 0.7091,
+              "recall": 1.0,
+              "f1": 0.8298,
+              "support": 1158
+            },
+            "insufficient_evidence": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 112
+            }
+          },
+          "items": 1633,
+          "ece": 0.2909,
+          "brier": 0.5818,
+          "nll": 8.0372,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.6973,
+            "acc_at_0.80": 0.7029,
+            "acc_at_1.00": 0.7091
+          },
+          "confusion": {
+            "explicit_fit": {
+              "incompatible": 41
+            },
+            "generic_compatible": {
+              "incompatible": 322
+            },
+            "incompatible": {
+              "incompatible": 1158
+            },
+            "insufficient_evidence": {
+              "incompatible": 112
+            }
+          },
+          "accuracy_by_stratum": {
+            "generated_cross_sell": {
+              "items": 359,
+              "accuracy": 0.4485
+            },
+            "generated_direct_accessory": {
+              "items": 383,
+              "accuracy": 0.4883
+            },
+            "human_irrelevant_negative": {
+              "items": 151,
+              "accuracy": 0.8609
+            },
+            "human_substitute_hard_negative": {
+              "items": 333,
+              "accuracy": 0.8258
+            },
+            "out_of_category_negative": {
+              "items": 407,
+              "accuracy": 0.9951
+            }
+          }
+        }
+      },
+      "complete_exact_match": {
+        "items": 1633,
+        "exact_match": 0.7091
+      },
+      "latency": {
+        "items": 2000,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "mean_ms": 0.0,
+        "items_per_second": NaN
+      },
+      "adapter": "majority",
+      "model_id": "majority_prior_v1",
+      "prompt_version": "zero_shot_typed_v1",
+      "dataset": "reference",
+      "task": "compatibility",
+      "cached_items": 0,
+      "new_items": 2000,
+      "wall_seconds": 0.17,
+      "memory": null
+    },
+    "query_segmentation": {
+      "items": 2000,
+      "fields": {
+        "goal": {
+          "accuracy": 0.4245,
+          "macro_f1": 0.0993,
+          "micro_f1": 0.4245,
+          "per_class": {
+            "comparison_decision": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 20
+            },
+            "informational_support": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 490
+            },
+            "known_item_navigation": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 345
+            },
+            "other_unclear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 106
+            },
+            "product_discovery": {
+              "precision": 0.4245,
+              "recall": 1.0,
+              "f1": 0.596,
+              "support": 759
+            },
+            "service_account": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 68
+            }
+          },
+          "items": 1788,
+          "ece": 0.5755,
+          "brier": 1.151,
+          "nll": 15.9017,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.4284,
+            "acc_at_0.80": 0.428,
+            "acc_at_1.00": 0.4245
+          },
+          "confusion": {
+            "comparison_decision": {
+              "product_discovery": 20
+            },
+            "informational_support": {
+              "product_discovery": 490
+            },
+            "known_item_navigation": {
+              "product_discovery": 345
+            },
+            "other_unclear": {
+              "product_discovery": 106
+            },
+            "product_discovery": {
+              "product_discovery": 759
+            },
+            "service_account": {
+              "product_discovery": 68
+            }
+          },
+          "accuracy_by_stratum": {
+            "esci_accessory_for_product": {
+              "items": 114,
+              "accuracy": 0.9211
+            },
+            "esci_ambiguous": {
+              "items": 58,
+              "accuracy": 0.3103
+            },
+            "esci_broad_gift_intent": {
+              "items": 75,
+              "accuracy": 0.96
+            },
+            "esci_bundle_or_set": {
+              "items": 97,
+              "accuracy": 0.9381
+            },
+            "esci_single_product": {
+              "items": 526,
+              "accuracy": 0.7909
+            },
+            "esci_unknown": {
+              "items": 61,
+              "accuracy": 0.0656
+            },
+            "orcas_abstain": {
+              "items": 308,
+              "accuracy": 0.1299
+            },
+            "orcas_factual": {
+              "items": 326,
+              "accuracy": 0.0276
+            },
+            "orcas_instrumental": {
+              "items": 53,
+              "accuracy": 0.0
+            },
+            "orcas_navigational": {
+              "items": 138,
+              "accuracy": 0.0072
+            },
+            "orcas_transactional": {
+              "items": 32,
+              "accuracy": 0.0938
+            }
+          }
+        },
+        "object": {
+          "accuracy": 0.3834,
+          "macro_f1": 0.1108,
+          "micro_f1": 0.3834,
+          "per_class": {
+            "brand_store": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 40
+            },
+            "category": {
+              "precision": 0.3834,
+              "recall": 1.0,
+              "f1": 0.5542,
+              "support": 700
+            },
+            "product": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 200
+            },
+            "service_content": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 783
+            },
+            "unclear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 103
+            }
+          },
+          "items": 1826,
+          "ece": 0.6166,
+          "brier": 1.2333,
+          "nll": 17.0386,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.3888,
+            "acc_at_0.80": 0.3874,
+            "acc_at_1.00": 0.3834
+          },
+          "confusion": {
+            "brand_store": {
+              "category": 40
+            },
+            "category": {
+              "category": 700
+            },
+            "product": {
+              "category": 200
+            },
+            "service_content": {
+              "category": 783
+            },
+            "unclear": {
+              "category": 103
+            }
+          },
+          "accuracy_by_stratum": {
+            "esci_accessory_for_product": {
+              "items": 108,
+              "accuracy": 0.4537
+            },
+            "esci_ambiguous": {
+              "items": 52,
+              "accuracy": 0.3077
+            },
+            "esci_broad_gift_intent": {
+              "items": 76,
+              "accuracy": 0.9737
+            },
+            "esci_bundle_or_set": {
+              "items": 95,
+              "accuracy": 0.9474
+            },
+            "esci_single_product": {
+              "items": 524,
+              "accuracy": 0.7805
+            },
+            "esci_unknown": {
+              "items": 58,
+              "accuracy": 0.0517
+            },
+            "orcas_abstain": {
+              "items": 335,
+              "accuracy": 0.1284
+            },
+            "orcas_factual": {
+              "items": 329,
+              "accuracy": 0.0426
+            },
+            "orcas_instrumental": {
+              "items": 56,
+              "accuracy": 0.0
+            },
+            "orcas_navigational": {
+              "items": 157,
+              "accuracy": 0.0
+            },
+            "orcas_transactional": {
+              "items": 36,
+              "accuracy": 0.0556
+            }
+          }
+        },
+        "specificity": {
+          "accuracy": 0.3191,
+          "macro_f1": 0.0806,
+          "micro_f1": 0.3191,
+          "per_class": {
+            "broad_need_or_occasion": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 64
+            },
+            "exact_model_or_identifier": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 97
+            },
+            "named_entity_or_title": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 489
+            },
+            "none_or_unclear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 375
+            },
+            "product_type_only": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 110
+            },
+            "product_type_with_constraints": {
+              "precision": 0.3191,
+              "recall": 1.0,
+              "f1": 0.4839,
+              "support": 532
+            }
+          },
+          "items": 1667,
+          "ece": 0.6809,
+          "brier": 1.3617,
+          "nll": 18.813,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.3189,
+            "acc_at_0.80": 0.3238,
+            "acc_at_1.00": 0.3191
+          },
+          "confusion": {
+            "broad_need_or_occasion": {
+              "product_type_with_constraints": 64
+            },
+            "exact_model_or_identifier": {
+              "product_type_with_constraints": 97
+            },
+            "named_entity_or_title": {
+              "product_type_with_constraints": 489
+            },
+            "none_or_unclear": {
+              "product_type_with_constraints": 375
+            },
+            "product_type_only": {
+              "product_type_with_constraints": 110
+            },
+            "product_type_with_constraints": {
+              "product_type_with_constraints": 532
+            }
+          },
+          "accuracy_by_stratum": {
+            "esci_accessory_for_product": {
+              "items": 106,
+              "accuracy": 0.4151
+            },
+            "esci_ambiguous": {
+              "items": 57,
+              "accuracy": 0.1053
+            },
+            "esci_broad_gift_intent": {
+              "items": 68,
+              "accuracy": 0.4265
+            },
+            "esci_bundle_or_set": {
+              "items": 93,
+              "accuracy": 0.7634
+            },
+            "esci_single_product": {
+              "items": 492,
+              "accuracy": 0.6707
+            },
+            "esci_unknown": {
+              "items": 60,
+              "accuracy": 0.0333
+            },
+            "orcas_abstain": {
+              "items": 279,
+              "accuracy": 0.1183
+            },
+            "orcas_factual": {
+              "items": 280,
+              "accuracy": 0.0321
+            },
+            "orcas_instrumental": {
+              "items": 40,
+              "accuracy": 0.0
+            },
+            "orcas_navigational": {
+              "items": 160,
+              "accuracy": 0.0
+            },
+            "orcas_transactional": {
+              "items": 32,
+              "accuracy": 0.25
+            }
+          }
+        },
+        "commerce_scope": {
+          "accuracy": 0.513,
+          "macro_f1": 0.226,
+          "micro_f1": 0.513,
+          "per_class": {
+            "ambiguous": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 184
+            },
+            "in_scope": {
+              "precision": 0.513,
+              "recall": 1.0,
+              "f1": 0.6781,
+              "support": 890
+            },
+            "out_of_scope": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 661
+            }
+          },
+          "items": 1735,
+          "ece": 0.487,
+          "brier": 0.9741,
+          "nll": 13.4572,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.5104,
+            "acc_at_0.80": 0.5187,
+            "acc_at_1.00": 0.513
+          },
+          "confusion": {
+            "ambiguous": {
+              "in_scope": 184
+            },
+            "in_scope": {
+              "in_scope": 890
+            },
+            "out_of_scope": {
+              "in_scope": 661
+            }
+          },
+          "accuracy_by_stratum": {
+            "esci_accessory_for_product": {
+              "items": 117,
+              "accuracy": 0.9915
+            },
+            "esci_ambiguous": {
+              "items": 58,
+              "accuracy": 0.4828
+            },
+            "esci_broad_gift_intent": {
+              "items": 77,
+              "accuracy": 0.8961
+            },
+            "esci_bundle_or_set": {
+              "items": 99,
+              "accuracy": 1.0
+            },
+            "esci_single_product": {
+              "items": 525,
+              "accuracy": 0.9619
+            },
+            "esci_unknown": {
+              "items": 58,
+              "accuracy": 0.069
+            },
+            "orcas_abstain": {
+              "items": 299,
+              "accuracy": 0.1338
+            },
+            "orcas_factual": {
+              "items": 291,
+              "accuracy": 0.0515
+            },
+            "orcas_instrumental": {
+              "items": 47,
+              "accuracy": 0.0426
+            },
+            "orcas_navigational": {
+              "items": 136,
+              "accuracy": 0.0662
+            },
+            "orcas_transactional": {
+              "items": 28,
+              "accuracy": 0.1071
+            }
+          }
+        }
+      },
+      "complete_exact_match": {
+        "items": 1357,
+        "exact_match": 0.3626
+      },
+      "latency": {
+        "items": 2000,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "mean_ms": 0.0,
+        "items_per_second": NaN
+      },
+      "adapter": "majority",
+      "model_id": "majority_prior_v1",
+      "prompt_version": "zero_shot_typed_v1",
+      "dataset": "reference",
+      "task": "query_segmentation",
+      "cached_items": 0,
+      "new_items": 2000,
+      "wall_seconds": 0.407,
+      "memory": null
+    },
+    "brand_category": {
+      "items": 2000,
+      "fields": {
+        "brand_intent": {
+          "accuracy": 0.523,
+          "macro_f1": 0.1717,
+          "micro_f1": 0.523,
+          "per_class": {
+            "ambiguous_brand": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 12
+            },
+            "explicit_brand": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 799
+            },
+            "inferred_product_line": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 59
+            },
+            "no_brand": {
+              "precision": 0.523,
+              "recall": 1.0,
+              "f1": 0.6868,
+              "support": 954
+            }
+          },
+          "items": 1824,
+          "ece": 0.477,
+          "brier": 0.9539,
+          "nll": 13.1793,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.5241,
+            "acc_at_0.80": 0.5223,
+            "acc_at_1.00": 0.523
+          },
+          "confusion": {
+            "ambiguous_brand": {
+              "no_brand": 12
+            },
+            "explicit_brand": {
+              "no_brand": 799
+            },
+            "inferred_product_line": {
+              "no_brand": 59
+            },
+            "no_brand": {
+              "no_brand": 954
+            }
+          },
+          "accuracy_by_stratum": {
+            "ambiguous_or_unmapped": {
+              "items": 343,
+              "accuracy": 0.7493
+            },
+            "explicit_brand_with_category": {
+              "items": 677,
+              "accuracy": 0.0089
+            },
+            "generic_query_with_category": {
+              "items": 804,
+              "accuracy": 0.8595
+            }
+          }
+        },
+        "brand_choice": {
+          "accuracy": 0.5629,
+          "macro_f1": 0.08,
+          "micro_f1": 0.5629,
+          "per_class": {
+            "brand_0": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 100
+            },
+            "brand_1": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 107
+            },
+            "brand_2": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 100
+            },
+            "brand_3": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 107
+            },
+            "brand_4": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 116
+            },
+            "brand_5": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 110
+            },
+            "brand_6": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 111
+            },
+            "brand_7": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 100
+            },
+            "none_or_other": {
+              "precision": 0.5629,
+              "recall": 1.0,
+              "f1": 0.7203,
+              "support": 1096
+            }
+          },
+          "items": 1947,
+          "ece": 0.4371,
+          "brier": 0.8742,
+          "nll": 12.077,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.5708,
+            "acc_at_0.80": 0.5648,
+            "acc_at_1.00": 0.5629
+          },
+          "confusion": {
+            "brand_0": {
+              "none_or_other": 100
+            },
+            "brand_1": {
+              "none_or_other": 107
+            },
+            "brand_2": {
+              "none_or_other": 100
+            },
+            "brand_3": {
+              "none_or_other": 107
+            },
+            "brand_4": {
+              "none_or_other": 116
+            },
+            "brand_5": {
+              "none_or_other": 110
+            },
+            "brand_6": {
+              "none_or_other": 111
+            },
+            "brand_7": {
+              "none_or_other": 100
+            },
+            "none_or_other": {
+              "none_or_other": 1096
+            }
+          },
+          "accuracy_by_stratum": {
+            "ambiguous_or_unmapped": {
+              "items": 389,
+              "accuracy": 0.7892
+            },
+            "explicit_brand_with_category": {
+              "items": 678,
+              "accuracy": 0.0177
+            },
+            "generic_query_with_category": {
+              "items": 880,
+              "accuracy": 0.883
+            }
+          }
+        },
+        "category_choice": {
+          "accuracy": 0.4136,
+          "macro_f1": 0.065,
+          "micro_f1": 0.4136,
+          "per_class": {
+            "category_0": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 126
+            },
+            "category_1": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 125
+            },
+            "category_2": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 137
+            },
+            "category_3": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 120
+            },
+            "category_4": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 132
+            },
+            "category_5": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 128
+            },
+            "category_6": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 147
+            },
+            "category_7": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 140
+            },
+            "other_or_ambiguous": {
+              "precision": 0.4136,
+              "recall": 1.0,
+              "f1": 0.5851,
+              "support": 744
+            }
+          },
+          "items": 1799,
+          "ece": 0.5864,
+          "brier": 1.1729,
+          "nll": 16.2039,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.4056,
+            "acc_at_0.80": 0.4051,
+            "acc_at_1.00": 0.4136
+          },
+          "confusion": {
+            "category_0": {
+              "other_or_ambiguous": 126
+            },
+            "category_1": {
+              "other_or_ambiguous": 125
+            },
+            "category_2": {
+              "other_or_ambiguous": 137
+            },
+            "category_3": {
+              "other_or_ambiguous": 120
+            },
+            "category_4": {
+              "other_or_ambiguous": 132
+            },
+            "category_5": {
+              "other_or_ambiguous": 128
+            },
+            "category_6": {
+              "other_or_ambiguous": 147
+            },
+            "category_7": {
+              "other_or_ambiguous": 140
+            },
+            "other_or_ambiguous": {
+              "other_or_ambiguous": 744
+            }
+          },
+          "accuracy_by_stratum": {
+            "ambiguous_or_unmapped": {
+              "items": 391,
+              "accuracy": 0.9923
+            },
+            "explicit_brand_with_category": {
+              "items": 609,
+              "accuracy": 0.2578
+            },
+            "generic_query_with_category": {
+              "items": 799,
+              "accuracy": 0.2491
+            }
+          }
+        },
+        "multi_target": {
+          "accuracy": 0.9995,
+          "macro_f1": 0.4999,
+          "micro_f1": 0.9995,
+          "per_class": {
+            "false": {
+              "precision": 0.9995,
+              "recall": 1.0,
+              "f1": 0.9997,
+              "support": 1995
+            },
+            "true": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 1
+            }
+          },
+          "items": 1996,
+          "ece": 0.0005,
+          "brier": 0.001,
+          "nll": 0.0138,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 1.0,
+            "acc_at_0.80": 0.9994,
+            "acc_at_1.00": 0.9995
+          },
+          "confusion": {
+            "false": {
+              "false": 1995
+            },
+            "true": {
+              "false": 1
+            }
+          },
+          "accuracy_by_stratum": {
+            "ambiguous_or_unmapped": {
+              "items": 398,
+              "accuracy": 0.9975
+            },
+            "explicit_brand_with_category": {
+              "items": 699,
+              "accuracy": 1.0
+            },
+            "generic_query_with_category": {
+              "items": 899,
+              "accuracy": 1.0
+            }
+          }
+        }
+      },
+      "complete_exact_match": {
+        "items": 1615,
+        "exact_match": 0.2353
+      },
+      "latency": {
+        "items": 2000,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "mean_ms": 0.0,
+        "items_per_second": NaN
+      },
+      "adapter": "majority",
+      "model_id": "majority_prior_v1",
+      "prompt_version": "zero_shot_typed_v1",
+      "dataset": "reference",
+      "task": "brand_category",
+      "cached_items": 0,
+      "new_items": 2000,
+      "wall_seconds": 0.462,
+      "memory": null
+    },
+    "esci": {
+      "items": 8000,
+      "fields": {
+        "esci_label": {
+          "accuracy": 0.25,
+          "macro_f1": 0.1,
+          "micro_f1": 0.25,
+          "per_class": {
+            "C": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2000
+            },
+            "E": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2000
+            },
+            "I": {
+              "precision": 0.25,
+              "recall": 1.0,
+              "f1": 0.4,
+              "support": 2000
+            },
+            "S": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2000
+            }
+          },
+          "items": 8000,
+          "ece": 0.75,
+          "brier": 1.5,
+          "nll": 20.7233,
+          "mean_confidence": 1.0,
+          "coverage_accuracy": {
+            "acc_at_0.50": 0.253,
+            "acc_at_0.80": 0.2495,
+            "acc_at_1.00": 0.25
+          },
+          "confusion": {
+            "C": {
+              "I": 2000
+            },
+            "E": {
+              "I": 2000
+            },
+            "I": {
+              "I": 2000
+            },
+            "S": {
+              "I": 2000
+            }
+          },
+          "accuracy_by_stratum": {
+            "human": {
+              "items": 8000,
+              "accuracy": 0.25
+            }
+          },
+          "accuracy_by_label_source": {
+            "human": {
+              "items": 8000,
+              "accuracy": 0.25
+            }
+          }
+        }
+      },
+      "complete_exact_match": {
+        "items": 8000,
+        "exact_match": 0.25
+      },
+      "latency": {
+        "items": 8000,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "mean_ms": 0.0,
+        "items_per_second": NaN
+      },
+      "adapter": "majority",
+      "model_id": "majority_prior_v1",
+      "prompt_version": "zero_shot_typed_v1",
+      "dataset": "reference",
+      "task": "esci",
+      "cached_items": 0,
+      "new_items": 8000,
+      "wall_seconds": 1.594,
+      "memory": null
+    }
+  }
+}

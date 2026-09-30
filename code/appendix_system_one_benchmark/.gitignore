@@ -1,0 +1,46 @@
+# Live secrets — never commit .env
+.env
+.envrc
+
+# Isolated runtimes (~GB)
+.venvs/
+.venv/
+venv/
+env/
+
+# Private / regenerable evaluation data
+references/
+data/
+
+# Generated artifacts (committed summaries are listed as exceptions below)
+outputs/adjudication_cache.sqlite
+outputs/benchmark_cache.sqlite
+outputs/local_preflight.json
+outputs/consensus/
+outputs/consensus_*/
+outputs/benchmark/colab_bundle/
+outputs/benchmark/colab_bundle.zip
+outputs/benchmark/*_smoke/
+outputs/benchmark/*/predictions.jsonl
+outputs/benchmark/*/*.log
+outputs/benchmark/*/BENCHMARK_RESULTS.md
+
+# Bundle / download zips
+*.zip
+
+# Private drafts if they land here by mistake
+SUBSTACK_*.md
+
+# Python / notebooks
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+*.pyc
+*.pyo
+*.egg-info/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

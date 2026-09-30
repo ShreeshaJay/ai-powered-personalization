@@ -1,0 +1,16 @@
+# Core harness, reports, and unit tests
+pytest>=8.0.0
+httpx>=0.27.0
+pandas>=2.0.0
+
+# Dual-judge labeling (adjudicate_pilots.py)
+anthropic>=0.40.0
+openai>=1.40.0
+
+# Optional: local Laya adapter
+# torch>=2.0.0
+# transformers>=4.40.0
+# laya>=0.3.11
+
+# Optional: Kev / JevLite — install in an isolated Python 3.12 env
+# kev[serve] @ git+https://github.com/jaredpalmer/kev.git

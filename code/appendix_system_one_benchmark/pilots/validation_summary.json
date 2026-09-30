@@ -1,0 +1,50 @@
+{
+  "valid": true,
+  "datasets": {
+    "compatibility": {
+      "rows": 100,
+      "source_strata": {
+        "generated_cross_sell": 20,
+        "generated_direct_accessory": 40,
+        "human_irrelevant_negative": 10,
+        "human_substitute_hard_negative": 10,
+        "out_of_category_negative": 20
+      },
+      "adjudication_input_chars": {
+        "min": 402,
+        "mean": 1361.5,
+        "max": 2094
+      }
+    },
+    "query_segmentation": {
+      "rows": 100,
+      "source_strata": {
+        "accessory_for_product": 15,
+        "ambiguous": 10,
+        "broad_gift_intent": 10,
+        "bundle_or_set": 10,
+        "navigation_probe": 10,
+        "single_product": 35,
+        "unknown": 10
+      },
+      "adjudication_input_chars": {
+        "min": 42,
+        "mean": 60.2,
+        "max": 92
+      }
+    },
+    "brand_category": {
+      "rows": 100,
+      "source_strata": {
+        "ambiguous_or_unmapped": 20,
+        "explicit_brand_with_category": 40,
+        "generic_query_with_category": 40
+      },
+      "adjudication_input_chars": {
+        "min": 1191,
+        "mean": 1466.6,
+        "max": 1688
+      }
+    }
+  }
+}

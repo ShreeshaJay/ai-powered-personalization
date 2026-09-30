@@ -1,0 +1,55 @@
+{
+  "budget_usd": 250.0,
+  "audit_repeat_fraction": 0.05,
+  "items_per_request": 20,
+  "models": {
+    "claude-opus-5": {
+      "provider": "anthropic",
+      "input_usd_per_million": 5.0,
+      "output_usd_per_million": 25.0,
+      "batch_discount": 0.5
+    },
+    "gpt-5.6-sol": {
+      "provider": "openai",
+      "input_usd_per_million": 4.0,
+      "output_usd_per_million": 20.0,
+      "batch_discount": 0.5
+    }
+  },
+  "tasks": {
+    "esci_new_enriched": {
+      "items": 0,
+      "estimated_input_tokens_per_item": 220,
+      "estimated_output_tokens_per_item": 45,
+      "notes": "Disabled: ESCI uses the existing human and Gemini-enriched labels, with no new Opus/Sol adjudication."
+    },
+    "product_accessory_compatibility": {
+      "items": 2000,
+      "estimated_input_tokens_per_item": 360,
+      "estimated_output_tokens_per_item": 55,
+      "notes": "Two compact product records plus the four-level compatibility rubric."
+    },
+    "query_segmentation": {
+      "items": 2000,
+      "estimated_input_tokens_per_item": 110,
+      "estimated_output_tokens_per_item": 45,
+      "notes": "Query plus goal, object, specificity, and out-of-scope decisions."
+    },
+    "brand_category": {
+      "items": 2000,
+      "estimated_input_tokens_per_item": 400,
+      "estimated_output_tokens_per_item": 55,
+      "notes": "Query plus a bounded candidate set; 4/16/64-cardinality runs are costed separately after prompt calibration."
+    }
+  },
+  "scenarios": {
+    "nominal": {
+      "output_token_multiplier": 1.0,
+      "description": "Compact structured output with low reasoning effort."
+    },
+    "reasoning_reserve": {
+      "output_token_multiplier": 3.0,
+      "description": "Conservative reserve for billed reasoning tokens and retries."
+    }
+  }
+}
