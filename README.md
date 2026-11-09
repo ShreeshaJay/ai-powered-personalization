@@ -79,6 +79,7 @@ Corrections to published chapters are listed in [ERRATA.md](ERRATA.md).
 | `code/chapter10_item_embeddings/` | Chapter 10 — Item embeddings (SBERT, Item2Vec, contrastive fine-tuning, multimodal fusion) |
 | `code/chapter11_user_embeddings/` | Chapter 11 — User embeddings (aggregation, SASRec/GRU4Rec, LightGCN) |
 | `code/chapter12_llms_for_recs/`, `code/appendix_hybrid_search/` | LLM-recommendation methodology notes and hybrid-search appendix code |
+| `code/chapter13_deployment/` | Chapter 13 - Online deployment (five services for the Chapter 5 to 8 models, stage contracts, deadlines, circuit breakers, degradation ladder, local stack and Cloud Run deploy) |
 | `code/chapter14_latency/` | Chapter 14 — Latency optimization (tail-latency measurement, critical-path attribution, ANN operating points, ONNX and quantized inference with parity checks) |
 | `code/chapter16_experimentation/` | Chapter 16 — Experimentation and bandits (CUPED, sequential testing, interleaving, bandits, off-policy evaluation) |
 | `code/appendix_system_one_benchmark/` | Structured-output scoring benchmark (majority, Laya, Jev, Kev-0.8B, Kev-4B, JevLite) |

@@ -1,0 +1,25 @@
+{
+  "config_version": "vf-growth-v1",
+  "author": "chapter13-companion-code",
+  "reason": "Example alternative policy for staged release and policy pinning: Chapter 8's growth weights.",
+  "description": "Chapter 8 get_growth_config(): more weight on predicted likes.",
+  "value_function": {
+    "w_listen": 0.5,
+    "w_like": 4.0,
+    "w_engagement": 1.0,
+    "w_dislike_penalty": 1.0,
+    "min_listen_threshold": 0.0,
+    "normalize_scores": true
+  },
+  "diversity": {
+    "enabled": true,
+    "lambda_param": 0.7,
+    "candidate_multiplier": 2
+  },
+  "pacing": {
+    "enabled": true,
+    "max_per_artist": 2,
+    "max_per_album": 1,
+    "defer_violations": true
+  }
+}

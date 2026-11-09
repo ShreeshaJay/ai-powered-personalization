@@ -1,0 +1,7 @@
+# Value function and re-ranker image (no torch).
+fastapi==0.162.2
+uvicorn==0.54.0
+pydantic==2.14.3
+numpy==2.4.6
+polars==2.1.0
+scikit-learn==1.9.1

@@ -1,0 +1,7 @@
+# Built model, index and feature-store bundles (rebuild with pipeline_build.build_artifacts)
+artifacts/
+# Run records, smoke and load-test reports
+outputs/
+__pycache__/
+.pytest_cache/
+*.pyc

@@ -1,0 +1,14 @@
+# Images need contracts/, common/, vendor/, services/, config/ and one bundle.
+**/__pycache__
+**/*.pyc
+.pytest_cache
+outputs
+tests
+load
+scripts
+pipeline_build
+deploy
+docs
+streamlit_demo
+infra
+*.md

@@ -1,0 +1,128 @@
+{
+  "source_repository": "https://github.com/ShreeshaJay/ai-powered-personalization",
+  "source_commit": "074886c3ee51a79dd1848d437b467d9be75843ca",
+  "vendored_at_utc": "2026-11-09T19:22:14Z",
+  "note": "Byte-identical copies of committed files. Do not edit; re-run scripts/vendor_published_code.py instead.",
+  "files": [
+    {
+      "vendored_path": "chapter5_retrieval/supervised_two_tower.py",
+      "source_path": "code/chapter5_retrieval/supervised_two_tower.py",
+      "sha256": "023823c62eeb25e99de960b1426d56e55935b71a8fd8378a6a5cdc5e9fb0c009",
+      "bytes": 50530
+    },
+    {
+      "vendored_path": "chapter6_ranking/models/__init__.py",
+      "source_path": "code/chapter6_ranking/models/__init__.py",
+      "sha256": "c7b045469e7074cc2f74f1ff6ef5146ed2a53eb58d392534aa5bf8018a2036ae",
+      "bytes": 1078
+    },
+    {
+      "vendored_path": "chapter6_ranking/models/deepfm.py",
+      "source_path": "code/chapter6_ranking/models/deepfm.py",
+      "sha256": "b7967564a661f6d8ce1f7be963a9e87f0cbef06d5579353affcb498b8fbfca8d",
+      "bytes": 17088
+    },
+    {
+      "vendored_path": "chapter6_ranking/models/feature_encoder.py",
+      "source_path": "code/chapter6_ranking/models/feature_encoder.py",
+      "sha256": "41e2333c4287db82115db4c404cc131ca2a48b22ffed28f72910241073374eab",
+      "bytes": 9254
+    },
+    {
+      "vendored_path": "chapter6_ranking/models/feature_pipeline.py",
+      "source_path": "code/chapter6_ranking/models/feature_pipeline.py",
+      "sha256": "f5f898d860618dd82576092dac69bd256af6930e689f9099fee70a16794e3429",
+      "bytes": 11253
+    },
+    {
+      "vendored_path": "chapter6_ranking/models/historical_features.py",
+      "source_path": "code/chapter6_ranking/models/historical_features.py",
+      "sha256": "5220770a2c03ba3d710f61034bf3d97d303a56fce9acef7b685fa17509f71715",
+      "bytes": 18956
+    },
+    {
+      "vendored_path": "chapter6_ranking/models/xgboost_ranker.py",
+      "source_path": "code/chapter6_ranking/models/xgboost_ranker.py",
+      "sha256": "a0e572281a3d198365632c7a61340e032335ea2370f48e56153cbea18fa07d1d",
+      "bytes": 13709
+    },
+    {
+      "vendored_path": "chapter7_advanced_ranking/models/__init__.py",
+      "source_path": "code/chapter7_advanced_ranking/models/__init__.py",
+      "sha256": "f42e6b17b9adf00796beaee67a39a7725f1523cb5c16d9b6873287fb9e28cb30",
+      "bytes": 1343
+    },
+    {
+      "vendored_path": "chapter7_advanced_ranking/models/dcn.py",
+      "source_path": "code/chapter7_advanced_ranking/models/dcn.py",
+      "sha256": "eadfc8bc4bcd5d462865c1410e9fb512a4880580232958cf59f3e3e182be9399",
+      "bytes": 20091
+    },
+    {
+      "vendored_path": "chapter7_advanced_ranking/models/dlrm.py",
+      "source_path": "code/chapter7_advanced_ranking/models/dlrm.py",
+      "sha256": "c501feb2da35b6f75aa9dfd843be159337b20d4665d4780eea49c92a2580b257",
+      "bytes": 18301
+    },
+    {
+      "vendored_path": "chapter7_advanced_ranking/models/mmoe.py",
+      "source_path": "code/chapter7_advanced_ranking/models/mmoe.py",
+      "sha256": "37a77b651ff1991c871a5572ab088665b8173f38199dd45a9916e289c588d7a4",
+      "bytes": 28310
+    },
+    {
+      "vendored_path": "chapter7_advanced_ranking/utils/__init__.py",
+      "source_path": "code/chapter7_advanced_ranking/utils/__init__.py",
+      "sha256": "4fb0a841d16ec98c0030f14c8221830ba3c79cb6287c0594f73cb801cc946ddd",
+      "bytes": 488
+    },
+    {
+      "vendored_path": "chapter7_advanced_ranking/utils/polars_pipeline.py",
+      "source_path": "code/chapter7_advanced_ranking/utils/polars_pipeline.py",
+      "sha256": "b9ab5c0d9c24cbd0082c416a1216d61435f319f6993a1db10cff7c5b7f429190",
+      "bytes": 32142
+    },
+    {
+      "vendored_path": "chapter7_advanced_ranking/train_mmoe.py",
+      "source_path": "code/chapter7_advanced_ranking/train_mmoe.py",
+      "sha256": "a96ab84d43021e6aaf7c68c6f9cf647b23720ae497dfc55ab07447468d133dd1",
+      "bytes": 57800
+    },
+    {
+      "vendored_path": "chapter8_value_functions/__init__.py",
+      "source_path": "code/chapter8_value_functions/__init__.py",
+      "sha256": "9a808fd6e36f604e48cf15274393887b1d7cc24b2d72a9313fb29e625ee50b4d",
+      "bytes": 1045
+    },
+    {
+      "vendored_path": "chapter8_value_functions/business_rules.py",
+      "source_path": "code/chapter8_value_functions/business_rules.py",
+      "sha256": "f4ae6d31b80d234661bbd9d3e2f3c6d2083593e4e610957510ce921c34006c16",
+      "bytes": 12813
+    },
+    {
+      "vendored_path": "chapter8_value_functions/mmr_diversity.py",
+      "source_path": "code/chapter8_value_functions/mmr_diversity.py",
+      "sha256": "35d4c21c650d9f04afd03d3517a6c8c7eb5920608343f061026a53a2a338d677",
+      "bytes": 14858
+    },
+    {
+      "vendored_path": "chapter8_value_functions/model_interface.py",
+      "source_path": "code/chapter8_value_functions/model_interface.py",
+      "sha256": "201340802afea89566cafc9cb012058a9061c8a836b9c943c3c05d9a13fc4b75",
+      "bytes": 11094
+    },
+    {
+      "vendored_path": "chapter8_value_functions/pipeline.py",
+      "source_path": "code/chapter8_value_functions/pipeline.py",
+      "sha256": "bc427fb505e2fac9668a84747e852e905223170a2dff1d1d3e1ee530bb51064f",
+      "bytes": 18629
+    },
+    {
+      "vendored_path": "chapter8_value_functions/value_function.py",
+      "source_path": "code/chapter8_value_functions/value_function.py",
+      "sha256": "2b06d50867b630947d371f6493539282aaa97114bfc6dd52b0bbc16077e6cdbe",
+      "bytes": 20990
+    }
+  ]
+}

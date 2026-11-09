@@ -1,0 +1,9 @@
+# Heavy ranker image. torch comes from the CPU wheel index (see the Dockerfile).
+# scikit-learn must match the build: the MMoE feature processor is a pickle of its encoders.
+fastapi==0.162.2
+uvicorn==0.54.0
+pydantic==2.14.3
+numpy==2.4.6
+pandas==3.1.1
+polars==2.1.0
+scikit-learn==1.9.1

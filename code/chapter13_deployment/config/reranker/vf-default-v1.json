@@ -1,0 +1,25 @@
+{
+  "config_version": "vf-default-v1",
+  "author": "chapter13-companion-code",
+  "reason": "Initial policy: the Chapter 8 default weights, diversity and pacing.",
+  "description": "Chapter 8 defaults: ValueFunctionConfig(), DiversityConfig(lambda_param=0.7), PacingConfig().",
+  "value_function": {
+    "w_listen": 1.0,
+    "w_like": 2.0,
+    "w_engagement": 1.5,
+    "w_dislike_penalty": 1.0,
+    "min_listen_threshold": 0.0,
+    "normalize_scores": true
+  },
+  "diversity": {
+    "enabled": true,
+    "lambda_param": 0.7,
+    "candidate_multiplier": 2
+  },
+  "pacing": {
+    "enabled": true,
+    "max_per_artist": 2,
+    "max_per_album": 1,
+    "defer_violations": true
+  }
+}

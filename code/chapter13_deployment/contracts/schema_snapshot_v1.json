@@ -1,0 +1,957 @@
+{
+  "ClientRequest": {
+    "$defs": {
+      "RequestContext": {
+        "properties": {
+          "is_organic": {
+            "default": 0,
+            "description": "Yambda's is_organic flag; 0 means the track was surfaced by a recommender.",
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Is Organic",
+            "type": "integer"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Event time in seconds on Yambda's clock. Defaults to the end of the training window.",
+            "title": "Timestamp"
+          }
+        },
+        "title": "RequestContext",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "context": {
+        "$ref": "#/$defs/RequestContext"
+      },
+      "num_results": {
+        "default": 20,
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Num Results",
+        "type": "integer"
+      },
+      "policy_version": {
+        "anyOf": [
+          {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Pin a value-function configuration, for example an experiment arm; passed to the re-ranker.",
+        "title": "Policy Version"
+      },
+      "user_id": {
+        "minimum": 0,
+        "title": "User Id",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "user_id"
+    ],
+    "title": "ClientRequest",
+    "type": "object"
+  },
+  "ClientResponse": {
+    "$defs": {
+      "Degradation": {
+        "description": "The lowest rung reached (Figure 13.6) and every fallback taken, in the figure's order.",
+        "properties": {
+          "fallbacks": {
+            "items": {
+              "$ref": "#/$defs/Fallback"
+            },
+            "title": "Fallbacks",
+            "type": "array"
+          },
+          "feature_defaults": {
+            "$ref": "#/$defs/FeatureDefaults"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "rung": {
+            "maximum": 6,
+            "minimum": 1,
+            "title": "Rung",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rung",
+          "label"
+        ],
+        "title": "Degradation",
+        "type": "object"
+      },
+      "Fallback": {
+        "description": "One stage skipped or substituted, with the rung of Figure 13.6 that its failure leads to.",
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail"
+          },
+          "label": {
+            "description": "The rung's name in Figure 13.6, for example 'Skip heavy ranker'.",
+            "title": "Label",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "timeout",
+              "error",
+              "circuit_open",
+              "deadline_budget",
+              "contract_violation",
+              "features_unavailable"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "rung": {
+            "maximum": 6,
+            "minimum": 2,
+            "title": "Rung",
+            "type": "integer"
+          },
+          "stage": {
+            "enum": [
+              "heavy_ranker",
+              "reranker",
+              "lightweight_ranker",
+              "retrieval",
+              "pipeline"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "rung",
+          "label",
+          "reason",
+          "action"
+        ],
+        "title": "Fallback",
+        "type": "object"
+      },
+      "FeatureDefaults": {
+        "description": "Feature values replaced by the feature contract's defaults (Section 13.7.2).\nRecorded as a flag on the response, not as a rung of the ladder.",
+        "properties": {
+          "lookup_failed": {
+            "items": {
+              "enum": [
+                "user_features",
+                "item_features"
+              ],
+              "type": "string"
+            },
+            "title": "Lookup Failed",
+            "type": "array"
+          },
+          "missing": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Feature -> values absent from the store.",
+            "title": "Missing",
+            "type": "object"
+          },
+          "stale": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Feature -> values older than the contract's maximum age.",
+            "title": "Stale",
+            "type": "object"
+          }
+        },
+        "title": "FeatureDefaults",
+        "type": "object"
+      },
+      "RecommendedItem": {
+        "properties": {
+          "album_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Album Id"
+          },
+          "artist_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artist Id"
+          },
+          "item_id": {
+            "minimum": 0,
+            "title": "Item Id",
+            "type": "integer"
+          },
+          "rank": {
+            "minimum": 1,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "track_length_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Track Length Seconds"
+          }
+        },
+        "required": [
+          "rank",
+          "item_id",
+          "score"
+        ],
+        "title": "RecommendedItem",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "deadline_ms": {
+        "title": "Deadline Ms",
+        "type": "number"
+      },
+      "degradation": {
+        "$ref": "#/$defs/Degradation"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/$defs/RecommendedItem"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "model_version": {
+        "minLength": 1,
+        "title": "Model Version",
+        "type": "string"
+      },
+      "score_source": {
+        "enum": [
+          "value_function",
+          "heavy_ranker",
+          "lightweight_ranker",
+          "retrieval",
+          "popularity"
+        ],
+        "title": "Score Source",
+        "type": "string"
+      },
+      "stage_versions": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "title": "Stage Versions",
+        "type": "object"
+      },
+      "timings_ms": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "title": "Timings Ms",
+        "type": "object"
+      },
+      "trace_id": {
+        "minLength": 1,
+        "title": "Trace Id",
+        "type": "string"
+      },
+      "user_id": {
+        "title": "User Id",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "trace_id",
+      "model_version",
+      "user_id",
+      "items",
+      "score_source",
+      "degradation",
+      "deadline_ms"
+    ],
+    "title": "ClientResponse",
+    "type": "object"
+  },
+  "ErrorResponse": {
+    "properties": {
+      "detail": {
+        "title": "Detail"
+      },
+      "error": {
+        "enum": [
+          "contract_violation",
+          "deadline_exceeded",
+          "not_ready",
+          "internal_error"
+        ],
+        "title": "Error",
+        "type": "string"
+      },
+      "model_version": {
+        "title": "Model Version",
+        "type": "string"
+      },
+      "trace_id": {
+        "title": "Trace Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "error",
+      "detail",
+      "trace_id",
+      "model_version"
+    ],
+    "title": "ErrorResponse",
+    "type": "object"
+  },
+  "RankingRequest": {
+    "$defs": {
+      "RankingCandidate": {
+        "properties": {
+          "features": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Item and user-item features from the feature store.",
+            "title": "Features",
+            "type": "object"
+          },
+          "item_id": {
+            "minimum": 0,
+            "title": "Item Id",
+            "type": "integer"
+          },
+          "retrieval_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Retrieval Score"
+          }
+        },
+        "required": [
+          "item_id",
+          "features"
+        ],
+        "title": "RankingCandidate",
+        "type": "object"
+      },
+      "RequestContext": {
+        "properties": {
+          "is_organic": {
+            "default": 0,
+            "description": "Yambda's is_organic flag; 0 means the track was surfaced by a recommender.",
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Is Organic",
+            "type": "integer"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Event time in seconds on Yambda's clock. Defaults to the end of the training window.",
+            "title": "Timestamp"
+          }
+        },
+        "title": "RequestContext",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "candidates": {
+        "items": {
+          "$ref": "#/$defs/RankingCandidate"
+        },
+        "maxItems": 1000,
+        "minItems": 1,
+        "title": "Candidates",
+        "type": "array"
+      },
+      "context": {
+        "$ref": "#/$defs/RequestContext"
+      },
+      "feature_set_version": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Feature Set Version"
+      },
+      "num_results": {
+        "anyOf": [
+          {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Return the top N; all when omitted.",
+        "title": "Num Results"
+      },
+      "user_features": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "title": "User Features",
+        "type": "object"
+      },
+      "user_id": {
+        "minimum": 0,
+        "title": "User Id",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "user_id",
+      "user_features",
+      "candidates"
+    ],
+    "title": "RankingRequest",
+    "type": "object"
+  },
+  "RankingResponse": {
+    "$defs": {
+      "RankedItem": {
+        "properties": {
+          "item_id": {
+            "minimum": 0,
+            "title": "Item Id",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "task_scores": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/TaskScores"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "item_id",
+          "score"
+        ],
+        "title": "RankedItem",
+        "type": "object"
+      },
+      "TaskScores": {
+        "properties": {
+          "completion": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Completion",
+            "type": "number"
+          },
+          "dislike": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Dislike",
+            "type": "number"
+          },
+          "engagement": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Engagement",
+            "type": "number"
+          },
+          "like": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Like",
+            "type": "number"
+          },
+          "play_ratio": {
+            "description": "Expected fraction of the track played, a regression output.",
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Play Ratio",
+            "type": "number"
+          }
+        },
+        "required": [
+          "engagement",
+          "completion",
+          "play_ratio",
+          "like",
+          "dislike"
+        ],
+        "title": "TaskScores",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "model_name": {
+        "enum": [
+          "xgboost",
+          "mmoe"
+        ],
+        "title": "Model Name",
+        "type": "string"
+      },
+      "model_version": {
+        "minLength": 1,
+        "title": "Model Version",
+        "type": "string"
+      },
+      "ranked_items": {
+        "items": {
+          "$ref": "#/$defs/RankedItem"
+        },
+        "title": "Ranked Items",
+        "type": "array"
+      },
+      "score_name": {
+        "description": "What `score` estimates, for example p_completion.",
+        "title": "Score Name",
+        "type": "string"
+      },
+      "trace_id": {
+        "minLength": 1,
+        "title": "Trace Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "trace_id",
+      "model_version",
+      "model_name",
+      "score_name",
+      "ranked_items"
+    ],
+    "title": "RankingResponse",
+    "type": "object"
+  },
+  "RerankRequest": {
+    "$defs": {
+      "RerankCandidate": {
+        "properties": {
+          "album_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Album Id"
+          },
+          "artist_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artist Id"
+          },
+          "item_id": {
+            "minimum": 0,
+            "title": "Item Id",
+            "type": "integer"
+          },
+          "score": {
+            "description": "Model score from the last ranking stage that ran.",
+            "title": "Score",
+            "type": "number"
+          },
+          "task_scores": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/TaskScores"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "item_id",
+          "score"
+        ],
+        "title": "RerankCandidate",
+        "type": "object"
+      },
+      "TaskScores": {
+        "properties": {
+          "completion": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Completion",
+            "type": "number"
+          },
+          "dislike": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Dislike",
+            "type": "number"
+          },
+          "engagement": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Engagement",
+            "type": "number"
+          },
+          "like": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Like",
+            "type": "number"
+          },
+          "play_ratio": {
+            "description": "Expected fraction of the track played, a regression output.",
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Play Ratio",
+            "type": "number"
+          }
+        },
+        "required": [
+          "engagement",
+          "completion",
+          "play_ratio",
+          "like",
+          "dislike"
+        ],
+        "title": "TaskScores",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "candidates": {
+        "items": {
+          "$ref": "#/$defs/RerankCandidate"
+        },
+        "maxItems": 1000,
+        "minItems": 1,
+        "title": "Candidates",
+        "type": "array"
+      },
+      "num_results": {
+        "default": 20,
+        "maximum": 100,
+        "minimum": 1,
+        "title": "Num Results",
+        "type": "integer"
+      },
+      "policy_version": {
+        "anyOf": [
+          {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Serve this value-function configuration instead of the active one (Section 13.2.1).",
+        "title": "Policy Version"
+      },
+      "user_id": {
+        "minimum": 0,
+        "title": "User Id",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "user_id",
+      "candidates"
+    ],
+    "title": "RerankRequest",
+    "type": "object"
+  },
+  "RerankResponse": {
+    "$defs": {
+      "RerankedItem": {
+        "properties": {
+          "item_id": {
+            "minimum": 0,
+            "title": "Item Id",
+            "type": "integer"
+          },
+          "score": {
+            "description": "Value-function score, or the model score when task scores were absent.",
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "item_id",
+          "score"
+        ],
+        "title": "RerankedItem",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "config_version": {
+        "description": "The configuration that produced this response.",
+        "title": "Config Version",
+        "type": "string"
+      },
+      "diversity_applied": {
+        "title": "Diversity Applied",
+        "type": "boolean"
+      },
+      "items": {
+        "items": {
+          "$ref": "#/$defs/RerankedItem"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "model_version": {
+        "minLength": 1,
+        "title": "Model Version",
+        "type": "string"
+      },
+      "pacing_applied": {
+        "title": "Pacing Applied",
+        "type": "boolean"
+      },
+      "policy_pin": {
+        "default": "none",
+        "description": "none: no policy_version requested; honoured: config_version is the pinned version; unavailable: the pinned version is missing or invalid, so the active one served.",
+        "enum": [
+          "none",
+          "honoured",
+          "unavailable"
+        ],
+        "title": "Policy Pin",
+        "type": "string"
+      },
+      "trace_id": {
+        "minLength": 1,
+        "title": "Trace Id",
+        "type": "string"
+      },
+      "value_function_applied": {
+        "title": "Value Function Applied",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "trace_id",
+      "model_version",
+      "items",
+      "config_version",
+      "value_function_applied",
+      "diversity_applied",
+      "pacing_applied"
+    ],
+    "title": "RerankResponse",
+    "type": "object"
+  },
+  "RetrievalRequest": {
+    "properties": {
+      "exclude_item_ids": {
+        "items": {
+          "type": "integer"
+        },
+        "maxItems": 1000,
+        "title": "Exclude Item Ids",
+        "type": "array"
+      },
+      "num_candidates": {
+        "default": 300,
+        "maximum": 1000,
+        "minimum": 1,
+        "title": "Num Candidates",
+        "type": "integer"
+      },
+      "recent_item_ids": {
+        "anyOf": [
+          {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Chronological, most recent last, as Chapter 5's user tower expects. When omitted, the service reads the user's history from the feature store.",
+        "title": "Recent Item Ids"
+      },
+      "user_id": {
+        "minimum": 0,
+        "title": "User Id",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "user_id"
+    ],
+    "title": "RetrievalRequest",
+    "type": "object"
+  },
+  "RetrievalResponse": {
+    "$defs": {
+      "Candidate": {
+        "properties": {
+          "item_id": {
+            "minimum": 0,
+            "title": "Item Id",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "item_id",
+          "score"
+        ],
+        "title": "Candidate",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "candidates": {
+        "items": {
+          "$ref": "#/$defs/Candidate"
+        },
+        "title": "Candidates",
+        "type": "array"
+      },
+      "history_length": {
+        "minimum": 0,
+        "title": "History Length",
+        "type": "integer"
+      },
+      "index_version": {
+        "title": "Index Version",
+        "type": "string"
+      },
+      "model_version": {
+        "minLength": 1,
+        "title": "Model Version",
+        "type": "string"
+      },
+      "source": {
+        "enum": [
+          "two_tower",
+          "popularity_cold_start"
+        ],
+        "title": "Source",
+        "type": "string"
+      },
+      "trace_id": {
+        "minLength": 1,
+        "title": "Trace Id",
+        "type": "string"
+      },
+      "user_id": {
+        "title": "User Id",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "trace_id",
+      "model_version",
+      "user_id",
+      "candidates",
+      "source",
+      "index_version",
+      "history_length"
+    ],
+    "title": "RetrievalResponse",
+    "type": "object"
+  }
+}

@@ -1,0 +1,61 @@
+# Optional: the five services in containers. Docker is not needed for the
+# chapter; scripts/run_local.py runs the same services with uvicorn.
+#
+#   BUNDLE=artifacts/<bundle_version> docker compose up --build
+#
+# Optional Redis feature store:
+#   docker compose --profile redis up -d redis
+#   python scripts/load_redis.py
+#   BUNDLE=artifacts/<bundle_version> FEATURE_STORE_BACKEND=redis docker compose up --build
+#
+# Ports match the local runner: orchestrator 8000, retrieval 8001,
+# lightweight ranker 8002, heavy ranker 8003, re-ranker 8004.
+
+x-service: &service
+  restart: "no"
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"]
+    interval: 10s
+    timeout: 3s
+    start_period: 120s
+
+services:
+  retrieval:
+    <<: *service
+    build: {context: ., dockerfile: services/retrieval/Dockerfile, args: {BUNDLE: "${BUNDLE:?set BUNDLE=artifacts/<bundle_version>}"}}
+    ports: ["8001:8080"]
+    environment:
+      FEATURE_STORE_BACKEND: "${FEATURE_STORE_BACKEND:-sqlite}"
+      REDIS_URL: redis://redis:6379/0
+
+  light-ranker:
+    <<: *service
+    build: {context: ., dockerfile: services/lightweight_ranker/Dockerfile, args: {BUNDLE: "${BUNDLE:?set BUNDLE}"}}
+    ports: ["8002:8080"]
+
+  heavy-ranker:
+    <<: *service
+    build: {context: ., dockerfile: services/heavy_ranker/Dockerfile, args: {BUNDLE: "${BUNDLE:?set BUNDLE}"}}
+    ports: ["8003:8080"]
+
+  reranker:
+    <<: *service
+    build: {context: ., dockerfile: services/reranker/Dockerfile, args: {BUNDLE: "${BUNDLE:?set BUNDLE}"}}
+    ports: ["8004:8080"]
+
+  orchestrator:
+    <<: *service
+    build: {context: ., dockerfile: services/orchestrator/Dockerfile, args: {BUNDLE: "${BUNDLE:?set BUNDLE}"}}
+    ports: ["8000:8080"]
+    environment:
+      RETRIEVAL_URL: http://retrieval:8080
+      LIGHTWEIGHT_RANKER_URL: http://light-ranker:8080
+      HEAVY_RANKER_URL: http://heavy-ranker:8080
+      RERANKER_URL: http://reranker:8080
+      FEATURE_STORE_BACKEND: "${FEATURE_STORE_BACKEND:-sqlite}"
+      REDIS_URL: redis://redis:6379/0
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["redis"]
+    ports: ["6379:6379"]

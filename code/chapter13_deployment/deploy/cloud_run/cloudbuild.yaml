@@ -1,0 +1,42 @@
+# Build and push the five CPU images. deploy.py submits this from a staging
+# directory holding the chapter code and one artifact bundle under bundle/.
+substitutions:
+  _REGION: us-central1
+  _REPO: ch13-deploy
+  _TAG: manual
+
+steps:
+  - id: retrieval
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    args: ["build", "-f", "services/retrieval/Dockerfile", "--build-arg", "BUNDLE=bundle",
+           "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/retrieval:${_TAG}", "."]
+  - id: lightweight-ranker
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    args: ["build", "-f", "services/lightweight_ranker/Dockerfile", "--build-arg", "BUNDLE=bundle",
+           "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/lightweight-ranker:${_TAG}", "."]
+  - id: heavy-ranker
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    args: ["build", "-f", "services/heavy_ranker/Dockerfile", "--build-arg", "BUNDLE=bundle",
+           "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/heavy-ranker:${_TAG}", "."]
+  - id: reranker
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    args: ["build", "-f", "services/reranker/Dockerfile", "--build-arg", "BUNDLE=bundle",
+           "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/reranker:${_TAG}", "."]
+  - id: orchestrator
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["-"]
+    args: ["build", "-f", "services/orchestrator/Dockerfile", "--build-arg", "BUNDLE=bundle",
+           "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/orchestrator:${_TAG}", "."]
+
+images:
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/retrieval:${_TAG}"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/lightweight-ranker:${_TAG}"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/heavy-ranker:${_TAG}"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/reranker:${_TAG}"
+  - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/orchestrator:${_TAG}"
+
+timeout: 3600s
