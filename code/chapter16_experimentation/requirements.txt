@@ -1,0 +1,13 @@
+# Chapter 16: Experimentation and Bandits
+# Dependencies (Python 3.11). Versions pinned to the tested environment.
+
+# Core
+numpy==2.4.6
+scipy==1.17.1
+polars==2.1.0
+
+# Figures
+matplotlib==3.11.2
+
+# Development
+pytest==9.2.0

@@ -1,0 +1,6 @@
+# Generated figures, CSVs, and JSON summaries
+outputs/
+
+# Python caches
+__pycache__/
+.pytest_cache/
