@@ -22,6 +22,7 @@ outputs/benchmark/colab_bundle/
 outputs/benchmark/colab_bundle.zip
 outputs/benchmark/*_smoke/
 outputs/benchmark/*/predictions.jsonl
+outputs/benchmark/**/predictions/
 outputs/benchmark/*/*.log
 outputs/benchmark/*/BENCHMARK_RESULTS.md
 

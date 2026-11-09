@@ -293,6 +293,10 @@ def test_kev_adapter_cache_key_is_the_run() -> None:
         adapter.load()
 
 
+@pytest.mark.skipif(
+    not (REFERENCE_COMPAT.is_file() and REFERENCE_CONSENSUS.is_file()),
+    reason="reference manifests and consensus labels are not shipped in this public drop",
+)
 def test_pack_colab_bundle_lists_required_files() -> None:
     from pack_colab_bundle import collect_files
 
