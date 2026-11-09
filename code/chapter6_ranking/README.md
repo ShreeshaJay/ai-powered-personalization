@@ -21,7 +21,7 @@ This chapter demonstrates ranking models for recommender systems using the **Yan
 |---------|-------------|
 | `uid` | User identifier |
 | `item_id` | Track identifier |
-| `timestamp` | Delta time (binned to 5-second intervals) |
+| `timestamp` | Seconds since the first event in the dataset, rounded down to multiples of 5 (not Unix time) |
 | `is_organic` | 0 = recommendation-driven, 1 = organic discovery |
 | `played_ratio_pct` | Percentage of track played (target for listen completion) |
 | `track_length_seconds` | Track duration |
@@ -150,10 +150,26 @@ All four training scripts (`train_xgboost.py`, `train_xgboost_polars.py`, `train
 
 - **Test** is the last `--test_days` of the dataset, after a 30-minute gap.
 - **Validation** is the last `--val_split_ratio` (default 0.1) of the train window. It is held out before features are fitted.
+- **User and item aggregates** (for example `user_avg_completion`) are means of the label column, so each row gets them from a window that ends before its own: training rows from the window just before the fit window (same length, or `--history_days` in the Polars scripts), validation and test rows from the fit window. `train_xgboost.py` fits them on the first `--feature_source_ratio` (default 0.5) of its training split and trains on the rows after it.
 - Early stopping, learning-rate scheduling, and best-checkpoint selection use the **validation** set only.
 - The test set is scored once, at the end, and is never used to choose the model.
 
 See "Validation Protocol" in `docs/Chapter6_Design_Notes.md` for details.
+
+**Time units (note added 2026-11-09):** Yambda timestamps are seconds since the
+first event, rounded down to multiples of 5 (Yambda paper, Section 3.3). Before
+2026-11-09 the code divided by 5 as if each unit were 5 seconds, so the
+`--train_days` window, the 30-minute gap and the `--test_days` window were five
+times shorter than stated (a "30-day" window covered about 6 days), and
+`hour_of_day` / `day_of_week` were not the intended periodic features. Results,
+row counts, memory figures and runtimes in this README and in `docs/` that were
+recorded before that date are pending re-measurement.
+
+**Training-row aggregates (note added 2026-11-09):** Before 2026-11-09 the
+training rows' user and item aggregates were computed from the training rows
+themselves, so each row's own label was in its features. Train metrics and
+train-test gaps recorded before that date are inflated and pending
+re-measurement.
 
 ## Chapter Progression
 
@@ -201,6 +217,9 @@ Our ranking models (listen completion prediction):
 | XGBoost | ~0.70 | ~0.55 |
 | DeepFM | TBD | TBD |
 | DCN | TBD | TBD |
+
+These values were recorded before the 2026-11-09 time-unit fix (see Evaluation
+Protocol) and are pending re-measurement.
 
 ## Key Concepts
 

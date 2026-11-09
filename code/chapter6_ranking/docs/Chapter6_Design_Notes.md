@@ -22,12 +22,12 @@ This document consolidates the key design decisions and implementation details f
 
 ```
 listens.parquet:
-├── uid (int64)           - User identifier
-├── item_id (int64)       - Track identifier  
-├── timestamp (int64)     - Relative time (5-second bins)
-├── played_ratio_pct (int8) - Completion percentage (0-100)
-├── is_organic (int8)     - 1=user-initiated, 0=recommended
-└── track_length_seconds (float) - Track duration
+|-- uid (int64)           - User identifier
+|-- item_id (int64)       - Track identifier
+|-- timestamp (int64)     - Seconds since first event (multiples of 5)
+|-- played_ratio_pct (int8) - Completion percentage (0-100)
+|-- is_organic (int8)     - 1=user-initiated, 0=recommended
+`-- track_length_seconds (float) - Track duration
 ```
 
 ### Label Definition
@@ -66,6 +66,16 @@ Timeline:
 - `gap_duration`: 30 minutes (prevents information leakage)
 - `test_days`: 1
 
+**Time units (note added 2026-11-09):** `timestamp` counts seconds from the
+first event, rounded down to multiples of 5 (Yambda paper, Section 3.3), so the
+code converts days with 86,400 and minutes with 60. Before 2026-11-09 the code
+read one unit as 5 seconds, so every window was five times shorter than its
+name (a "30-day" window covered about 6 days, the 30-minute gap 6 minutes and
+the 1-day test window 4.8 hours), and the full dataset, which spans about 300
+days, looked like about 1,500 days. Row counts, memory figures, runtimes and
+results in these notes that were recorded before that date are pending
+re-measurement.
+
 ### Time-Window Approach for Memory Efficiency
 
 For memory-constrained environments (16GB laptop), we use a **shorter training window** rather than random sampling:
@@ -74,7 +84,8 @@ For memory-constrained environments (16GB laptop), we use a **shorter training w
 # Full dataset (~50M rows)
 train_lf, test_lf = load_yambda_polars(data_dir, train_days=None)
 
-# Reduced window (~5M rows) - preserves temporal integrity
+# Reduced window - preserves temporal integrity
+# (the ~5M row estimate predates the 2026-11-09 time-unit fix)
 train_lf, test_lf = load_yambda_polars(data_dir, train_days=30)
 ```
 
@@ -119,12 +130,12 @@ uid_freq = count(uid in train) / total_train_rows
 #### 3.3 Derived Temporal Features
 
 ```python
-# Cyclical time features (from timestamp)
-hour_of_day = (timestamp * 5 // 3600) % 24   # 0-23
-day_of_week = (timestamp * 5 // 86400) % 7   # 0-6
+# Cyclical time features (timestamp is already in seconds)
+hour_of_day = (timestamp // 3600) % 24   # 0-23
+day_of_week = (timestamp // 86400) % 7   # 0-6
 ```
 
-**Rationale:** Captures listening patterns (commute hours, weekends) without leaking absolute time.
+**Rationale:** Captures 24-hour and 7-day listening cycles without leaking absolute time. Because the timestamp origin is not disclosed, these are periodic offsets rather than local clock hour and weekday (hour 0 is not necessarily midnight).
 
 #### 3.4 Historical Aggregate Features
 
@@ -170,27 +181,76 @@ For each prediction at time T, historical features should only use data from tim
 # OLD (leaky): Same count for all rows with this (user, item) pair
 df.group_by(['uid', 'item_id']).count()
 
-# NEW (PIT-correct): Cumulative count up to but not including current row
+# NEW (PIT-correct): row position within the (user, item) pair, ordered by
+# timestamp = number of earlier interactions (0 for the first)
 (
-    pl.count()
+    pl.int_range(pl.len())
     .over(['uid', 'item_id'], order_by='timestamp')
-    - 1  # Exclude current row
 ).alias('previous_listen_count')
 ```
 
-### Features NOT PIT-Corrected (Documented Trade-off)
+An aggregate such as `pl.count().over(..., order_by='timestamp') - 1` looks
+similar but is not point-in-time: `order_by` does not change an aggregate, so
+every row of a pair gets the pair's total minus one, including counts of later
+listens. Versions of this code before 2026-11-09 used that form; rows of a pair
+that share a timestamp are now numbered in input row order.
 
-The following features use **lookup-table aggregation** (computed from full training window):
+### Window-Aggregate Features (Lookup Tables From an Earlier Window)
 
-| Feature Category | Examples | Leakage Risk | Why Not PIT |
-|-----------------|----------|--------------|-------------|
-| User-level | `user_avg_completion`, `user_total_listens` | **Low** | Aggregated over many items |
-| Item-level | `item_avg_completion`, `item_total_plays` | **Low** | Aggregated over many users |
+The user-level and item-level features are **lookup tables** aggregated over a
+window of listens and joined onto each row:
 
-**Rationale for accepting this simplification:**
-1. The observed train-test AUC gap (~0.17) is acceptable
-2. User/item-level aggregates dilute any single row's influence
-3. True PIT would require 5-10x code complexity
+| Feature Category | Examples |
+|-----------------|----------|
+| User-level | `user_avg_completion`, `user_total_listens` |
+| Item-level | `item_avg_completion`, `item_total_plays` |
+
+Most of them are means of `played_ratio_pct`, the column the label comes from.
+If they are computed from the training rows and joined back onto the same rows,
+each row's own label is part of its features (target leakage). A user with few
+listens is the extreme case: `user_avg_completion` is then close to the row's
+own completion. Versions of this code before 2026-11-09 did this for the
+training rows, which inflated the train AUC.
+
+The rule now is that a row's aggregates come only from a window that ends
+before the row's own window:
+
+| Rows | Aggregates computed from |
+|------|--------------------------|
+| Training (fit window) | The window just before the fit window, of the same length (or `--history_days`) |
+| Validation | The fit window |
+| Test | The fit window |
+
+```python
+pipeline = PolarsPipeline()
+pipeline.fit(train_lf)                      # encoders + fit-window aggregates
+
+# Training rows: aggregates from the window before the fit window
+train_lf, history_df = split_training_history(data_dir, train_lf, history_days)
+train_history = PolarsHistoricalFeatures().fit(history_df)
+train_df, feature_cols = pipeline.transform(train_lf, history=train_history)
+
+# Validation and test rows: aggregates from the fit window
+val_df, _ = pipeline.transform(val_lf)
+test_df, _ = pipeline.transform(test_lf)
+```
+
+If the data does not reach far enough back (for example with the full 300-day
+window), `split_training_history` uses the earliest part of the fit window as
+history only and drops those rows from training; it logs a warning when it does.
+Likes and dislikes used for `item_like_ratio` are restricted to the history
+window's time span. The frequency encodings (`uid_freq`, `item_id_freq`) are
+counts, not label-derived, so they stay fitted on the fit window.
+
+The pandas script `train_xgboost.py` follows the same rule: it fits the
+historical features on the first `--feature_source_ratio` (default 0.5) of its
+training split and trains only on the rows after it, so its history window is
+about as long as the rows it trains on, as in the Polars trainers.
+
+**Remaining simplification:** the aggregates are as of the end of a window
+rather than as of each row, so a row late in its window sees slightly stale
+values (never its own label or anything later). A Feature Store refreshes them
+more often.
 
 ### Production Feature Store Context
 
@@ -215,7 +275,7 @@ In production systems, a **Feature Store** (e.g., Feast, Tecton, Vertex AI Featu
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Key Takeaway:** The lookup-table approach in this codebase is a pedagogical simplification. Production systems require Feature Store infrastructure for strict PIT correctness.
+**Key Takeaway:** The fixed-window lookup tables in this codebase are a pedagogical simplification of this workflow. Production systems require Feature Store infrastructure for strict per-row PIT correctness.
 
 ---
 
@@ -332,6 +392,8 @@ train_lf, test_lf = load_yambda_polars(data_dir, train_days=30)
 
 ### Memory Usage by Configuration
 
+> **Note (2026-11-09):** These estimates predate the time-unit fix (see Section 2) and are pending re-measurement.
+
 | Configuration | Approx Rows | Peak Memory |
 |---------------|-------------|-------------|
 | `train_days=30` | ~5M | ~2-3 GB |
@@ -381,7 +443,7 @@ Both are valid; choice depends on use case.
 | Frequency encoding on full data | Fit only on training set | ✅ Implemented |
 | `user_item_avg_completion` | **REMOVED** - severe leakage (predicted label directly) | ✅ Fixed |
 | `previous_listen_count` | PIT-correct cumulative count | ✅ Fixed |
-| User/item aggregates | Lookup tables (accepted trade-off) | ⚠️ Documented |
+| User/item aggregates on their own training rows | Training rows use the window before the fit window | Fixed (2026-11-09) |
 | Test data influences feature scaling | Fit encoders on train only | ✅ Implemented |
 
 ### Leakage Risk Assessment
@@ -390,10 +452,12 @@ Both are valid; choice depends on use case.
 |-------------|--------------|--------------|
 | `user_item_avg_completion` | **SEVERE** | ❌ Removed |
 | `previous_listen_count` | **HIGH** (was) | ✅ PIT-corrected |
-| User-level aggregates | **LOW** | ⚠️ Accepted (documented) |
-| Item-level aggregates | **LOW** | ⚠️ Accepted (documented) |
+| User-level aggregates | **HIGH** (was: each row's own label) | Earlier window for training rows |
+| Item-level aggregates | **HIGH** (was: each row's own label) | Earlier window for training rows |
 
 ### Observed Metrics After Fixes
+
+> **Note (2026-11-09):** These figures were recorded while the training rows' user and item aggregates still included their own labels (see Section 3), which inflates the train AUC and the train-test gap. Pending re-measurement.
 
 > **Note (2026-11-08):** Recorded before the validation-window fix. At that time `train_xgboost_polars.py` chose its number of boosting rounds on the test window, so if these figures came from that script the test AUCs are optimistic. Rerun before quoting them.
 
@@ -574,6 +638,8 @@ should consider session-level grouping.
 ### Experimental Results Comparison
 
 > **Note (2026-11-08):** The results in this section and in the DeepFM results below were recorded with an earlier version of the scripts in which early stopping, and for DeepFM also learning-rate scheduling and checkpoint selection, monitored the test window. The test metrics are therefore optimistically biased. They are kept as historical development notes. Rerun the current scripts, which select on a separate validation window (see "Validation Protocol" above), for unbiased numbers.
+
+> **Note (2026-11-09):** These runs, the DeepFM results and the Section 12 table below also predate the time-unit fix (see Section 2): the "30-day" and "150-day" windows covered about 6 and 30 days of data. Sample counts, training times and metrics are pending re-measurement.
 
 #### 30-Day Training Window (~1.3M samples)
 
@@ -1081,7 +1147,7 @@ This chapter's models set the stage for:
 
 ### Environment Setup
 ```bash
-pip install polars pyarrow xgboost scikit-learn pandas numpy torch
+pip install "polars>=1.9.0" pyarrow xgboost scikit-learn pandas numpy torch
 ```
 
 ### Training Commands
@@ -1096,10 +1162,10 @@ $env:YAMBDA_DATA_DIR = "C:\path\to\Yandex\flat"
 # =====================================================================
 # POINTWISE CLASSIFICATION (train_xgboost_polars.py)
 # =====================================================================
-# Quick run (30 days, ~1.3M rows, ~1 min)
+# Quick run (30 days; row count and runtime pending re-measurement)
 python train_xgboost_polars.py --train_days 30
 
-# Full run (~1500 days, ~46M rows, ~4 min)
+# Full run (whole dataset, about 300 days; runtime pending re-measurement)
 python train_xgboost_polars.py --train_days 0
 
 # =====================================================================
@@ -1138,6 +1204,8 @@ python train_deepfm.py --train_days 30          # DeepFM → AUC (deep learning)
 
 > **Note (2026-11-08):** These ranges and the "Latest Run" output below were recorded with `train_xgboost_polars.py` before the validation-window fix, when early stopping monitored the test window, so the test metrics are optimistic. Rerun the current script for unbiased numbers.
 
+> **Note (2026-11-09):** They also predate the time-unit fix (see Section 2): the "300-day Window" covered about 60 days of data, and "Full Dataset (~1500 days)" is the whole dataset, which spans about 300 days. Pending re-measurement.
+
 | Metric | 300-day Window | Full Dataset (~1500 days) |
 |--------|----------------|---------------------------|
 | Train AUC-ROC | ~0.78-0.80 | ~0.79-0.80 |
@@ -1154,6 +1222,8 @@ Test AUC-ROC:  0.6680  ← Healthy generalization
 Test AUC-PR:   0.8221
 Train-Test Gap: 0.13   ← Acceptable
 ```
+
+> **Note (2026-11-09):** The ranges and run above, and the explanation below, predate the training-row history fix (Section 3): at the time the training rows' aggregates included their own labels, which is the main cause of the gap. Pending re-measurement.
 
 **Note:** The remaining train-test gap (~0.13) is expected due to:
 1. User/item aggregate features using lookup tables (not strict PIT)

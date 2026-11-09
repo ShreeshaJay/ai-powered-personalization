@@ -211,20 +211,33 @@ def build_user_sessions(
 
 def compute_popularity_scores(
     browsing_lf: pl.LazyFrame,
-    actions: List[str] = None
+    actions: List[str] = None,
+    max_timestamp: Optional[int] = None,
 ) -> Dict[str, int]:
-    """Compute popularity scores for all items."""
+    """Compute popularity scores for all items.
+
+    If max_timestamp is provided, only events at or before that timestamp
+    are counted. Use the train-split cutoff: the counted actions are the
+    same kind as the ground truth, so counting test-period events would put
+    the test sessions' own targets in the Popularity baseline.
+    """
     if actions is None:
         actions = ['detail', 'add', 'purchase']
     
     print("\nComputing popularity scores...")
     
-    popularity_query = (
-        browsing_lf
-        .filter(
-            (pl.col('product_sku_hash').is_not_null()) &
-            (pl.col('product_action').is_in(actions))
+    filtered = browsing_lf.filter(
+        (pl.col('product_sku_hash').is_not_null()) &
+        (pl.col('product_action').is_in(actions))
+    )
+    if max_timestamp is not None:
+        filtered = filtered.filter(
+            pl.col('server_timestamp_epoch_ms') <= max_timestamp
         )
+        print(f"  Restricting to events with timestamp <= {max_timestamp}")
+
+    popularity_query = (
+        filtered
         .group_by('product_sku_hash')
         .agg(pl.len().alias('engagement_count'))
     )
@@ -1372,7 +1385,12 @@ def main():
     random_baseline = RandomBaseline(all_skus)
     
     browsing_lf_pop = load_browsing_sessions_lazy(DATA_PATH, BROWSING_FILE)
-    popularity_scores = compute_popularity_scores(browsing_lf_pop, GROUND_TRUTH_ACTIONS)
+    # Train-period cutoff only: avoids leaking test-period engagement into
+    # the Popularity baseline.
+    train_cutoff_ts = train_sessions[-1]['max_timestamp']
+    popularity_scores = compute_popularity_scores(
+        browsing_lf_pop, GROUND_TRUTH_ACTIONS, max_timestamp=train_cutoff_ts
+    )
     popularity_baseline = PopularityBaseline(popularity_scores, all_skus)
     
     unsupervised_mean = UnsupervisedRetriever(item_lookup, aggregation='mean')

@@ -40,7 +40,10 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 sys.path.insert(0, str(Path(__file__).parent))
 
 from models.deepfm import DeepFM, DeepFMConfig, DeepFMDataset, collate_fn
-from utils.polars_pipeline import load_yambda_polars, PolarsPipeline, split_validation_window
+from utils.polars_pipeline import (
+    load_yambda_polars, PolarsPipeline, PolarsHistoricalFeatures,
+    split_validation_window, split_training_history,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -345,6 +348,9 @@ def main():
     parser.add_argument('--val_split_ratio', type=float, default=0.1,
                         help='Fraction of the train window, taken from its end, held out '
                              'as the validation set for model selection')
+    parser.add_argument('--history_days', type=float, default=0,
+                        help="Days of listens before the fit window used for the training "
+                             "rows' user and item aggregates (0: same length as the fit window)")
     
     # Model arguments
     parser.add_argument('--embed_dim', type=int, default=16,
@@ -427,8 +433,14 @@ def main():
     pipeline = PolarsPipeline()
     pipeline.fit(train_lf)
     
+    # Training rows get user and item aggregates from the window just before
+    # the fit window, so no row's own label is in its features. Validation
+    # and test rows use the fit window, which ends before their windows.
+    train_lf, history_df = split_training_history(args.data_dir, train_lf, args.history_days)
+    train_history = PolarsHistoricalFeatures().fit(history_df)
+    
     # Transform - returns (DataFrame, feature_columns) tuple
-    train_polars_df, feature_cols = pipeline.transform(train_lf)
+    train_polars_df, feature_cols = pipeline.transform(train_lf, history=train_history)
     val_polars_df, _ = pipeline.transform(val_lf)
     test_polars_df, _ = pipeline.transform(test_lf)
     
@@ -646,6 +658,7 @@ def main():
         },
         'best_epoch': best_epoch,
         'val_split_ratio': args.val_split_ratio,
+        'history_days': args.history_days,
         'train_metrics': train_metrics,
         'val_metrics': val_metrics,
         'test_metrics': test_metrics,

@@ -18,9 +18,11 @@ Usage:
 >>> # Optimize dtypes after loading
 >>> train_df = optimize_dtypes(train_df)
 >>> 
->>> # Use memory-efficient historical features
+>>> # Use memory-efficient historical features: fit on a window that ends
+>>> # before the rows you train on, so no row's own label is in its features
 >>> hist_builder = MemoryEfficientHistoricalFeatures()
->>> train_df = hist_builder.fit_transform(train_df)
+>>> hist_builder.fit(history_df)
+>>> train_df = hist_builder.transform(train_df)
 
 Memory Savings Summary:
 -----------------------
@@ -543,6 +545,10 @@ class MemoryEfficientPipeline:
         >>> 
         >>> pipeline = MemoryEfficientPipeline()
         >>> train_df, feature_cols = pipeline.fit_transform(train_df)
+    
+    fit_transform() computes the historical aggregates from the same rows it
+    returns, so each row's own label is in its features: use it to measure
+    memory, as the demo below does, not to build training data.
     """
     
     def __init__(
@@ -658,7 +664,7 @@ class MemoryEfficientPipeline:
         
         # Add derived features (in-place)
         if 'timestamp' in df.columns:
-            seconds = df['timestamp'] * 5
+            seconds = df['timestamp']  # Yambda timestamps are already seconds
             df['hour_of_day'] = ((seconds // 3600) % 24).astype('int8')
             df['day_of_week'] = ((seconds // 86400) % 7).astype('int8')
         

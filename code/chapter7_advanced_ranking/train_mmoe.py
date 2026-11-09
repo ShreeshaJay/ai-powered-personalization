@@ -48,7 +48,10 @@ from sklearn.calibration import calibration_curve
 sys.path.insert(0, str(Path(__file__).parent))
 
 from models.mmoe import MMoE, MMoEConfig, MMoEDataset, MultiTaskLoss, collate_fn
-from utils.polars_pipeline import load_yambda_polars, PolarsPipeline, split_validation_window
+from utils.polars_pipeline import (
+    load_yambda_polars, PolarsPipeline, PolarsHistoricalFeatures,
+    split_validation_window, split_training_history,
+)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -89,10 +92,10 @@ COMPLETION_THRESHOLD = 50
 ENGAGEMENT_THRESHOLD = 0  # Any non-zero listening
 
 # Time window for like/dislike labels (in timestamp units)
-# Yambda timestamps are in 5-second bins, so 24 hours = 24 * 60 * 60 / 5 = 17,280 units
+# Yambda timestamps are seconds (rounded down to multiples of 5), so
+# 24 hours = 24 * 60 * 60 = 86,400 units
 LIKE_WINDOW_HOURS = 24
-TIMESTAMP_BIN_SECONDS = 5
-LIKE_WINDOW_TS = (LIKE_WINDOW_HOURS * 60 * 60) // TIMESTAMP_BIN_SECONDS  # 17,280
+LIKE_WINDOW_TS = LIKE_WINDOW_HOURS * 60 * 60  # 86,400
 
 
 # ============================================================================
@@ -103,7 +106,8 @@ def _add_time_windowed_labels(
     listens_lf: pl.LazyFrame,
     events_lf: pl.LazyFrame,
     label_name: str,
-    window_ts: int
+    window_ts: int,
+    label_end_ts: Optional[int] = None,
 ) -> pl.LazyFrame:
     """
     Add binary labels based on time-windowed join with events (likes/dislikes).
@@ -119,6 +123,10 @@ def _add_time_windowed_labels(
         events_lf: LazyFrame of events (likes/dislikes) with columns [uid, item_id, timestamp]
         label_name: Name for the output label column (e.g., 'label_liked')
         window_ts: Maximum time difference (in timestamp units) for event to count
+        label_end_ts: End of the listens' split (exclusive). Events at or after
+            it are ignored, so a training or validation label never depends
+            on events in a later split (validation, gap or test). A listen
+            close to the end of its split therefore has a shorter window.
         
     Returns:
         LazyFrame with label column added
@@ -138,14 +146,18 @@ def _add_time_windowed_labels(
     )
     
     # Filter to events within window: listen_ts <= event_ts <= listen_ts + window
+    # (and event_ts < label_end_ts when given)
     # Then aggregate to get a single flag per listen
+    in_window = (
+        col('event_ts').is_not_null() &
+        (col('event_ts') >= col('timestamp')) &
+        (col('event_ts') <= col('timestamp') + window_ts)
+    )
+    if label_end_ts is not None:
+        in_window = in_window & (col('event_ts') < label_end_ts)
     result = joined.with_columns([
         # Check if event is within window (and event exists, i.e., not null)
-        pl.when(
-            col('event_ts').is_not_null() &
-            (col('event_ts') >= col('timestamp')) &
-            (col('event_ts') <= col('timestamp') + window_ts)
-        ).then(1).otherwise(0).alias('_event_in_window')
+        pl.when(in_window).then(1).otherwise(0).alias('_event_in_window')
     ]).group_by(
         # Group by all original columns to collapse multiple event matches
         [c for c in listens_lf.collect_schema().names()]
@@ -159,6 +171,68 @@ def _add_time_windowed_labels(
     return result
 
 
+def _add_multitask_labels(
+    lf: pl.LazyFrame,
+    data_path: Path,
+    label_end_ts: Optional[int] = None,
+) -> pl.LazyFrame:
+    """
+    Add the engagement, play_ratio, like and dislike labels to one split.
+
+    label_end_ts is the end of the split (exclusive): like and dislike events
+    at or after it are ignored (see _add_time_windowed_labels).
+    """
+    # Add engagement label (played_ratio_pct > 0)
+    # Note: In listens.parquet, all rows have some listening, so engagement is mostly 1
+    # This becomes more meaningful when comparing against impression data
+    lf = lf.with_columns([
+        (col('played_ratio_pct') > 0).cast(pl.Int8).alias('label_engagement'),
+        # Regression target: play_ratio as fraction [0, 1]
+        (col('played_ratio_pct') / 100.0).clip(0, 1).alias('label_play_ratio')
+    ])
+    
+    # Add like/dislike labels with TIME-WINDOWED JOIN (prevents temporal leakage)
+    for file_name, label_name in [('likes.parquet', 'label_liked'),
+                                  ('dislikes.parquet', 'label_disliked')]:
+        events_path = data_path / file_name
+        if events_path.exists():
+            events_lf = pl.scan_parquet(events_path)
+            lf = _add_time_windowed_labels(lf, events_lf, label_name, LIKE_WINDOW_TS, label_end_ts)
+        else:
+            lf = lf.with_columns([pl.lit(0).cast(pl.Int8).alias(label_name)])
+    return lf
+
+
+def _log_feedback_files(data_path: Path) -> None:
+    for file_name in ['likes.parquet', 'dislikes.parquet']:
+        events_path = data_path / file_name
+        if events_path.exists():
+            logger.info(f"Loading {file_name.split('.')[0]} from {events_path}")
+            logger.info(f"  Using {LIKE_WINDOW_HOURS}-hour window, cut at the end of each split")
+        else:
+            logger.warning(f"{file_name} not found, creating a dummy all-zero label column")
+
+
+def _log_label_stats(train_lf: pl.LazyFrame) -> None:
+    logger.info("Computing label statistics...")
+    train_df_sample = train_lf.head(100000).collect()
+    logger.info("Estimated label statistics (from 100K sample):")
+    logger.info(f"  engagement (binary): {train_df_sample['label_engagement'].mean():.2%}")
+    logger.info(f"  play_ratio (regression): mean={train_df_sample['label_play_ratio'].mean():.3f}, std={train_df_sample['label_play_ratio'].std():.3f}")
+    # Note: 'label' (completion) is added by PolarsPipeline later
+    logger.info(f"  like (binary):       {train_df_sample['label_liked'].mean():.2%}")
+    logger.info(f"  dislike (binary):    {train_df_sample['label_disliked'].mean():.2%}")
+
+
+def _train_end_timestamp(data_path: Path, test_days: int, gap_seconds: int) -> int:
+    """End of the train window (exclusive), computed as in load_yambda_polars."""
+    max_ts = (
+        pl.scan_parquet(data_path / 'listens.parquet')
+        .select(col('timestamp').max()).collect().item()
+    )
+    return int(max_ts) - test_days * 24 * 60 * 60 - gap_seconds
+
+
 def load_multitask_data(data_dir: str, train_days: Optional[int] = None, test_days: int = 1, gap_seconds: int = 1800):
     """
     Load Yambda data with multi-task labels for 4 tasks:
@@ -170,71 +244,65 @@ def load_multitask_data(data_dir: str, train_days: Optional[int] = None, test_da
     
     IMPORTANT: Like/dislike labels use a time-windowed join to prevent temporal leakage.
     A listen is only labeled as "liked" if the like action occurred AFTER the listen
-    and within the configured time window (default: 24 hours).
+    and within the configured time window (default: 24 hours), and before the end
+    of the listen's split: train-window labels never use events in the gap or
+    test window. Use load_multitask_splits() to also hold out a validation
+    window with its own cut.
     
     Returns LazyFrames with all label columns added.
     """
     data_path = Path(data_dir)
-    likes_path = data_path / 'likes.parquet'
-    dislikes_path = data_path / 'dislikes.parquet'
-    
     logger.info(f"Loading listens from {data_path / 'listens.parquet'}")
     
     train_lf, test_lf = load_yambda_polars(
         data_dir=data_dir, train_days=train_days, test_days=test_days, gap_seconds=gap_seconds, lazy=True
     )
     
-    # Add engagement label (played_ratio_pct > 0)
-    # Note: In listens.parquet, all rows have some listening, so engagement is mostly 1
-    # This becomes more meaningful when comparing against impression data
-    train_lf = train_lf.with_columns([
-        (col('played_ratio_pct') > 0).cast(pl.Int8).alias('label_engagement'),
-        # Regression target: play_ratio as fraction [0, 1]
-        (col('played_ratio_pct') / 100.0).clip(0, 1).alias('label_play_ratio')
-    ])
-    test_lf = test_lf.with_columns([
-        (col('played_ratio_pct') > 0).cast(pl.Int8).alias('label_engagement'),
-        # Regression target: play_ratio as fraction [0, 1]
-        (col('played_ratio_pct') / 100.0).clip(0, 1).alias('label_play_ratio')
-    ])
+    _log_feedback_files(data_path)
+    train_end = _train_end_timestamp(data_path, test_days, gap_seconds)
+    train_lf = _add_multitask_labels(train_lf, data_path, label_end_ts=train_end)
+    test_lf = _add_multitask_labels(test_lf, data_path)
     
-    # Add like labels with TIME-WINDOWED JOIN (prevents temporal leakage)
-    if likes_path.exists():
-        logger.info(f"Loading likes from {likes_path}")
-        logger.info(f"  Using {LIKE_WINDOW_HOURS}-hour window for like attribution")
-        likes_lf = pl.scan_parquet(likes_path)
-        
-        train_lf = _add_time_windowed_labels(train_lf, likes_lf, 'label_liked', LIKE_WINDOW_TS)
-        test_lf = _add_time_windowed_labels(test_lf, likes_lf, 'label_liked', LIKE_WINDOW_TS)
-    else:
-        logger.warning(f"Likes file not found, creating dummy label_liked column")
-        train_lf = train_lf.with_columns([pl.lit(0).cast(pl.Int8).alias('label_liked')])
-        test_lf = test_lf.with_columns([pl.lit(0).cast(pl.Int8).alias('label_liked')])
-    
-    # Add dislike labels with TIME-WINDOWED JOIN (prevents temporal leakage)
-    if dislikes_path.exists():
-        logger.info(f"Loading dislikes from {dislikes_path}")
-        logger.info(f"  Using {LIKE_WINDOW_HOURS}-hour window for dislike attribution")
-        dislikes_lf = pl.scan_parquet(dislikes_path)
-        
-        train_lf = _add_time_windowed_labels(train_lf, dislikes_lf, 'label_disliked', LIKE_WINDOW_TS)
-        test_lf = _add_time_windowed_labels(test_lf, dislikes_lf, 'label_disliked', LIKE_WINDOW_TS)
-    else:
-        logger.warning(f"Dislikes file not found, creating dummy label_disliked column")
-        train_lf = train_lf.with_columns([pl.lit(0).cast(pl.Int8).alias('label_disliked')])
-        test_lf = test_lf.with_columns([pl.lit(0).cast(pl.Int8).alias('label_disliked')])
-    
-    # Log label statistics
-    logger.info("Computing label statistics...")
-    train_df_sample = train_lf.head(100000).collect()
-    logger.info("Estimated label statistics (from 100K sample):")
-    logger.info(f"  engagement (binary): {train_df_sample['label_engagement'].mean():.2%}")
-    logger.info(f"  play_ratio (regression): mean={train_df_sample['label_play_ratio'].mean():.3f}, std={train_df_sample['label_play_ratio'].std():.3f}")
-    # Note: 'label' (completion) is added by PolarsPipeline later
-    logger.info(f"  like (binary):       {train_df_sample['label_liked'].mean():.2%}")
-    logger.info(f"  dislike (binary):    {train_df_sample['label_disliked'].mean():.2%}")
-    
+    _log_label_stats(train_lf)
     return train_lf, test_lf
+
+
+def load_multitask_splits(
+    data_dir: str,
+    train_days: Optional[int] = None,
+    test_days: int = 1,
+    gap_seconds: int = 1800,
+    val_split_ratio: float = 0.1,
+):
+    """
+    Load the fit, validation and test splits with multi-task labels.
+
+    Same labels as load_multitask_data, but the validation window (the last
+    val_split_ratio of the train window) is held out first, and each split's
+    like and dislike labels are cut at that split's end: fit rows at the start
+    of the validation window, validation rows at the end of the train window,
+    test rows at the end of the data.
+
+    Returns:
+        Tuple of (fit_lf, val_lf, test_lf) LazyFrames with all label columns.
+    """
+    data_path = Path(data_dir)
+    logger.info(f"Loading listens from {data_path / 'listens.parquet'}")
+    
+    train_lf, test_lf = load_yambda_polars(
+        data_dir=data_dir, train_days=train_days, test_days=test_days, gap_seconds=gap_seconds, lazy=True
+    )
+    fit_lf, val_lf = split_validation_window(train_lf, val_split_ratio)
+    val_start = int(val_lf.select(col('timestamp').min()).collect().item())
+    train_end = _train_end_timestamp(data_path, test_days, gap_seconds)
+    
+    _log_feedback_files(data_path)
+    fit_lf = _add_multitask_labels(fit_lf, data_path, label_end_ts=val_start)
+    val_lf = _add_multitask_labels(val_lf, data_path, label_end_ts=train_end)
+    test_lf = _add_multitask_labels(test_lf, data_path)
+    
+    _log_label_stats(fit_lf)
+    return fit_lf, val_lf, test_lf
 
 
 # ============================================================================
@@ -525,36 +593,20 @@ if __name__ == '__main__':
     logger.info("  Inference artifacts export complete!")
 
 
-def export_predictions_for_value_functions(
+def _collect_mmoe_outputs(
     model: MMoE,
-    test_loader: DataLoader,
-    test_df: pd.DataFrame,
-    test_labels: Dict[str, np.ndarray],
+    loader: DataLoader,
     device: torch.device,
-    output_path: Path,
-) -> Dict[str, any]:
-    """
-    Export pre-computed predictions for quick analysis in Chapter 8.
-    
-    Note: For production-like inference, use the artifacts in inference/
-    which allow loading the model and running inference on new data.
-    
-    This file provides pre-computed predictions for:
-    - Quick iteration on value function weights
-    - Calibration analysis
-    - Offline evaluation
-    """
-    logger.info("\nExporting pre-computed predictions for analysis...")
-    
+) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+    """Run the model over a loader; return per-task logits, probabilities and gate weights."""
     model.eval()
     
-    # Collect predictions
     all_logits = {name: [] for name in model.task_names}
     all_probs = {name: [] for name in model.task_names}
     all_gate_weights = {name: [] for name in model.task_names}
     
     with torch.no_grad():
-        for sparse_batch, dense_batch, _ in test_loader:
+        for sparse_batch, dense_batch, _ in loader:
             sparse_batch = {k: v.to(device) for k, v in sparse_batch.items()}
             if dense_batch is not None:
                 dense_batch = dense_batch.to(device)
@@ -590,56 +642,112 @@ def export_predictions_for_value_functions(
         all_probs[task_name] = np.concatenate(all_probs[task_name]).flatten()
         all_gate_weights[task_name] = np.concatenate(all_gate_weights[task_name], axis=0)
     
-    # 1. Export predictions DataFrame
-    # Build predictions with all 4 task outputs
+    return all_logits, all_probs, all_gate_weights
+
+
+def _predictions_frame(
+    df: pd.DataFrame,
+    labels: Dict[str, np.ndarray],
+    probs: Dict[str, np.ndarray],
+    logits: Dict[str, np.ndarray],
+    task_names,
+) -> pd.DataFrame:
+    """Build the uid / item_id / timestamp + label_, prob_, logit_ columns frame."""
     predictions_data = {
-        'uid': test_df['uid'].values,
-        'item_id': test_df['item_id'].values,
-        'timestamp': test_df['timestamp'].values if 'timestamp' in test_df.columns else np.arange(len(test_df)),
+        'uid': df['uid'].values,
+        'item_id': df['item_id'].values,
+        'timestamp': df['timestamp'].values if 'timestamp' in df.columns else np.arange(len(df)),
     }
+    for task_name in task_names:
+        if task_name in labels:
+            predictions_data[f'label_{task_name}'] = labels[task_name]
+        if task_name in probs:
+            predictions_data[f'prob_{task_name}'] = probs[task_name]
+        if task_name in logits:
+            predictions_data[f'logit_{task_name}'] = logits[task_name]
+    return pd.DataFrame(predictions_data)
+
+
+def export_predictions_for_value_functions(
+    model: MMoE,
+    val_loader: DataLoader,
+    val_df: pd.DataFrame,
+    val_labels: Dict[str, np.ndarray],
+    test_loader: DataLoader,
+    test_df: pd.DataFrame,
+    test_labels: Dict[str, np.ndarray],
+    device: torch.device,
+    output_path: Path,
+) -> Dict[str, any]:
+    """
+    Export pre-computed predictions for quick analysis in Chapter 8.
     
-    # Add labels and predictions for all tasks
-    for task_name in model.task_names:
-        if task_name in test_labels:
-            predictions_data[f'label_{task_name}'] = test_labels[task_name]
-        if task_name in all_probs:
-            predictions_data[f'prob_{task_name}'] = all_probs[task_name]
-        if task_name in all_logits:
-            predictions_data[f'logit_{task_name}'] = all_logits[task_name]
+    Note: For production-like inference, use the artifacts in inference/
+    which allow loading the model and running inference on new data.
     
-    predictions_df = pd.DataFrame(predictions_data)
+    Everything derived from labels (calibration curves, task statistics,
+    task correlations, suggested weights) and the gate-weight summaries
+    comes from the VALIDATION split, so Chapter 8 can tune on it:
+    - val_predictions.parquet: validation predictions and labels
+      (calibration analysis, value function weight tuning)
+    - calibration.json, value_function_config.json,
+      gate_weights_sample.parquet
+    
+    The TEST split is exported for final reporting only:
+    - predictions.parquet: test predictions and labels. Do not tune
+      weights, thresholds or calibration on this file.
+    """
+    logger.info("\nExporting pre-computed predictions for analysis...")
+    
+    val_logits, val_probs, val_gate_weights = _collect_mmoe_outputs(model, val_loader, device)
+    test_logits, test_probs, _ = _collect_mmoe_outputs(model, test_loader, device)
+    
+    # 1. Export predictions DataFrames (all 5 task outputs)
+    val_predictions_df = _predictions_frame(val_df, val_labels, val_probs, val_logits, model.task_names)
+    val_predictions_df.to_parquet(output_path / 'val_predictions.parquet', index=False)
+    logger.info(f"  Saved val_predictions.parquet ({len(val_predictions_df):,} samples, "
+                f"validation split: calibration and weight tuning)")
+    
+    predictions_df = _predictions_frame(test_df, test_labels, test_probs, test_logits, model.task_names)
     predictions_df.to_parquet(output_path / 'predictions.parquet', index=False)
-    logger.info(f"  Saved predictions.parquet ({len(predictions_df):,} samples)")
+    logger.info(f"  Saved predictions.parquet ({len(predictions_df):,} samples, "
+                f"test split: final reporting only)")
     logger.info(f"    Columns: {list(predictions_df.columns)}")
     
-    # 2. Export gate weights (aggregated statistics)
+    # 2. Export gate weights (aggregated statistics, validation split)
     gate_weights_summary = {}
     for task_name in model.task_names:
-        gate_w = all_gate_weights[task_name]
+        gate_w = val_gate_weights[task_name]
         gate_weights_summary[task_name] = {
             'mean_weights': gate_w.mean(axis=0).tolist(),
             'std_weights': gate_w.std(axis=0).tolist(),
             'expert_names': [f'expert_{i}' for i in range(gate_w.shape[1])],
         }
     
-    # Save detailed gate weights for a sample (first 10000)
-    sample_size = min(10000, len(test_df))
+    # Save detailed gate weights for a sample (first 10000 validation rows)
+    sample_size = min(10000, len(val_df))
     gate_weights_df = pd.DataFrame({
         'sample_idx': np.arange(sample_size),
     })
     for task_name in model.task_names:
-        gate_w = all_gate_weights[task_name][:sample_size]
+        gate_w = val_gate_weights[task_name][:sample_size]
         for exp_idx in range(gate_w.shape[1]):
             gate_weights_df[f'{task_name}_expert_{exp_idx}'] = gate_w[:, exp_idx]
     
     gate_weights_df.to_parquet(output_path / 'gate_weights_sample.parquet', index=False)
-    logger.info(f"  Saved gate_weights_sample.parquet ({sample_size:,} samples)")
+    logger.info(f"  Saved gate_weights_sample.parquet ({sample_size:,} validation samples)")
     
-    # 3. Export calibration data
+    # 3. Export calibration data (validation split; binary tasks only,
+    # calibration curves are undefined for regression targets like play_ratio)
     calibration_data = {}
     for task_name in model.task_names:
-        probs = all_probs[task_name]
-        labels = test_labels[task_name]
+        if task_name in REGRESSION_TASKS:
+            calibration_data[task_name] = {
+                'note': 'regression task - calibration curve not applicable'
+            }
+            continue
+        probs = val_probs[task_name]
+        labels = val_labels[task_name]
         
         # Compute calibration curve
         try:
@@ -651,6 +759,7 @@ def export_predictions_for_value_functions(
                 'mean_predicted': mean_predicted.tolist(),
                 'n_samples': int(len(labels)),
                 'positive_rate': float(labels.mean()),
+                'split': 'validation',
             }
         except Exception as e:
             logger.warning(f"  Could not compute calibration for {task_name}: {e}")
@@ -658,16 +767,16 @@ def export_predictions_for_value_functions(
     
     with open(output_path / 'calibration.json', 'w') as f:
         json.dump(calibration_data, f, indent=2)
-    logger.info(f"  Saved calibration.json")
+    logger.info(f"  Saved calibration.json (validation split)")
     
-    # 4. Export value function configuration
+    # 4. Export value function configuration (validation split)
     task_stats = {}
     for task_name in model.task_names:
-        probs = all_probs[task_name]
-        labels = test_labels[task_name]
+        probs = val_probs[task_name]
+        labels = val_labels[task_name]
         
         if task_name in REGRESSION_TASKS:
-            # Regression task: use MSE, MAE, R² instead of AUC
+            # Regression task: use MSE, MAE, R2 instead of AUC
             task_stats[task_name] = {
                 'task_type': 'regression',
                 'label_mean': float(labels.mean()),
@@ -679,13 +788,13 @@ def export_predictions_for_value_functions(
                 'r2': float(r2_score(labels, probs)) if len(np.unique(labels)) > 1 else 0.0,
             }
         else:
-            # Binary task: use AUC-ROC
+            # Binary task: use AUC-ROC (undefined when only one class is present)
             task_stats[task_name] = {
                 'task_type': 'binary',
                 'positive_rate': float(labels.mean()),
                 'pred_mean': float(probs.mean()),
                 'pred_std': float(probs.std()),
-                'auc_roc': float(roc_auc_score(labels, probs)),
+                'auc_roc': float(roc_auc_score(labels, probs)) if len(np.unique(labels)) > 1 else None,
             }
     
     # Compute pairwise task correlations (labels and predictions)
@@ -693,11 +802,11 @@ def export_predictions_for_value_functions(
     task_list = model.task_names
     for i, task1 in enumerate(task_list):
         for task2 in task_list[i+1:]:
-            if task1 in test_labels and task2 in test_labels:
-                corr = float(np.corrcoef(test_labels[task1], test_labels[task2])[0, 1])
+            if task1 in val_labels and task2 in val_labels:
+                corr = float(np.corrcoef(val_labels[task1], val_labels[task2])[0, 1])
                 task_correlations['label'][f'{task1}_{task2}'] = corr
-            if task1 in all_probs and task2 in all_probs:
-                corr = float(np.corrcoef(all_probs[task1], all_probs[task2])[0, 1])
+            if task1 in val_probs and task2 in val_probs:
+                corr = float(np.corrcoef(val_probs[task1], val_probs[task2])[0, 1])
                 task_correlations['prediction'][f'{task1}_{task2}'] = corr
     
     # Compute inverse positive rate weights (handle edge cases)
@@ -716,6 +825,11 @@ def export_predictions_for_value_functions(
     
     value_function_config = {
         'task_names': model.task_names,
+        'statistics_split': 'validation',
+        'prediction_files': {
+            'val_predictions.parquet': 'validation split: calibration and weight tuning',
+            'predictions.parquet': 'test split: final reporting only',
+        },
         'task_stats': task_stats,
         'gate_weights_summary': gate_weights_summary,
         'task_correlations': task_correlations,
@@ -750,8 +864,9 @@ def export_predictions_for_value_functions(
             },
         },
         'usage_example': (
-            "# Load predictions and compute value:\n"
-            "df = pd.read_parquet('predictions.parquet')\n"
+            "# Tune weights on validation predictions; keep predictions.parquet\n"
+            "# (test split) for the final report only.\n"
+            "df = pd.read_parquet('val_predictions.parquet')\n"
             "# Example: Value function with regression task (play_ratio)\n"
             "weights = {'engagement': 1.0, 'completion': 2.0, 'play_ratio': 1.0, 'like': 5.0, 'dislike': -10.0}\n"
             "df['value'] = (\n"
@@ -770,12 +885,13 @@ def export_predictions_for_value_functions(
     
     with open(output_path / 'value_function_config.json', 'w') as f:
         json.dump(value_function_config, f, indent=2)
-    logger.info(f"  Saved value_function_config.json")
+    logger.info(f"  Saved value_function_config.json (validation split)")
     
     logger.info("  Artifact export complete!")
     
     return {
         'predictions_df': predictions_df,
+        'val_predictions_df': val_predictions_df,
         'calibration_data': calibration_data,
         'value_function_config': value_function_config,
     }
@@ -914,9 +1030,14 @@ def main():
     parser.add_argument('--val_split_ratio', type=float, default=0.1,
                         help='Fraction of the train window, taken from its end, held out '
                              'as the validation set for model selection')
+    parser.add_argument('--history_days', type=float, default=0,
+                        help='Days of listens before the fit window used for the training '
+                             "rows' user and item aggregates (0: same length as the fit window)")
     
     parser.add_argument('--embed_dim', type=int, default=16)
-    parser.add_argument('--num_experts', type=int, default=4)  # 4 experts performed best in experiments
+    # Default of 4 came from earlier runs compared on the test set, not on
+    # validation; re-tune on the validation window before relying on it.
+    parser.add_argument('--num_experts', type=int, default=4)
     parser.add_argument('--expert_dims', type=str, default='256,128')
     parser.add_argument('--tower_dims', type=str, default='64,32')
     parser.add_argument('--dropout', type=float, default=0.1)
@@ -972,19 +1093,27 @@ def main():
     
     # Load Data
     logger.info("\n[1/5] Loading multi-task data...")
-    train_lf, test_lf = load_multitask_data(data_dir=args.data_dir, train_days=train_days, test_days=args.test_days)
-    
     # Validation window: the last val_split_ratio of the train window by time.
     # It is held out before the pipeline is fitted, so its historical features
-    # come only from earlier data, exactly as for the test window.
-    train_lf, val_lf = split_validation_window(train_lf, args.val_split_ratio)
+    # come only from earlier data, exactly as for the test window. Like and
+    # dislike labels are cut at the end of each split.
+    train_lf, val_lf, test_lf = load_multitask_splits(
+        data_dir=args.data_dir, train_days=train_days, test_days=args.test_days,
+        val_split_ratio=args.val_split_ratio,
+    )
     
     # Feature Engineering
     logger.info("\n[2/5] Running feature pipeline...")
     pipeline = PolarsPipeline()
     pipeline.fit(train_lf)
     
-    train_polars_df, _ = pipeline.transform(train_lf)
+    # Training rows get user and item aggregates from the window just before
+    # the fit window, so no row's own label is in its features. Validation
+    # and test rows use the fit window, which ends before their windows.
+    train_lf, history_df = split_training_history(args.data_dir, train_lf, args.history_days)
+    train_history = PolarsHistoricalFeatures().fit(history_df)
+    
+    train_polars_df, _ = pipeline.transform(train_lf, history=train_history)
     val_polars_df, _ = pipeline.transform(val_lf)
     test_polars_df, _ = pipeline.transform(test_lf)
     
@@ -1149,6 +1278,7 @@ def main():
         'experiment': exp_name,
         'train_days': train_days,
         'val_split_ratio': args.val_split_ratio,
+        'history_days': args.history_days,
         'best_epoch': best_epoch,
         'train_metrics': train_metrics,
         'val_metrics': val_metrics,
@@ -1172,9 +1302,14 @@ def main():
         output_path=output_path,
     )
     
-    # 2. Export pre-computed predictions for quick analysis
+    # 2. Export pre-computed predictions for quick analysis. Calibration,
+    #    task statistics and suggested weights come from the validation
+    #    split; test predictions are exported for final reporting only.
     export_predictions_for_value_functions(
         model=model,
+        val_loader=val_loader,
+        val_df=val_df,
+        val_labels=val_labels,
         test_loader=test_loader,
         test_df=test_df,
         test_labels=test_labels,
@@ -1193,10 +1328,11 @@ def main():
     logger.info("    - inference_example.py      : Example script for running inference")
     logger.info("  best_model.pt                 : Model checkpoint")
     logger.info("\nFor Chapter 8 - Option B: Use pre-computed predictions")
-    logger.info("  predictions.parquet           : Test set predictions")
-    logger.info("  calibration.json              : Calibration data")
-    logger.info("  value_function_config.json    : Task stats & suggested weights")
-    logger.info("  gate_weights_sample.parquet   : MMoE gate weights")
+    logger.info("  val_predictions.parquet       : Validation predictions (calibration, weight tuning)")
+    logger.info("  predictions.parquet           : Test predictions (final reporting only)")
+    logger.info("  calibration.json              : Calibration data (validation split)")
+    logger.info("  value_function_config.json    : Task stats & suggested weights (validation split)")
+    logger.info("  gate_weights_sample.parquet   : MMoE gate weights (validation split)")
     logger.info("=" * 70)
 
 

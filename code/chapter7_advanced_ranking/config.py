@@ -42,26 +42,28 @@ PREDICTIONS_DIR = OUTPUT_DIR / "predictions"
 
 @dataclass
 class GTSConfig:
-    """Global Temporal Split configuration."""
+    """Global Temporal Split configuration.
+
+    Yambda timestamps are seconds (rounded down to multiples of 5), so the
+    durations below are in seconds.
+    """
     train_days: int = 300
     gap_minutes: int = 30
     test_days: int = 1
-    timestamp_bin_seconds: int = 5
     
     @property
     def train_duration_ts(self) -> int:
         seconds_per_day = 86400
-        return (self.train_days * seconds_per_day) // self.timestamp_bin_seconds
+        return self.train_days * seconds_per_day
     
     @property
     def gap_duration_ts(self) -> int:
-        gap_seconds = self.gap_minutes * 60
-        return gap_seconds // self.timestamp_bin_seconds
+        return self.gap_minutes * 60
     
     @property
     def test_duration_ts(self) -> int:
         seconds_per_day = 86400
-        return (self.test_days * seconds_per_day) // self.timestamp_bin_seconds
+        return self.test_days * seconds_per_day
 
 
 # =============================================================================

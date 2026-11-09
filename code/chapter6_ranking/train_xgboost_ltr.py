@@ -43,7 +43,10 @@ import numpy as np
 import polars as pl
 from sklearn.metrics import roc_auc_score, average_precision_score
 
-from utils.polars_pipeline import load_yambda_polars, PolarsPipeline, split_validation_window
+from utils.polars_pipeline import (
+    load_yambda_polars, PolarsPipeline, PolarsHistoricalFeatures,
+    split_validation_window, split_training_history,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -76,6 +79,11 @@ def parse_args():
         '--val_split_ratio', type=float, default=0.1,
         help='Fraction of the train window, taken from its end, held out as '
              'the validation set for early stopping (default: 0.1)'
+    )
+    parser.add_argument(
+        '--history_days', type=float, default=0,
+        help="Days of listens before the fit window used for the training "
+             "rows' user and item aggregates (0: same length as the fit window)"
     )
     
     # LTR-specific arguments
@@ -189,13 +197,13 @@ def filter_and_prepare_groups(
     
     # Filter to users with at least min_group_size items
     valid_users_df = user_counts.filter(pl.col('_count') >= min_group_size)
-    valid_users = valid_users_df[group_col]
-    
+
     logger.info(f"Users before filter: {user_counts.height:,}")
     logger.info(f"Users with >= {min_group_size} items: {valid_users_df.height:,}")
     
-    # Filter DataFrame to valid users
-    df = df.filter(pl.col(group_col).is_in(valid_users))
+    # Filter DataFrame to valid users (semi-join avoids the deprecated
+    # is_in(Series) behavior in Polars >= 1.30)
+    df = df.join(valid_users_df.select(group_col), on=group_col, how='semi')
     
     # Sort by user_id (required for XGBRanker group assignment)
     df = df.sort(group_col)
@@ -436,7 +444,15 @@ def main():
     start_time = time.time()
     
     pipeline = PolarsPipeline()
-    train_df, feature_cols = pipeline.fit_transform(train_lf)
+    pipeline.fit(train_lf)
+    
+    # Training rows get user and item aggregates from the window just before
+    # the fit window, so no row's own label is in its features. Validation
+    # and test rows use the fit window, which ends before their windows.
+    train_lf, history_df = split_training_history(args.data_dir, train_lf, args.history_days)
+    train_history = PolarsHistoricalFeatures().fit(history_df)
+    
+    train_df, feature_cols = pipeline.transform(train_lf, history=train_history)
     val_df, _ = pipeline.transform(val_lf)
     test_df, _ = pipeline.transform(test_lf)
     
@@ -630,6 +646,7 @@ def main():
         'objective': args.objective,
         'train_days': args.train_days,
         'val_split_ratio': args.val_split_ratio,
+        'history_days': args.history_days,
         'train_samples': int(len(y_train)),
         'val_samples': int(len(y_val)),
         'test_samples': int(len(y_test)),

@@ -16,7 +16,7 @@ Comparison:
     - CVR Baseline: Trains on CLICKED samples only (demonstrates selection bias)
 
 Usage:
-    # Development run (2M samples)
+    # Development run (2M training rows, 2 epochs, batch size 1024)
     python train_esmm.py --dev
     
     # Full training
@@ -68,7 +68,10 @@ def parse_args():
     parser.add_argument('--data_pct', type=float, default=10,
                         help='Which preprocessed data percentage to use (e.g., 10, 20)')
     parser.add_argument('--dev', action='store_true',
-                        help='Development mode: fewer epochs, smaller batch size')
+                        help='Development mode: cap training rows at '
+                             'TrainingConfig.dev_sample_size (2M) and use fewer '
+                             'epochs and a smaller batch size (dev_epochs, '
+                             'dev_batch_size)')
     parser.add_argument('--val_split_ratio', type=float, default=0.1,
                         help='Fraction of the training file held out as the validation '
                              'set for early stopping and checkpoint selection')
@@ -128,6 +131,11 @@ def setup_experiment(args) -> Tuple[Path, Dict[str, Any]]:
     # Parse tower dimensions
     tower_dims = [int(d) for d in args.tower_dims.split(',')]
     
+    epochs, batch_size = args.epochs, args.batch_size
+    if args.dev:
+        epochs = min(epochs, DEFAULT_TRAINING_CONFIG.dev_epochs)
+        batch_size = min(batch_size, DEFAULT_TRAINING_CONFIG.dev_batch_size)
+    
     # Build configuration
     config = {
         'experiment': exp_name,
@@ -136,6 +144,8 @@ def setup_experiment(args) -> Tuple[Path, Dict[str, Any]]:
             'source': 'preprocessed parquet files',
             'val_split_ratio': args.val_split_ratio,
             'seed': args.seed,
+            'dev': args.dev,
+            'dev_sample_size': DEFAULT_TRAINING_CONFIG.dev_sample_size if args.dev else None,
         },
         'model': {
             'vocab_size': args.vocab_size,
@@ -146,8 +156,8 @@ def setup_experiment(args) -> Tuple[Path, Dict[str, Any]]:
             'use_auxiliary_cvr_loss': args.use_auxiliary_cvr_loss,
         },
         'training': {
-            'epochs': args.epochs,
-            'batch_size': args.batch_size,
+            'epochs': epochs,
+            'batch_size': batch_size,
             'learning_rate': args.lr,
             'patience': args.patience,
             'device': args.device,
@@ -544,6 +554,10 @@ def main():
     # set and scored once, after training. Validation for early stopping and
     # checkpoint selection is carved from the training file.
     train_df, test_df, metadata = load_ali_ccp_data(data_pct=args.data_pct)
+    dev_rows = config['data']['dev_sample_size']
+    if dev_rows is not None and len(train_df) > dev_rows:
+        print(f"Dev mode: sampling {dev_rows:,} of {len(train_df):,} training rows")
+        train_df = train_df.sample(n=dev_rows, shuffle=True, seed=args.seed)
     train_df, val_df = split_validation_rows(train_df, args.val_split_ratio, args.seed)
     
     # Create datasets
@@ -643,7 +657,7 @@ def main():
                 'epoch': epoch,
                 'val_metrics': val_metrics,
             }, exp_dir / 'best_model.pt')
-            print(f"  ✓ New best model saved (ctcvr_auc={best_val_auc:.4f})")
+            print(f"  * New best model saved (ctcvr_auc={best_val_auc:.4f})")
         else:
             patience_counter += 1
             if patience_counter >= config['training']['patience']:

@@ -7,10 +7,11 @@ This module provides a clean interface to the preprocessed Ali-CCP dataset.
 Prerequisites:
     Run the preprocessing script ONCE before using this module:
     
-    cd RecSys book code/chapter9_adtech/scripts
+    cd chapter9_adtech/scripts
     python preprocess_ali_ccp.py --mode sample  # For 2M samples (16GB RAM)
     
     This creates parquet files in: Dataset/Ali-CCP Entire State Model/processed/
+    (or $ALI_CCP_DATA_DIR/processed/ when that variable is set)
 
 Usage:
     from data.ali_ccp_dataset import load_ali_ccp_data, AliCCPDataset
@@ -38,6 +39,7 @@ Schema (after preprocessing):
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Tuple, Dict, Any, Optional
 
@@ -51,9 +53,15 @@ from torch.utils.data import Dataset, DataLoader
 # Paths
 # =============================================================================
 
+# PROJECT_ROOT/Dataset/Ali-CCP Entire State Model by default, or the folder
+# named by the ALI_CCP_DATA_DIR environment variable.
 SCRIPT_DIR = Path(__file__).parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent  # RecSys ML Book Writing
-PROCESSED_BASE_DIR = PROJECT_ROOT / "Dataset" / "Ali-CCP Entire State Model" / "processed"
+PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
+ALI_CCP_DIR = Path(
+    os.environ.get("ALI_CCP_DATA_DIR")
+    or PROJECT_ROOT / "Dataset" / "Ali-CCP Entire State Model"
+)
+PROCESSED_BASE_DIR = ALI_CCP_DIR / "processed"
 DEFAULT_DATA_PCT = 10  # Default to 10% preprocessed data
 
 # Default configuration (should match preprocessing)
@@ -107,7 +115,7 @@ def load_ali_ccp_data(
         raise FileNotFoundError(
             f"Preprocessed train file not found: {train_path}\n\n"
             "Please run the preprocessing script first:\n"
-            "  cd 'RecSys book code/chapter9_adtech/scripts'\n"
+            "  cd chapter9_adtech/scripts\n"
             f"  python preprocess_ali_ccp.py --pct {data_pct or DEFAULT_DATA_PCT}\n\n"
             "This only needs to be done once per percentage."
         )

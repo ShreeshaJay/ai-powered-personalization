@@ -7,7 +7,7 @@
 pyarrow>=14.0.0          # Memory-efficient parquet reading (essential!)
 pandas>=2.0.0            # DataFrame operations
 numpy>=1.24.0            # Numerical computing
-polars>=0.20.0           # Fast alternative to pandas (optional)
+polars>=1.9.0            # Fast alternative to pandas (optional); 1.9+ for over(order_by=...) and pl.len()
 
 # Machine Learning
 scikit-learn>=1.3.0      # Preprocessing, metrics

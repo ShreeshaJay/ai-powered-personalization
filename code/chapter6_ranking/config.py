@@ -44,30 +44,30 @@ class GTSConfig:
     - Gap: 30 minutes (to prevent information leakage)
     - Test: Next 1 day
     
-    Note: Timestamps in Yambda are delta values binned into 5-second intervals.
+    Note: Yambda timestamps are seconds since the first event, rounded down
+    to multiples of 5 (Yambda paper, Section 3.3). One timestamp unit is one
+    second, so durations below are in seconds.
     """
     train_days: int = 300
     gap_minutes: int = 30
     test_days: int = 1
-    timestamp_bin_seconds: int = 5  # Each timestamp unit = 5 seconds
     
     @property
     def train_duration_ts(self) -> int:
-        """Training duration in timestamp units."""
+        """Training duration in timestamp units (seconds)."""
         seconds_per_day = 86400
-        return (self.train_days * seconds_per_day) // self.timestamp_bin_seconds
+        return self.train_days * seconds_per_day
     
     @property
     def gap_duration_ts(self) -> int:
-        """Gap duration in timestamp units."""
-        gap_seconds = self.gap_minutes * 60
-        return gap_seconds // self.timestamp_bin_seconds
+        """Gap duration in timestamp units (seconds)."""
+        return self.gap_minutes * 60
     
     @property
     def test_duration_ts(self) -> int:
-        """Test duration in timestamp units."""
+        """Test duration in timestamp units (seconds)."""
         seconds_per_day = 86400
-        return (self.test_days * seconds_per_day) // self.timestamp_bin_seconds
+        return self.test_days * seconds_per_day
 
 
 # =============================================================================

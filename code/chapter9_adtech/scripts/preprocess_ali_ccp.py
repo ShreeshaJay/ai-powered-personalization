@@ -36,6 +36,7 @@ Usage:
     python preprocess_ali_ccp.py --n_samples 2000000
 
 Output files saved to: Dataset/Ali-CCP Entire State Model/processed/pct_<X>/
+(or $ALI_CCP_DATA_DIR/processed/pct_<X>/ when that variable is set)
     - ali_ccp_train.parquet (90% of data)
     - ali_ccp_val.parquet (10% of data)
     - metadata.json (statistics and config)
@@ -54,6 +55,7 @@ Dataset size reference (full dataset = 42.3M samples):
 
 import argparse
 import json
+import os
 import re
 import hashlib
 import sys
@@ -70,10 +72,14 @@ from tqdm import tqdm
 # Configuration
 # =============================================================================
 
-# Raw data paths (relative to this script's grandparent directory)
+# Raw data paths: PROJECT_ROOT/Dataset/Ali-CCP Entire State Model by default,
+# or the folder named by the ALI_CCP_DATA_DIR environment variable.
 SCRIPT_DIR = Path(__file__).parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent  # RecSys ML Book Writing
-RAW_DATA_DIR = PROJECT_ROOT / "Dataset" / "Ali-CCP Entire State Model"
+PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
+RAW_DATA_DIR = Path(
+    os.environ.get("ALI_CCP_DATA_DIR")
+    or PROJECT_ROOT / "Dataset" / "Ali-CCP Entire State Model"
+)
 PROCESSED_BASE_DIR = RAW_DATA_DIR / "processed"
 
 # Feature configuration

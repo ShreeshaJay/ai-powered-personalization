@@ -154,7 +154,8 @@ class YandexDataset:
         logger.info(f"Building sequences (mode=session, "
                      f"gap threshold: {self.session_gap_seconds}s)...")
 
-        gap_threshold_units = self.session_gap_seconds // 5
+        # Yambda timestamps are seconds (rounded down to multiples of 5).
+        gap_threshold_seconds = self.session_gap_seconds
 
         sessions = []
         current_session = []
@@ -174,7 +175,7 @@ class YandexDataset:
                 prev_ts = ts
                 continue
 
-            if prev_ts is not None and (ts - prev_ts) > gap_threshold_units:
+            if prev_ts is not None and (ts - prev_ts) > gap_threshold_seconds:
                 if len(current_session) >= 2:
                     sessions.append(current_session)
                 current_session = [item]

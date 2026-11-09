@@ -204,8 +204,9 @@ def add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
     - hour_of_day: Approximate hour (0-23) from timestamp
     - day_of_week: Approximate day (0-6) from timestamp
     
-    Note: Yambda timestamps are relative (binned to 5 seconds), so these
-    are approximate cyclical patterns, not actual calendar times.
+    Note: Yambda timestamps are seconds since the first event in the
+    dataset (rounded down to multiples of 5), so these are approximate
+    cyclical patterns, not actual calendar times.
     
     Args:
         df: DataFrame with 'timestamp' column
@@ -216,8 +217,7 @@ def add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     
     if 'timestamp' in df.columns:
-        # Each timestamp unit = 5 seconds
-        seconds = df['timestamp'] * 5
+        seconds = df['timestamp']
         
         # Extract cyclical time features
         df['hour_of_day'] = (seconds // 3600) % 24

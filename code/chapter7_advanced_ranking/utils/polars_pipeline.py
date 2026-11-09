@@ -67,29 +67,29 @@ def load_yambda_polars(
     min_ts = ts_stats['min_ts'][0]
     max_ts = ts_stats['max_ts'][0]
     
+    # Yambda timestamps are seconds since the first event, rounded down to
+    # multiples of 5 (Yambda paper, Section 3.3), so all window arithmetic
+    # is in seconds.
     SECONDS_PER_DAY = 86400
-    TS_UNITS_PER_DAY = SECONDS_PER_DAY // 5
-    
-    gap_units = gap_seconds // 5
-    test_duration_units = test_days * TS_UNITS_PER_DAY
+    test_duration_seconds = test_days * SECONDS_PER_DAY
     
     test_end = max_ts
-    test_start = test_end - test_duration_units
-    train_end = test_start - gap_units
+    test_start = test_end - test_duration_seconds
+    train_end = test_start - gap_seconds
     
     if train_days is not None:
-        train_duration_units = train_days * TS_UNITS_PER_DAY
-        train_start = train_end - train_duration_units
+        train_duration_seconds = train_days * SECONDS_PER_DAY
+        train_start = train_end - train_duration_seconds
         train_start = max(train_start, min_ts)
         logger.info(f"Using {train_days}-day train window")
     else:
         train_start = min_ts
-        actual_train_days = (train_end - train_start) / TS_UNITS_PER_DAY
+        actual_train_days = (train_end - train_start) / SECONDS_PER_DAY
         logger.info(f"Using full train window (~{actual_train_days:.0f} days)")
     
     logger.info(f"Timestamp range: {min_ts:,} to {max_ts:,}")
     logger.info(f"Train window: {train_start:,} to {train_end:,} "
-                f"(~{(train_end - train_start) / TS_UNITS_PER_DAY:.0f} days)")
+                f"(~{(train_end - train_start) / SECONDS_PER_DAY:.0f} days)")
     logger.info(f"Test window: {test_start:,} to {test_end:,} (~{test_days} days)")
     
     train_lf = lf.filter(
@@ -147,6 +147,78 @@ def split_validation_window(
     return fit_lf, val_lf
 
 
+def split_training_history(
+    data_dir: str,
+    fit_lf: Union[pl.LazyFrame, pl.DataFrame],
+    history_days: Optional[float] = None,
+) -> Tuple[Union[pl.LazyFrame, pl.DataFrame], pl.DataFrame]:
+    """
+    Choose the history window for the TRAINING rows' user and item aggregates.
+
+    Aggregates such as user_avg_completion and item_avg_completion are means
+    of the column the label is built from. Computed over the training rows
+    and joined back to those same rows, each row's own label is inside its
+    features (target leakage), and the model looks far better on training
+    rows than on validation or test rows. Validation and test rows already
+    get aggregates from the fit window, which ends before their windows.
+    This function gives training rows the same treatment: fit a separate
+    PolarsHistoricalFeatures on the returned history and pass it to
+    PolarsPipeline.transform(..., history=...) for the training rows.
+
+    The history window ends where the fit window starts and has the same
+    length as the fit window (or history_days, if given), so training,
+    validation and test rows see histories of similar length. If the dataset
+    does not reach back that far (for example train_days=None), the earliest
+    part of the fit window becomes history only and its rows are dropped
+    from the training rows; the history is then at most half of the data
+    up to the end of the fit window.
+
+    Args:
+        data_dir: Directory with listens.parquet (as for load_yambda_polars)
+        fit_lf: Fit window from split_validation_window
+        history_days: History length in days (default: fit window length)
+
+    Returns:
+        Tuple of (training_rows, history). training_rows has the type of
+        fit_lf; history is a DataFrame of listens strictly before every
+        training row.
+    """
+    seconds_per_day = 86400
+    bounds = fit_lf.select([
+        col('timestamp').min().alias('lo'),
+        col('timestamp').max().alias('hi'),
+    ])
+    if isinstance(bounds, pl.LazyFrame):
+        bounds = bounds.collect()
+    fit_start = int(bounds['lo'][0])
+    fit_end = int(bounds['hi'][0]) + 1
+    span = int(history_days * seconds_per_day) if history_days else fit_end - fit_start
+
+    listens_lf = pl.scan_parquet(Path(data_dir) / 'listens.parquet')
+    data_start = int(listens_lf.select(col('timestamp').min()).collect().item())
+
+    if fit_start - span >= data_start:
+        hist_start, cut = fit_start - span, fit_start
+    else:
+        hist_start = data_start
+        cut = max(fit_start, min(data_start + span, data_start + (fit_end - data_start) // 2))
+        logger.warning(f"Not enough data before the fit window for a full history "
+                       f"window; listens before timestamp {cut:,} are used as history only.")
+
+    wanted = ['uid', 'item_id', 'timestamp', 'is_organic',
+              'played_ratio_pct', 'track_length_seconds']
+    names = listens_lf.collect_schema().names()
+    history = _cast_dtypes(
+        listens_lf.select([c for c in wanted if c in names])
+        .filter((col('timestamp') >= hist_start) & (col('timestamp') < cut))
+    ).collect()
+
+    training_rows = fit_lf.filter(col('timestamp') >= cut) if cut > fit_start else fit_lf
+    logger.info(f"Training-row history window: {hist_start:,} to {cut:,} "
+                f"(~{(cut - hist_start) / seconds_per_day:.1f} days, {history.height:,} listens)")
+    return training_rows, history
+
+
 def _cast_dtypes(lf: pl.LazyFrame) -> pl.LazyFrame:
     """Cast columns to optimal dtypes."""
     existing_cols = lf.collect_schema().names()
@@ -194,7 +266,7 @@ class PolarsFeatureEncoder:
             if n_unique > self.high_cardinality_threshold:
                 freq_df = (
                     df.group_by(col_name)
-                    .agg(pl.count().alias('_count'))
+                    .agg(pl.len().alias('_count'))
                     .with_columns([
                         (col('_count') / df.height).alias(f'{col_name}_freq')
                     ])
@@ -287,7 +359,7 @@ class PolarsHistoricalFeatures:
         self.user_features = (
             df.group_by('uid')
             .agg([
-                pl.count().alias('user_total_listens'),
+                pl.len().alias('user_total_listens'),
                 col('played_ratio_pct').mean().alias('user_avg_completion'),
                 col('played_ratio_pct').std().alias('user_std_completion'),
                 col('played_ratio_pct').median().alias('user_median_completion'),
@@ -322,7 +394,7 @@ class PolarsHistoricalFeatures:
         self.item_features = (
             df.group_by('item_id')
             .agg([
-                pl.count().alias('item_total_plays'),
+                pl.len().alias('item_total_plays'),
                 col('played_ratio_pct').mean().alias('item_avg_completion'),
                 col('played_ratio_pct').std().alias('item_std_completion'),
                 col('uid').n_unique().alias('item_unique_listeners'),
@@ -337,9 +409,14 @@ class PolarsHistoricalFeatures:
         if likes_lf is not None and dislikes_lf is not None:
             likes_df = likes_lf.collect() if isinstance(likes_lf, pl.LazyFrame) else likes_lf
             dislikes_df = dislikes_lf.collect() if isinstance(dislikes_lf, pl.LazyFrame) else dislikes_lf
+            # Only feedback inside the listens' time span; later likes and
+            # dislikes would leak future feedback into the features.
+            span = col('timestamp').is_between(df['timestamp'].min(), df['timestamp'].max())
+            likes_df = likes_df.filter(span)
+            dislikes_df = dislikes_df.filter(span)
             
-            likes_count = likes_df.group_by('item_id').agg(pl.count().alias('_likes'))
-            dislikes_count = dislikes_df.group_by('item_id').agg(pl.count().alias('_dislikes'))
+            likes_count = likes_df.group_by('item_id').agg(pl.len().alias('_likes'))
+            dislikes_count = dislikes_df.group_by('item_id').agg(pl.len().alias('_dislikes'))
             
             self.item_features = (
                 self.item_features
@@ -440,13 +517,19 @@ class PolarsHistoricalFeatures:
         if item_fill_exprs:
             lf = lf.with_columns(item_fill_exprs)
         
-        # PIT-correct user-item features
+        # PIT-correct user-item features.
+        # NOTE: an aggregate like pl.len().over(...) - 1 would broadcast the
+        # group TOTAL to every row (order_by has no effect on aggregates),
+        # silently leaking future interactions. int_range(pl.len()) is the
+        # order-sensitive, PIT-correct formulation: row position within each
+        # (uid, item_id) group ordered by timestamp = number of PREVIOUS
+        # interactions (0 for the first). Rows of a pair that share a
+        # timestamp are numbered in input row order.
         lf = lf.with_columns([
-            (
-                pl.count()
-                .over(['uid', 'item_id'], order_by='timestamp')
-                - 1
-            ).cast(pl.Int16).alias('previous_listen_count'),
+            pl.int_range(pl.len())
+            .over(['uid', 'item_id'], order_by='timestamp')
+            .cast(pl.Int16)
+            .alias('previous_listen_count'),
         ])
         
         lf = lf.with_columns([
@@ -539,9 +622,17 @@ class PolarsPipeline:
     def transform(
         self,
         lf: Union[pl.LazyFrame, pl.DataFrame],
-        collect: bool = True
+        collect: bool = True,
+        history: Optional[PolarsHistoricalFeatures] = None,
     ) -> Tuple[pl.DataFrame, List[str]]:
-        """Transform data using fitted pipeline."""
+        """
+        Transform data using fitted pipeline.
+
+        history: optional PolarsHistoricalFeatures to use instead of the one
+            fitted in fit(). Pass one fitted on the window before the fit
+            window (split_training_history) when transforming the training
+            rows, so no row's own label is in its user and item aggregates.
+        """
         if not self.fitted:
             raise ValueError("Pipeline not fitted")
         
@@ -554,13 +645,16 @@ class PolarsPipeline:
         lf = self.encoder.transform(lf)
         
         if self.add_derived_features:
+            # Timestamps are seconds from an undisclosed origin, so these are
+            # periodic offsets rather than local clock hour and weekday.
             lf = lf.with_columns([
-                ((col('timestamp') * 5 // 3600) % 24).cast(pl.Int8).alias('hour_of_day'),
-                ((col('timestamp') * 5 // 86400) % 7).cast(pl.Int8).alias('day_of_week'),
+                ((col('timestamp') // 3600) % 24).cast(pl.Int8).alias('hour_of_day'),
+                ((col('timestamp') // 86400) % 7).cast(pl.Int8).alias('day_of_week'),
             ])
         
         if self.add_historical_features:
-            lf = self.hist_builder.transform(lf)
+            hist_builder = history if history is not None else self.hist_builder
+            lf = hist_builder.transform(lf)
         
         if is_lazy and collect:
             logger.info("Collecting transformed data...")
@@ -580,7 +674,14 @@ class PolarsPipeline:
         dislikes_lf: Optional[Union[pl.LazyFrame, pl.DataFrame]] = None,
         collect: bool = True
     ) -> Tuple[pl.DataFrame, List[str]]:
-        """Fit and transform in one step."""
+        """
+        Fit and transform in one step.
+
+        The output rows carry user and item aggregates computed from those
+        same rows, including their own labels. Do not train on them; for
+        training rows use split_training_history() and
+        transform(..., history=...).
+        """
         self.fit(lf, likes_lf, dislikes_lf)
         return self.transform(lf, collect=collect)
     

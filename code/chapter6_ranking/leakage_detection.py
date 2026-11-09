@@ -162,14 +162,17 @@ def run_leakage_tests(
     # =========================================================================
     logger.info("\n--- Computing Historical Features ---")
     
-    # Use first 80% of train_split for feature computation (prevent look-ahead)
+    # Use first 80% of train_split for feature computation and the rows after
+    # it as training rows, so no row's own label is in its features
     feature_source_ratio = 0.8
     train_split_sorted = train_split.sort_values('timestamp')
     feature_source_idx = int(len(train_split_sorted) * feature_source_ratio)
-    feature_source_df = train_split_sorted.iloc[:feature_source_idx].copy()
+    cut_ts = train_split_sorted['timestamp'].iloc[feature_source_idx]
+    feature_source_df = train_split_sorted[train_split_sorted['timestamp'] < cut_ts].copy()
+    train_split = train_split_sorted[train_split_sorted['timestamp'] >= cut_ts].copy()
     
     logger.info(f"Computing features from first {feature_source_ratio:.0%} of training data "
-               f"({len(feature_source_df):,} samples)")
+               f"({len(feature_source_df):,} samples); {len(train_split):,} training rows after it")
     
     historical_builder = HistoricalFeatureBuilder()
     historical_builder.fit(feature_source_df)

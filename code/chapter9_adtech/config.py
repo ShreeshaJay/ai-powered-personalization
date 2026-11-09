@@ -14,6 +14,7 @@ Datasets:
 - FedAds: Alibaba Federated Advertising Dataset (secondary)
 """
 
+import os
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
@@ -26,13 +27,23 @@ from typing import Dict, Any, Optional, List
 BASE_DIR = Path(__file__).parent
 PROJECT_ROOT = BASE_DIR.parent.parent
 
+# Dataset folders default to PROJECT_ROOT/Dataset/<name>. To keep the data
+# elsewhere, set ALI_CCP_DATA_DIR and/or FEDADS_DATA_DIR to the dataset
+# folder (same pattern as YAMBDA_DATA_DIR in Chapters 6 and 7).
+
 # Ali-CCP Dataset
-ALI_CCP_DIR = PROJECT_ROOT / "Dataset" / "Ali-CCP Entire State Model"
+ALI_CCP_DIR = Path(
+    os.environ.get("ALI_CCP_DATA_DIR")
+    or PROJECT_ROOT / "Dataset" / "Ali-CCP Entire State Model"
+)
 ALI_CCP_SKELETON = ALI_CCP_DIR / "sample_skeleton_train.csv"
 ALI_CCP_FEATURES = ALI_CCP_DIR / "common_features_train.csv"
 
 # FedAds Dataset
-FEDADS_DIR = PROJECT_ROOT / "Dataset" / "Alibaba Federated Ads"
+FEDADS_DIR = Path(
+    os.environ.get("FEDADS_DATA_DIR")
+    or PROJECT_ROOT / "Dataset" / "Alibaba Federated Ads"
+)
 FEDADS_ALIGNED = FEDADS_DIR / "sample_train_aligned.csv"
 FEDADS_UNALIGNED = FEDADS_DIR / "sample_train_unaligned.csv"
 
@@ -203,8 +214,10 @@ class TrainingConfig:
     patience: int = 3  # Early stopping patience
     val_split_ratio: float = 0.1
     
-    # Data sampling for development
+    # Data sampling for development (train_esmm.py --dev)
     dev_sample_size: int = 2_000_000  # 2M samples for quick experiments
+    dev_epochs: int = 2  # --dev caps epochs at this value
+    dev_batch_size: int = 1024  # --dev caps batch size at this value
     use_full_data: bool = False  # Set True for final training
     
     # Gradient clipping

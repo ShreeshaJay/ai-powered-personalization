@@ -85,7 +85,10 @@ import pyarrow.parquet as pq
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from utils.polars_pipeline import load_yambda_polars, PolarsPipeline, split_validation_window
+from utils.polars_pipeline import (
+    load_yambda_polars, PolarsPipeline, PolarsHistoricalFeatures,
+    split_validation_window, split_training_history,
+)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -532,6 +535,9 @@ def main():
     parser.add_argument('--val_split_ratio', type=float, default=0.1,
                         help='Fraction of the train window, taken from its end, held out '
                              'as the validation set for model selection')
+    parser.add_argument('--history_days', type=float, default=0,
+                        help='Days of listens before the fit window used for the training '
+                             "rows' user and item aggregates (0: same length as the fit window)")
     
     # Model hyperparameters
     parser.add_argument('--embed_dim', type=int, default=16)
@@ -608,7 +614,13 @@ def main():
         add_historical_features=True,
     )
     
-    train_pl_df, feature_cols = pipeline.fit_transform(train_lf)
+    pipeline.fit(train_lf)
+    # Training rows get user and item aggregates from the window just before
+    # the fit window, so no row's own label is in its features. Validation
+    # and test rows use the fit window, which ends before their windows.
+    train_lf, history_df = split_training_history(args.data_dir, train_lf, args.history_days)
+    train_history = PolarsHistoricalFeatures().fit(history_df)
+    train_pl_df, feature_cols = pipeline.transform(train_lf, history=train_history)
     train_df = train_pl_df.to_pandas()
     
     val_pl_df, _ = pipeline.transform(val_lf)

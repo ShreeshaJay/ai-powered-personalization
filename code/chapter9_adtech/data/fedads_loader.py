@@ -330,7 +330,7 @@ def load_fedads_split(
     val_ratio: float = 0.115,
     party: Literal['both', 'local', 'federated'] = 'both',
 ) -> Tuple[FedAdsDataset, FedAdsDataset]:
-    """Load FedAds data and create train/val datasets.
+    """Load FedAds data and create train/test datasets.
     
     Uses time-based (row-order) split following the FedAds paper:
     "The last week of data is used as the test set" (Wei et al., SIGIR 2023).
@@ -339,12 +339,13 @@ def load_fedads_split(
     
     Args:
         n_samples: Number of samples to load. None = all aligned data (~2.6M).
-        val_ratio: Fraction for validation set. Default 0.115 matches paper
-                   (~1.3M test / 11.3M total).
+        val_ratio: Fraction held out (last rows) as the test set. The name is
+                   kept for backward compatibility. Default 0.115 matches
+                   the paper (~1.3M test / 11.3M total).
         party: Which party's features to include.
         
     Returns:
-        Tuple of (train_dataset, val_dataset)
+        Tuple of (train_dataset, test_dataset)
     """
     # Load aligned data (both parties have features)
     df = load_fedads_data(aligned=True, n_samples=n_samples)
@@ -352,7 +353,7 @@ def load_fedads_split(
     n_total = len(df)
     n_val = int(n_total * val_ratio)
     
-    # Row-order split: last portion = validation (time-based proxy)
+    # Row-order split: last portion = test set (time-based proxy)
     print(f"\nUsing TIME-BASED split (row-order proxy)")
     print(f"  Rationale: paper splits by click timestamp; public data has hashed")
     print(f"  timestamps so we use row order as proxy for chronological order.")
@@ -360,7 +361,7 @@ def load_fedads_split(
     val_df = df[n_total - n_val:]
     
     print(f"Train set: {len(train_df):,} samples")
-    print(f"Val set: {len(val_df):,} samples")
+    print(f"Test set: {len(val_df):,} samples")
     
     train_dataset = FedAdsDataset(train_df, party=party)
     val_dataset = FedAdsDataset(val_df, party=party)

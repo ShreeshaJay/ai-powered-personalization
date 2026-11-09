@@ -50,7 +50,7 @@ chapter7_advanced_ranking/
 
 ```bash
 # Same dependencies as Chapter 6
-pip install torch polars pyarrow scikit-learn
+pip install torch "polars>=1.9.0" pyarrow scikit-learn
 ```
 
 ### 2. Set Data Path
@@ -81,10 +81,29 @@ Every training script splits the data by time into train, validation, and test, 
 
 - **Test** is the last `--test_days` of the dataset, after a 30-minute gap.
 - **Validation** is the last `--val_split_ratio` (default 0.1) of the train window. It is held out before features are fitted.
+- **User and item aggregates** (for example `user_avg_completion`) are means of the label column, so each row gets them from a window that ends before its own: training rows from the window just before the fit window (same length, or `--history_days`), validation and test rows from the fit window.
+- **Like and dislike labels** in `train_mmoe.py` count only events before the end of the listen's own split (fit rows: the start of validation; validation rows: the end of the train window), so no training or validation label depends on validation, gap or test events.
 - Early stopping, learning-rate scheduling, best-checkpoint selection, and (in `train_mmoe.py`) classification thresholds use the **validation** set only.
 - The test set is scored once, at the end, and is never used to choose the model.
 
 `results.json` reports `train_metrics`, `val_metrics`, and `test_metrics` separately.
+
+**Time units (note added 2026-11-09):** Yambda timestamps are seconds since the
+first event, rounded down to multiples of 5 (Yambda paper, Section 3.3). Before
+2026-11-09 the code divided by 5 as if each unit were 5 seconds, so the
+`--train_days` window, the 30-minute gap, the `--test_days` window and the
+24-hour like/dislike window in `train_mmoe.py` were five times shorter than
+stated (a "30-day" window covered about 6 days, the like window about 4.8
+hours), and `hour_of_day` / `day_of_week` were not the intended periodic
+features. Results, row counts, memory figures and runtimes in this README and
+in `docs/` that were recorded before that date are pending re-measurement.
+
+**Training-row aggregates and label cut (note added 2026-11-09):** Before
+2026-11-09 the training rows' user and item aggregates were computed from the
+training rows themselves, so each row's own label was in its features, and
+like/dislike labels near the end of the train window could count events from
+the validation, gap or test period. Train metrics, train-test gaps and
+like/dislike rates recorded before that date are pending re-measurement.
 
 ## Model Details
 
@@ -183,7 +202,7 @@ python train_mmoe.py --train_days 30 --num_experts 6 --use_focal_loss
 ### MMoE
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `num_experts` | 6 | Number of shared expert networks (6 recommended for 5 tasks) |
+| `num_experts` | 4 | Number of shared expert networks (default from earlier runs compared on the test set; re-tune on validation) |
 | `expert_dims` | 256,128 | Expert network hidden layers |
 | `tower_dims` | 64,32 | Task tower hidden layers |
 | `engagement_weight` | 1.0 | Loss weight for engagement task (binary) |
@@ -250,12 +269,19 @@ For rapid iteration on value function weights without re-running inference:
 
 | File | Description | Usage |
 |------|-------------|-------|
-| `predictions.parquet` | Test set predictions | Value function optimization |
-| `calibration.json` | Calibration curves | Reliability diagrams |
-| `value_function_config.json` | Task stats & suggested weights | Starting point |
-| `gate_weights_sample.parquet` | Expert routing | Interpretability |
+| `val_predictions.parquet` | Validation set predictions | Value function weight tuning, calibration |
+| `predictions.parquet` | Test set predictions | Final reporting only (do not tune on it) |
+| `calibration.json` | Calibration curves (validation split) | Reliability diagrams |
+| `value_function_config.json` | Task stats & suggested weights (validation split) | Starting point |
+| `gate_weights_sample.parquet` | Expert routing (validation split) | Interpretability |
 
-**predictions.parquet Schema (5 tasks: 4 binary + 1 regression):**
+Calibration curves, task statistics, task correlations and the
+`inverse_positive_rate` suggested weights are computed from the validation
+split (runs before 2026-11-09 computed them from the test split).
+`predictions.parquet` keeps the test predictions for the final report and for
+`chapter8_value_functions/test_chapter7_integration.py`.
+
+**predictions.parquet and val_predictions.parquet schema (5 tasks: 4 binary + 1 regression):**
 
 ```python
 columns = [
@@ -274,8 +300,9 @@ columns = [
 ```python
 import pandas as pd
 
-# Load pre-computed predictions
-df = pd.read_parquet('outputs/mmoe_30d_6exp/predictions.parquet')
+# Tune weights on validation predictions; keep predictions.parquet (test)
+# for the final report only
+df = pd.read_parquet('outputs/mmoe_30d_6exp/val_predictions.parquet')
 
 # Experiment with different value function weights
 experiments = [
@@ -339,7 +366,7 @@ plt.tight_layout()
 | DeepFM (Ch6) | 30 | ~0.55-0.58 | - | - | Baseline |
 | XGBoost (Ch6) | 30 | ~0.58-0.60 | - | - | Feature engineering |
 
-Note: These ranges were recorded before the validation-window fix (2026-11-08), when model selection monitored the test window, so they are optimistic. Results depend on hardware, random seeds, and hyperparameters. Engagement AUC is typically high (>0.95) since almost all listens have played_ratio_pct > 0 in the dataset.
+Note: These ranges were recorded before the validation-window fix (2026-11-08), when model selection monitored the test window, so they are optimistic. They also predate the 2026-11-09 time-unit fix (see Evaluation Protocol), so the "30-day" window covered about 6 days of data; they are pending re-measurement. Results depend on hardware, random seeds, and hyperparameters. Engagement AUC is typically high (>0.95) since almost all listens have played_ratio_pct > 0 in the dataset.
 
 ## Comparison with Chapter 6
 

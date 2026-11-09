@@ -59,6 +59,23 @@ CVR is typically 0.5-2%, requiring specialized techniques:
 - **Key Feature:** Features split between publisher/advertiser
 - **Used For:** Federated learning demonstration
 
+### Dataset Location
+By default the code expects the raw files in `Dataset/Ali-CCP Entire State Model/`
+and `Dataset/Alibaba Federated Ads/`, where `Dataset/` sits two levels above
+`chapter9_adtech/` (the repository root, next to `code/`). To keep the data
+somewhere else, set these environment variables to the dataset folders (the same
+pattern as `YAMBDA_DATA_DIR` in Chapters 6 and 7):
+
+| Variable | Points to | Used by |
+|----------|-----------|---------|
+| `ALI_CCP_DATA_DIR` | folder with `sample_skeleton_train.csv` and `common_features_train.csv`; `processed/` is created inside it | `config.py`, `scripts/preprocess_ali_ccp.py`, `data/ali_ccp_dataset.py` |
+| `FEDADS_DATA_DIR` | folder with `sample_train_aligned.csv` and `sample_train_unaligned.csv` | `config.py`, `data/fedads_loader.py` |
+
+```bash
+export ALI_CCP_DATA_DIR="<path-to-ali-ccp-folder>"      # bash
+$env:ALI_CCP_DATA_DIR = "<path-to-ali-ccp-folder>"      # PowerShell
+```
+
 ## Code Structure
 
 ```
@@ -114,6 +131,10 @@ This creates:
 cd chapter9_adtech
 python train_esmm.py --dev
 ```
+
+`--dev` is a quick development run: it samples at most 2M training rows and caps
+training at 2 epochs with batch size 1024 (`dev_sample_size`, `dev_epochs` and
+`dev_batch_size` in `TrainingConfig`, `config.py`). Drop the flag for a full run.
 
 ### Step 2: Compare ESMM vs CVR Baseline
 ```bash

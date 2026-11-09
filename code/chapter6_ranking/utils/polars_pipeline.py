@@ -25,16 +25,21 @@ This pipeline implements TWO approaches:
      window functions with `order_by='timestamp'`.
    - `has_listened_before`: Binary flag derived from previous_listen_count.
 
-2. **LOOKUP-TABLE Features** (computed from full training window):
-   The following features are computed from ALL training data and joined
-   as lookup tables. This is a KNOWN SIMPLIFICATION for educational purposes:
+2. **WINDOW-AGGREGATE Features** (lookup tables from an earlier window):
+   The following features are aggregated over a window of listens and joined
+   as lookup tables. Most are means of played_ratio_pct, the column the label
+   comes from, so the window must end before the rows it is applied to:
+   training rows use the window just before the fit window
+   (split_training_history), validation and test rows use the fit window.
+   Fitting them on the training rows and applying them to the same rows
+   would put each row's own label in its features (target leakage).
    
-   User-level (lower leakage risk - aggregated over many items):
+   User-level:
    - user_avg_completion, user_median_completion, user_std_completion
    - user_total_listens, user_unique_items, user_organic_ratio
    - user_active_span, user_listen_rate
    
-   Item-level (lower leakage risk - aggregated over many users):
+   Item-level:
    - item_avg_completion, item_std_completion, item_total_plays
    - item_unique_listeners, item_organic_ratio, item_repeat_ratio, item_like_ratio
 
@@ -54,16 +59,17 @@ would provide PIT-correct values for ALL features:
    recent feature values, which are genuinely "historical" from the model's
    perspective.
 
-For this educational codebase, we accept the simplification of lookup-table
-features because:
-- The train-test leakage risk is manageable (~0.17 AUC gap)
-- User/item-level aggregates are less prone to leakage than user-item-level
-- True PIT would require 5-10x more code complexity
-- The key concepts are demonstrated with previous_listen_count
+This educational codebase uses two fixed windows instead. The aggregates
+are as of the end of a window rather than as of each row, so a row late in
+its window sees slightly stale values, but never its own label or anything
+later. A Feature Store would refresh them more often; previous_listen_count
+shows the per-row form.
 
 Usage:
 ------
->>> from utils.polars_pipeline import PolarsPipeline, load_yambda_polars
+>>> from utils.polars_pipeline import (
+...     PolarsPipeline, PolarsHistoricalFeatures, load_yambda_polars,
+...     split_validation_window, split_training_history)
 >>> 
 >>> # Load full dataset (300 days, ~50M rows)
 >>> train_lf, test_lf = load_yambda_polars(data_dir)
@@ -71,9 +77,14 @@ Usage:
 >>> # Or use shorter train window for faster iteration on 16GB laptop
 >>> train_lf, test_lf = load_yambda_polars(data_dir, train_days=30)  # ~5M rows
 >>> 
->>> # Run feature pipeline
->>> pipeline = PolarsPipeline()
->>> train_df, feature_cols = pipeline.fit_transform(train_lf)
+>>> # Run feature pipeline: fit on the fit window; training rows get
+>>> # aggregates from the window before it
+>>> train_lf, val_lf = split_validation_window(train_lf, val_ratio=0.1)
+>>> pipeline = PolarsPipeline().fit(train_lf)
+>>> rows_lf, history_df = split_training_history(data_dir, train_lf)
+>>> train_df, feature_cols = pipeline.transform(
+...     rows_lf, history=PolarsHistoricalFeatures().fit(history_df))
+>>> val_df, _ = pipeline.transform(val_lf)
 
 Requirements:
 -------------
@@ -174,23 +185,22 @@ def load_yambda_polars(
     max_ts = ts_stats['max_ts'][0]
     total_range = max_ts - min_ts
     
-    # Convert time parameters to timestamp units (1 unit = 5 seconds)
+    # Yambda timestamps are seconds since the first event, rounded down to
+    # multiples of 5 (Yambda paper, Section 3.3), so all window arithmetic
+    # is in seconds.
     SECONDS_PER_DAY = 86400
-    TS_UNITS_PER_DAY = SECONDS_PER_DAY // 5  # 17280 units per day
-    
-    gap_units = gap_seconds // 5
-    test_duration_units = test_days * TS_UNITS_PER_DAY
+    test_duration_seconds = test_days * SECONDS_PER_DAY
     
     # Calculate boundaries working backwards from max_ts
     # Timeline: [...train_start...train_end][gap][test_start...test_end=max_ts]
     test_end = max_ts
-    test_start = test_end - test_duration_units
-    train_end = test_start - gap_units
+    test_start = test_end - test_duration_seconds
+    train_end = test_start - gap_seconds
     
     if train_days is not None:
         # Use specified train window (most recent N days before gap)
-        train_duration_units = train_days * TS_UNITS_PER_DAY
-        train_start = train_end - train_duration_units
+        train_duration_seconds = train_days * SECONDS_PER_DAY
+        train_start = train_end - train_duration_seconds
         
         # Ensure we don't go before data start
         train_start = max(train_start, min_ts)
@@ -199,12 +209,12 @@ def load_yambda_polars(
     else:
         # Use all available data for training (GTS protocol: ~300 days)
         train_start = min_ts
-        actual_train_days = (train_end - train_start) / TS_UNITS_PER_DAY
+        actual_train_days = (train_end - train_start) / SECONDS_PER_DAY
         logger.info(f"Using full train window (~{actual_train_days:.0f} days)")
     
     logger.info(f"Timestamp range: {min_ts:,} to {max_ts:,}")
     logger.info(f"Train window: {train_start:,} to {train_end:,} "
-                f"(~{(train_end - train_start) / TS_UNITS_PER_DAY:.0f} days)")
+                f"(~{(train_end - train_start) / SECONDS_PER_DAY:.0f} days)")
     logger.info(f"Test window: {test_start:,} to {test_end:,} "
                 f"(~{test_days} days)")
     
@@ -269,6 +279,78 @@ def split_validation_window(
     return fit_lf, val_lf
 
 
+def split_training_history(
+    data_dir: str,
+    fit_lf: Union[pl.LazyFrame, pl.DataFrame],
+    history_days: Optional[float] = None,
+) -> Tuple[Union[pl.LazyFrame, pl.DataFrame], pl.DataFrame]:
+    """
+    Choose the history window for the TRAINING rows' user and item aggregates.
+
+    Aggregates such as user_avg_completion and item_avg_completion are means
+    of the column the label is built from. Computed over the training rows
+    and joined back to those same rows, each row's own label is inside its
+    features (target leakage), and the model looks far better on training
+    rows than on validation or test rows. Validation and test rows already
+    get aggregates from the fit window, which ends before their windows.
+    This function gives training rows the same treatment: fit a separate
+    PolarsHistoricalFeatures on the returned history and pass it to
+    PolarsPipeline.transform(..., history=...) for the training rows.
+
+    The history window ends where the fit window starts and has the same
+    length as the fit window (or history_days, if given), so training,
+    validation and test rows see histories of similar length. If the dataset
+    does not reach back that far (for example train_days=None), the earliest
+    part of the fit window becomes history only and its rows are dropped
+    from the training rows; the history is then at most half of the data
+    up to the end of the fit window.
+
+    Args:
+        data_dir: Directory with listens.parquet (as for load_yambda_polars)
+        fit_lf: Fit window from split_validation_window
+        history_days: History length in days (default: fit window length)
+
+    Returns:
+        Tuple of (training_rows, history). training_rows has the type of
+        fit_lf; history is a DataFrame of listens strictly before every
+        training row.
+    """
+    seconds_per_day = 86400
+    bounds = fit_lf.select([
+        col('timestamp').min().alias('lo'),
+        col('timestamp').max().alias('hi'),
+    ])
+    if isinstance(bounds, pl.LazyFrame):
+        bounds = bounds.collect()
+    fit_start = int(bounds['lo'][0])
+    fit_end = int(bounds['hi'][0]) + 1
+    span = int(history_days * seconds_per_day) if history_days else fit_end - fit_start
+
+    listens_lf = pl.scan_parquet(Path(data_dir) / 'listens.parquet')
+    data_start = int(listens_lf.select(col('timestamp').min()).collect().item())
+
+    if fit_start - span >= data_start:
+        hist_start, cut = fit_start - span, fit_start
+    else:
+        hist_start = data_start
+        cut = max(fit_start, min(data_start + span, data_start + (fit_end - data_start) // 2))
+        logger.warning(f"Not enough data before the fit window for a full history "
+                       f"window; listens before timestamp {cut:,} are used as history only.")
+
+    wanted = ['uid', 'item_id', 'timestamp', 'is_organic',
+              'played_ratio_pct', 'track_length_seconds']
+    names = listens_lf.collect_schema().names()
+    history = _cast_dtypes(
+        listens_lf.select([c for c in wanted if c in names])
+        .filter((col('timestamp') >= hist_start) & (col('timestamp') < cut))
+    ).collect()
+
+    training_rows = fit_lf.filter(col('timestamp') >= cut) if cut > fit_start else fit_lf
+    logger.info(f"Training-row history window: {hist_start:,} to {cut:,} "
+                f"(~{(cut - hist_start) / seconds_per_day:.1f} days, {history.height:,} listens)")
+    return training_rows, history
+
+
 def _cast_dtypes(lf: pl.LazyFrame) -> pl.LazyFrame:
     """Cast columns to optimal dtypes."""
     # Get column names without triggering expensive schema resolution warning
@@ -327,7 +409,7 @@ class PolarsFeatureEncoder:
                 # Frequency encoding - store as lookup table
                 freq_df = (
                     df.group_by(col_name)
-                    .agg(pl.count().alias('_count'))
+                    .agg(pl.len().alias('_count'))
                     .with_columns([
                         (col('_count') / df.height).alias(f'{col_name}_freq')
                     ])
@@ -443,7 +525,7 @@ class PolarsHistoricalFeatures:
         self.user_features = (
             df.group_by('uid')
             .agg([
-                pl.count().alias('user_total_listens'),
+                pl.len().alias('user_total_listens'),
                 col('played_ratio_pct').mean().alias('user_avg_completion'),
                 col('played_ratio_pct').std().alias('user_std_completion'),
                 col('played_ratio_pct').median().alias('user_median_completion'),
@@ -478,7 +560,7 @@ class PolarsHistoricalFeatures:
         self.item_features = (
             df.group_by('item_id')
             .agg([
-                pl.count().alias('item_total_plays'),
+                pl.len().alias('item_total_plays'),
                 col('played_ratio_pct').mean().alias('item_avg_completion'),
                 col('played_ratio_pct').std().alias('item_std_completion'),
                 col('uid').n_unique().alias('item_unique_listeners'),
@@ -494,9 +576,14 @@ class PolarsHistoricalFeatures:
         if likes_lf is not None and dislikes_lf is not None:
             likes_df = likes_lf.collect() if isinstance(likes_lf, pl.LazyFrame) else likes_lf
             dislikes_df = dislikes_lf.collect() if isinstance(dislikes_lf, pl.LazyFrame) else dislikes_lf
+            # Only feedback inside the listens' time span; later likes and
+            # dislikes would leak future feedback into the features.
+            span = col('timestamp').is_between(df['timestamp'].min(), df['timestamp'].max())
+            likes_df = likes_df.filter(span)
+            dislikes_df = dislikes_df.filter(span)
             
-            likes_count = likes_df.group_by('item_id').agg(pl.count().alias('_likes'))
-            dislikes_count = dislikes_df.group_by('item_id').agg(pl.count().alias('_dislikes'))
+            likes_count = likes_df.group_by('item_id').agg(pl.len().alias('_likes'))
+            dislikes_count = dislikes_df.group_by('item_id').agg(pl.len().alias('_dislikes'))
             
             self.item_features = (
                 self.item_features
@@ -536,8 +623,10 @@ class PolarsHistoricalFeatures:
         # user_item_avg_completion was REMOVED due to severe look-ahead bias:
         # it was computed from ALL listens including future ones, leaking labels.
         #
-        # We still track unique (uid, item_id) pairs seen during training for
-        # the has_listened_before flag, but the count is computed per-row.
+        # We record the unique (uid, item_id) pairs seen during training for
+        # reference/persistence, but transform() computes previous_listen_count
+        # and has_listened_before per-row WITHIN the transformed frame (see
+        # transform() docstring for the cross-window limitation).
         logger.info("  Computing user-item features...")
         self.user_item_pairs = (
             df.select(['uid', 'item_id'])
@@ -596,12 +685,21 @@ class PolarsHistoricalFeatures:
         `previous_listen_count` is computed with PIT correctness: for each row,
         we count only the interactions of that (user, item) pair that occurred 
         BEFORE that row's timestamp. This prevents look-ahead bias.
+
+        Known limitation: the count is computed WITHIN the frame being
+        transformed. When transforming the test window separately from the
+        train window, test rows do not get credit for train-window listens
+        (a pair's first test-window listen has previous_listen_count = 0
+        and has_listened_before = 0). In production, a Feature Store would
+        carry this history across windows.
         
-        Features NOT PIT-corrected (documented):
-        ----------------------------------------
-        The following features are computed from the ENTIRE training window
-        and joined as lookup tables. In production, a Feature Store would 
-        provide these as PIT-correct values:
+        Window-aggregate features:
+        --------------------------
+        The following features are computed from the window passed to fit()
+        and joined as lookup tables, so they are as of the end of that
+        window. Apply them only to rows after it: for training rows, fit a
+        separate instance on split_training_history(). In production, a
+        Feature Store would provide these as PIT-correct values:
         
         - user_avg_completion, user_median_completion, user_std_completion
         - user_total_listens, user_unique_items, user_organic_ratio
@@ -609,11 +707,9 @@ class PolarsHistoricalFeatures:
         - item_avg_completion, item_std_completion, item_total_plays
         - item_unique_listeners, item_organic_ratio, item_repeat_ratio
         
-        For educational purposes, the lookup-table approach is used because:
-        1. It's simpler to understand and implement
-        2. The leakage risk is lower (user/item-level vs user-item-level)
-        3. True PIT requires significant infrastructure (sliding windows, 
-           incremental computation) typically handled by Feature Stores
+        For educational purposes, fixed windows are used because true
+        per-row PIT requires significant infrastructure (sliding windows,
+        incremental computation) typically handled by Feature Stores.
         """
         
         if not self.fitted:
@@ -652,20 +748,24 @@ class PolarsHistoricalFeatures:
         # =====================================================================
         # Compute previous_listen_count with Point-in-Time correctness:
         # For each row, count how many times this (user, item) appeared BEFORE
-        # this timestamp. Uses cumulative count - 1 (exclude current row).
+        # this timestamp, excluding the current row.
         #
-        # OLD (leaky): group_by(['uid', 'item_id']).count() → same for all rows
-        # NEW (PIT):   cumcount over (uid, item_id) ordered by timestamp - 1
+        # OLD (leaky): group_by(['uid', 'item_id']).count() -> same for all rows
+        # NEW (PIT):   row position within (uid, item_id) ordered by timestamp
+        # Rows of a pair that share a timestamp are numbered in input row order.
         # =====================================================================
         
         lf = lf.with_columns([
-            # Cumulative count within each (uid, item_id) group, ordered by timestamp
-            # Subtract 1 to get count of PREVIOUS interactions (not including current)
-            (
-                pl.count()
-                .over(['uid', 'item_id'], order_by='timestamp')
-                - 1
-            ).cast(pl.Int16).alias('previous_listen_count'),
+            # Row position within each (uid, item_id) group when ordered by
+            # timestamp = number of PREVIOUS interactions (0 for the first).
+            # NOTE: an aggregate like pl.len().over(...) would broadcast the
+            # group TOTAL to every row (order_by has no effect on aggregates),
+            # which silently leaks future interactions. int_range(pl.len())
+            # is the order-sensitive, PIT-correct formulation.
+            pl.int_range(pl.len())
+            .over(['uid', 'item_id'], order_by='timestamp')
+            .cast(pl.Int16)
+            .alias('previous_listen_count'),
         ])
         
         # has_listened_before: 1 if user has interacted with this item before
@@ -717,8 +817,12 @@ class PolarsPipeline:
     Usage:
         >>> pipeline = PolarsPipeline()
         >>> 
-        >>> # Fit on training data
-        >>> train_df, feature_cols = pipeline.fit_transform(train_lf)
+        >>> # Fit on training data; training rows get aggregates from the
+        >>> # window before it (no row's own label in its features)
+        >>> pipeline.fit(train_lf)
+        >>> rows_lf, history_df = split_training_history(data_dir, train_lf)
+        >>> train_df, feature_cols = pipeline.transform(
+        ...     rows_lf, history=PolarsHistoricalFeatures().fit(history_df))
         >>> 
         >>> # Transform test data
         >>> test_df, _ = pipeline.transform(test_lf)
@@ -807,7 +911,8 @@ class PolarsPipeline:
     def transform(
         self,
         lf: Union[pl.LazyFrame, pl.DataFrame],
-        collect: bool = True
+        collect: bool = True,
+        history: Optional[PolarsHistoricalFeatures] = None,
     ) -> Tuple[pl.DataFrame, List[str]]:
         """
         Transform data using fitted pipeline.
@@ -815,6 +920,11 @@ class PolarsPipeline:
         Args:
             lf: Input LazyFrame or DataFrame
             collect: If True and input is lazy, collect to DataFrame
+            history: Optional PolarsHistoricalFeatures to use instead of the
+                one fitted in fit(). Pass one fitted on the window before the
+                fit window (split_training_history) when transforming the
+                training rows, so no row's own label is in its user and item
+                aggregates.
             
         Returns:
             Tuple of (transformed DataFrame, feature column list)
@@ -834,14 +944,17 @@ class PolarsPipeline:
         
         # Add derived features
         if self.add_derived_features:
+            # Timestamps are seconds from an undisclosed origin, so these are
+            # periodic offsets rather than local clock hour and weekday.
             lf = lf.with_columns([
-                ((col('timestamp') * 5 // 3600) % 24).cast(pl.Int8).alias('hour_of_day'),
-                ((col('timestamp') * 5 // 86400) % 7).cast(pl.Int8).alias('day_of_week'),
+                ((col('timestamp') // 3600) % 24).cast(pl.Int8).alias('hour_of_day'),
+                ((col('timestamp') // 86400) % 7).cast(pl.Int8).alias('day_of_week'),
             ])
         
         # Add historical features
         if self.add_historical_features:
-            lf = self.hist_builder.transform(lf)
+            hist_builder = history if history is not None else self.hist_builder
+            lf = hist_builder.transform(lf)
         
         # Collect if lazy and requested
         if is_lazy and collect:
@@ -863,7 +976,14 @@ class PolarsPipeline:
         dislikes_lf: Optional[Union[pl.LazyFrame, pl.DataFrame]] = None,
         collect: bool = True
     ) -> Tuple[pl.DataFrame, List[str]]:
-        """Fit and transform in one step."""
+        """
+        Fit and transform in one step.
+
+        The output rows carry user and item aggregates computed from those
+        same rows, including their own labels. Do not train on them; for
+        training rows use split_training_history() and
+        transform(..., history=...).
+        """
         self.fit(lf, likes_lf, dislikes_lf)
         return self.transform(lf, collect=collect)
     
@@ -1015,7 +1135,10 @@ if __name__ == '__main__':
     
     # Fit and transform
     print("\n[3] Fitting and transforming...")
-    train_df, feature_cols = pipeline.fit_transform(train_lf)
+    pipeline.fit(train_lf)
+    rows_lf, history_df = split_training_history(args.data_dir, train_lf)
+    train_df, feature_cols = pipeline.transform(
+        rows_lf, history=PolarsHistoricalFeatures().fit(history_df))
     
     print(f"\n[4] Results:")
     print(f"    Train rows: {train_df.height:,}")

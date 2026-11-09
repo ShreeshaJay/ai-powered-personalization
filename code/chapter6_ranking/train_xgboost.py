@@ -163,9 +163,10 @@ def parse_args():
     parser.add_argument(
         '--feature_source_ratio',
         type=float,
-        default=0.8,
-        help='Fraction of training data to use for computing historical features (default: 0.8). '
-             'Prevents look-ahead bias by only using early data for feature computation.'
+        default=0.5,
+        help='Fraction of training data to use for computing historical features (default: 0.5, '
+             'a history window about as long as the rows trained on, as in the Polars trainers). '
+             'The model trains on the rows after it, so no row sees its own label.'
     )
     
     # Output arguments
@@ -297,22 +298,29 @@ def train(args):
     if use_historical:
         logger.info("\n--- Computing Historical Features ---")
         
-        # IMPORTANT: To prevent data leakage within training set, we compute
-        # historical features from only the FIRST portion of training data.
-        # This ensures no training sample uses "future" information.
+        # IMPORTANT: The historical features are mostly means of
+        # played_ratio_pct, the column the label comes from. To keep each
+        # row's own label (and anything later) out of its features, we compute
+        # them from only the FIRST portion of the training data and train only
+        # on the rows after it.
         #
-        # Split: train_split → [feature_source (80%) | remaining (20%)]
+        # Split: train_split -> [feature_source (--feature_source_ratio, default 50%)
+        #                        | training rows (the rest)]
         # Features computed from: feature_source only
-        # Features applied to: ALL splits (train, val, test)
+        # Features applied to: training rows, val, test
         
         feature_source_ratio = args.feature_source_ratio
         train_split_sorted = train_split.sort_values('timestamp')
         feature_source_idx = int(len(train_split_sorted) * feature_source_ratio)
+        # Cut on a timestamp so rows sharing a timestamp stay on one side
+        cut_ts = train_split_sorted['timestamp'].iloc[feature_source_idx]
         
-        feature_source_df = train_split_sorted.iloc[:feature_source_idx].copy()
+        feature_source_df = train_split_sorted[train_split_sorted['timestamp'] < cut_ts].copy()
+        train_split = train_split_sorted[train_split_sorted['timestamp'] >= cut_ts].copy()
         
         logger.info(f"Computing features from first {feature_source_ratio:.0%} of training data "
-                   f"({len(feature_source_df):,} samples) to prevent look-ahead bias")
+                   f"({len(feature_source_df):,} samples); training on the "
+                   f"{len(train_split):,} samples after it")
         
         historical_builder = HistoricalFeatureBuilder()
         

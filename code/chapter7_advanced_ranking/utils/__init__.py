@@ -11,6 +11,7 @@ from .polars_pipeline import (
     PolarsPipeline,
     PolarsFeatureEncoder,
     PolarsHistoricalFeatures,
+    split_training_history,
 )
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     'PolarsPipeline',
     'PolarsFeatureEncoder',
     'PolarsHistoricalFeatures',
+    'split_training_history',
 ]
 

@@ -34,6 +34,14 @@ expected_listen_time = P(engagement) * E[play_ratio] * track_length_seconds
 
 ### Artifacts Exported by Chapter 7
 
+Since 2026-11-09 Chapter 7 also writes `val_predictions.parquet` (validation
+split, same columns as `predictions.parquet`). `calibration.json`,
+`gate_weights_sample.parquet` and the statistics and suggested weights in
+`value_function_config.json` are computed from it. Tune value-function weights
+and calibration on `val_predictions.parquet`; use `predictions.parquet` (test)
+only to report the chosen configuration. Numbers quoted below were computed
+from the test split before that change.
+
 ```
 chapter7_advanced_ranking/outputs/mmoe_30d_Xexp_YYYYMMDD_HHMMSS/
 ├── best_model.pt                 # Model checkpoint with config

@@ -133,7 +133,7 @@ python train_mmoe.py --train_days 30 --data_dir $DATA_DIR
 
 ### The Problem
 
-The `item_id` feature has **176,000+ unique values** in a 30-day sample. Learning embeddings from scratch for such high-cardinality features leads to:
+The `item_id` feature has **176,000+ unique values** in a 30-day sample (counted before the 2026-11-09 time-unit fix, when that sample covered about 6 days). Learning embeddings from scratch for such high-cardinality features leads to:
 
 1. **Massive parameter count**: 176K × 16 dim = 2.8M parameters just for item embeddings
 2. **Severe overfitting**: Model memorizes training items, fails to generalize
@@ -505,7 +505,7 @@ Both scripts use `models/dcn.py`, but differ in how they handle item_id:
 
 | Parameter | Value | Justification |
 |-----------|-------|---------------|
-| `train_days` | 30 | ~1.26M samples; captures weekly patterns, manageable for iteration |
+| `train_days` | 30 | Captures weekly patterns, manageable for iteration (the ~1.26M sample count predates the 2026-11-09 time-unit fix, when this window covered about 6 days) |
 | `test_days` | 1 | Global Temporal Split; mimics production (predict tomorrow) |
 | `gap_seconds` | 1800 | 30-min gap prevents label leakage across train/test boundary |
 | `val_split_ratio` | 0.1 | Last 10% of the train window by time, used for all model selection |
@@ -519,6 +519,8 @@ All five training scripts (`train_dcn.py`, `train_dcn_pretrained.py`, `train_dlr
 ```
 
 - `split_validation_window()` in `utils/polars_pipeline.py` holds out the last `--val_split_ratio` of the train window **before** the feature pipeline is fitted, so validation rows get historical features from earlier data only, like test rows.
+- Training rows get their user and item aggregates from the window just before the fit window (`split_training_history()`, same length as the fit window or `--history_days`), passed as `pipeline.transform(train_lf, history=...)`. Most aggregates are means of `played_ratio_pct`, the label column, so fitting them on the training rows and applying them to the same rows would put each row's own label in its features. Before 2026-11-09 the scripts did that. If the data does not reach far enough back, the earliest part of the fit window becomes history only and is dropped from training (a warning is logged).
+- In `train_mmoe.py`, `load_multitask_splits()` cuts each split's like and dislike labels at the end of that split (see Section 14).
 - Early stopping, `ReduceLROnPlateau`, and best-checkpoint selection all monitor the validation metric. The test window is scored once, with the selected checkpoint.
 - In `train_mmoe.py`, classification thresholds are tuned on validation and applied to test (`f1_at_threshold`). `f1_max` on test uses a threshold tuned on test itself and is reported only as an optimistic diagnostic.
 
@@ -572,6 +574,10 @@ Compare to `train_dcn.py` with learned item embeddings: **~3M parameters**
 ## 9. Experimental Results: Pre-trained vs Learned Embeddings
 
 > **Note (2026-11-08):** All results in this document were recorded with an earlier version of the scripts in which early stopping, learning-rate scheduling, and checkpoint selection monitored the test window, and in which the MMoE "Optimal Threshold" column was tuned on the test window. The test metrics are therefore optimistically biased. They are kept as historical development notes. Rerun the current scripts, which select on a separate validation window (see "Validation Protocol" in Section 7), for unbiased numbers.
+
+> **Note (2026-11-09):** All results, sample counts and runtimes in this document also predate the time-unit fix. Yambda timestamps are seconds since the first event, rounded down to multiples of 5 (Yambda paper, Section 3.3), but the earlier code read one unit as 5 seconds. The "30-day" window therefore covered about 6 days of data, the 30-minute gap 6 minutes, the 1-day test window 4.8 hours, and the 24-hour like/dislike window 4.8 hours. These values are pending re-measurement.
+
+> **Note (2026-11-09, history features):** These results also predate the training-row history fix (see "Validation Protocol" in Section 7): the training rows' user and item aggregates included each row's own label, which inflates train metrics, and like/dislike labels were not cut at the end of each split. Pending re-measurement.
 
 ### Results Comparison (30-day training window)
 
@@ -933,8 +939,8 @@ We implemented a causal join that only counts a like if it occurred **after the 
 #   listen_timestamp <= like_timestamp <= listen_timestamp + 24_hours
 
 LIKE_WINDOW_HOURS = 24
-TIMESTAMP_BIN_SECONDS = 5  # Yambda uses 5-second bins
-LIKE_WINDOW_TS = (LIKE_WINDOW_HOURS * 60 * 60) // TIMESTAMP_BIN_SECONDS  # 17,280
+# Yambda timestamps are seconds (rounded down to multiples of 5)
+LIKE_WINDOW_TS = LIKE_WINDOW_HOURS * 60 * 60  # 86,400
 
 # Join with timestamp filtering
 joined = listens.join(likes, on=['uid', 'item_id'])
@@ -947,12 +953,28 @@ filtered = joined.filter(
 #### Visual Timeline
 
 ```
-Timeline showing correct labeling:
-├── Listen at ts=100,000
-│   ├── Like at ts=100,500 (5 mins later)  → ✓ Labeled as liked
-│   ├── Like at ts=117,000 (23 hrs later)  → ✓ Labeled as liked
-│   ├── Like at ts=118,000 (25 hrs later)  → ✗ NOT labeled (outside window)
-│   └── Like at ts=50,000 (before listen)  → ✗ NOT labeled (before listen)
+Timeline showing correct labeling (timestamps in seconds):
+|-- Listen at ts=100,000
+|   |-- Like at ts=100,300 (5 mins later)   -> labeled as liked
+|   |-- Like at ts=182,800 (23 hrs later)   -> labeled as liked
+|   |-- Like at ts=190,000 (25 hrs later)   -> NOT labeled (outside window)
+|   `-- Like at ts=50,000 (before listen)   -> NOT labeled (before listen)
+```
+
+#### Cut at the End of Each Split
+
+A listen near the end of its split has part of its 24-hour window in the next
+split. Since 2026-11-09 the join also requires `like_ts < label_end_ts`, the end
+of the listen's own split: fit rows stop at the start of the validation window,
+validation rows at the end of the train window, and test rows at the end of the
+data. A training or validation label therefore never depends on validation, gap
+or test events (the same principle as the validation window itself). The cost is
+that listens in the last 24 hours of a split have a shorter window, so their
+like and dislike rates are slightly lower.
+
+```python
+fit_lf, val_lf, test_lf = load_multitask_splits(data_dir, train_days, test_days,
+                                                val_split_ratio=0.1)
 ```
 
 ### Corrected Multi-Task MMoE Results
@@ -1011,6 +1033,8 @@ The 24-hour window is a design choice with trade-offs:
 | **Longer (7+ days)** | More positive labels | Weaker causal relationship |
 
 For music streaming, 24 hours captures most immediate reactions while maintaining reasonable causality.
+
+Before 2026-11-09 the code set this window to 17,280 timestamp units on the assumption that one unit was 5 seconds. Yambda timestamps are seconds, so the window was 4.8 hours, and the like/dislike positive rates and results in this section were measured with that shorter window. The code now uses 86,400 seconds; the rates are pending re-measurement.
 
 ---
 
@@ -1207,12 +1231,15 @@ By the end of Chapter 7, readers have:
 
 | Artifact | Location | Use in Chapter 8 |
 |----------|----------|------------------|
-| `predictions.parquet` | `outputs/mmoe_*/` | Value function experiments |
-| `calibration.json` | `outputs/mmoe_*/` | Reliability analysis |
-| `gate_weights_sample.parquet` | `outputs/mmoe_*/` | Expert interpretability |
-| `value_function_config.json` | `outputs/mmoe_*/` | Starting weight suggestions |
+| `val_predictions.parquet` | `outputs/mmoe_*/` | Value function experiments and weight tuning (validation split) |
+| `predictions.parquet` | `outputs/mmoe_*/` | Final reporting of the chosen weights only (test split) |
+| `calibration.json` | `outputs/mmoe_*/` | Reliability analysis (validation split) |
+| `gate_weights_sample.parquet` | `outputs/mmoe_*/` | Expert interpretability (validation split) |
+| `value_function_config.json` | `outputs/mmoe_*/` | Starting weight suggestions (validation split) |
 | `best_model.pt` | `outputs/mmoe_*/` | Full inference pipeline |
 | `inference/` | `outputs/mmoe_*/inference/` | Loading model for new data |
+
+Since 2026-11-09, `calibration.json`, `gate_weights_sample.parquet` and the statistics and suggested weights in `value_function_config.json` are computed from the validation split, and weight experiments (8.2 above) should read `val_predictions.parquet`. `predictions.parquet` holds test predictions for final reporting only.
 
 ### Narrative Hooks
 

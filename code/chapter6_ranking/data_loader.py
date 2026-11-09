@@ -13,8 +13,9 @@ Global Temporal Split Protocol (from paper):
 - Gap: 30 minutes (to prevent information leakage)
 - Test: Next 1 day
 
-Note: Timestamps in Yambda are delta values binned into 5-second intervals,
-NOT Unix timestamps. Data is sorted by (uid, timestamp).
+Note: Timestamps in Yambda are seconds since the first event in the dataset,
+rounded down to multiples of 5 (Yambda paper, Section 3.3). They are NOT Unix
+timestamps. Data is sorted by (uid, timestamp).
 """
 
 import pyarrow.parquet as pq

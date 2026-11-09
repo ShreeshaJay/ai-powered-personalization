@@ -56,9 +56,15 @@ class HistoricalFeatureBuilder:
     Usage:
     ------
     >>> builder = HistoricalFeatureBuilder()
-    >>> builder.fit(train_df, likes_df, dislikes_df, artist_mapping_df)
-    >>> train_enriched = builder.transform(train_df)
+    >>> builder.fit(history_df, likes_df, dislikes_df, artist_mapping_df)
+    >>> train_enriched = builder.transform(train_rows_df)
     >>> test_enriched = builder.transform(test_df)
+    
+    Most features are means of played_ratio_pct, the column the label comes
+    from, so fit on a window that ends before the rows you transform
+    (history_df before train_rows_df). Transforming the rows the builder was
+    fitted on puts each row's own label in its features; fit_transform()
+    does exactly that, so do not train on its output.
     """
     
     def __init__(self):

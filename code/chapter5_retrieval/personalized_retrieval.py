@@ -65,6 +65,7 @@ else:
 # Model parameters
 TOP_K_RETRIEVAL = [5, 10, 20, 50]
 MIN_SESSION_LENGTH = 3  # Need at least 3 items: 2 for history, 1 for ground truth
+EVAL_FRACTION = 0.15  # Most recent sessions evaluated; popularity counts earlier events
 
 # Ground truth configuration
 # Using all meaningful interactions (excluding 'remove')
@@ -151,7 +152,8 @@ def build_user_sessions(
         ground_truth_actions: Product actions to include
         
     Returns:
-        List of dicts with 'session_id', 'history_items', 'ground_truth_item'
+        List of dicts with 'session_id', 'history_items', 'ground_truth_item',
+        'max_timestamp'
     """
     if ground_truth_actions is None:
         ground_truth_actions = ['detail', 'add', 'purchase']
@@ -172,7 +174,8 @@ def build_user_sessions(
         .group_by('session_id_hash')
         .agg([
             pl.col('product_sku_hash').alias('products'),
-            pl.len().alias('session_length')
+            pl.len().alias('session_length'),
+            pl.col('server_timestamp_epoch_ms').max().alias('max_timestamp')
         ])
         .filter(pl.col('session_length') >= min_session_length)
     )
@@ -199,7 +202,8 @@ def build_user_sessions(
             user_sessions.append({
                 'session_id': row['session_id_hash'],
                 'history_items': unique_products[:-1],  # All but last
-                'ground_truth_item': unique_products[-1]  # Last item
+                'ground_truth_item': unique_products[-1],  # Last item
+                'max_timestamp': row['max_timestamp']  # For time-based split
             })
     
     print(f"  Valid evaluation sessions: {len(user_sessions):,}")
@@ -603,7 +607,8 @@ class PopularityBaseline:
 
 def compute_popularity_scores(
     browsing_lf: pl.LazyFrame,
-    actions: List[str] = None
+    actions: List[str] = None,
+    max_timestamp: Optional[int] = None,
 ) -> Dict[str, int]:
     """
     Compute popularity scores for all items.
@@ -614,6 +619,11 @@ def compute_popularity_scores(
     Args:
         browsing_lf: Polars LazyFrame of browsing events
         actions: Actions to count (default: detail, add, purchase)
+        max_timestamp: Count only events at or before this timestamp (ms).
+            Pass the end of the sessions before the evaluation sessions: the
+            counted actions are the same kind as the ground truth, so
+            counting the evaluated sessions would put their own targets in
+            the baseline.
         
     Returns:
         Dict mapping SKU -> total engagement count
@@ -624,12 +634,18 @@ def compute_popularity_scores(
     print("\nComputing popularity scores...")
     print(f"  Actions counted: {actions}")
     
-    popularity_query = (
-        browsing_lf
-        .filter(
-            (pl.col('product_sku_hash').is_not_null()) &
-            (pl.col('product_action').is_in(actions))
+    filtered = browsing_lf.filter(
+        (pl.col('product_sku_hash').is_not_null()) &
+        (pl.col('product_action').is_in(actions))
+    )
+    if max_timestamp is not None:
+        filtered = filtered.filter(
+            pl.col('server_timestamp_epoch_ms') <= max_timestamp
         )
+        print(f"  Restricting to events with timestamp <= {max_timestamp}")
+    
+    popularity_query = (
+        filtered
         .group_by('product_sku_hash')
         .agg(pl.len().alias('engagement_count'))
     )
@@ -862,6 +878,13 @@ def main():
         ground_truth_actions=GROUND_TRUTH_ACTIONS
     )
     
+    # Evaluate on the most recent sessions, so the popularity baseline can be
+    # counted from events before them (as in supervised_two_tower.py)
+    user_sessions.sort(key=lambda s: s['max_timestamp'])
+    n_before_eval = int(len(user_sessions) * (1 - EVAL_FRACTION))
+    eval_sessions = user_sessions[n_before_eval:]
+    print(f"  Evaluation sessions (most recent {EVAL_FRACTION:.0%}): {len(eval_sessions):,}")
+    
     # 3. Build item index
     item_index = ItemEmbeddingIndex()
     item_index.build(catalog_df)
@@ -878,7 +901,10 @@ def main():
     
     # Popularity baseline - need to reload lazy frame for fresh scan
     browsing_lf_pop = load_browsing_sessions_lazy(DATA_PATH, BROWSING_FILE)
-    popularity_scores = compute_popularity_scores(browsing_lf_pop, GROUND_TRUTH_ACTIONS)
+    popularity_cutoff = user_sessions[n_before_eval - 1]['max_timestamp']
+    popularity_scores = compute_popularity_scores(
+        browsing_lf_pop, GROUND_TRUTH_ACTIONS, max_timestamp=popularity_cutoff
+    )
     popularity_baseline = PopularityBaseline(popularity_scores, all_skus)
     
     # 6. Run full comparison (baselines + personalized models)
@@ -886,7 +912,7 @@ def main():
         retriever=retriever,
         random_baseline=random_baseline,
         popularity_baseline=popularity_baseline,
-        user_sessions=user_sessions,
+        user_sessions=eval_sessions,
         top_k_values=TOP_K_RETRIEVAL,
         max_users=5000
     )
@@ -903,7 +929,7 @@ def main():
     print("EXAMPLE: Personalized Recommendations")
     print("=" * 60)
     
-    example_session = user_sessions[0]
+    example_session = eval_sessions[0]
     print(f"\nSession: {example_session['session_id']}")
     print(f"History ({len(example_session['history_items'])} items):")
     for i, sku in enumerate(example_session['history_items'][:5], 1):
