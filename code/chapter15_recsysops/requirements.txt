@@ -1,0 +1,27 @@
+# Chapter 15: Silent degradation exercise
+# Versions the exercise was tested with (Python 3.11).
+#
+# Install with: pip install -r requirements.txt
+
+# Data and features (the Chapter 6 Polars pipeline runs on these)
+# Chapter 6 needs polars>=1.9. Kept on 1.x: on polars 2.x the Chapter 6 transform
+# returns rows in a varying order, which this exercise sorts away (ranker.total_order)
+# but which has not been tested here.
+polars==1.44.2
+pyarrow==26.0.1
+pandas==3.1.1
+numpy==2.4.6
+
+# Model and metrics
+xgboost==3.2.0
+scikit-learn==1.9.1
+scipy==1.17.1
+
+# Notebook
+matplotlib==3.11.2
+ipykernel==7.4.0
+nbclient==0.11.0
+nbformat==5.11.1
+
+# Tests
+pytest==9.2.0
