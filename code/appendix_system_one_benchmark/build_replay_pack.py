@@ -17,6 +17,9 @@ The pack is written only if all of these hold:
      belongs to a closed vocabulary of task, field, label, stratum and
      label-source names;
   3. no ORCAS-I intent category name appears anywhere in the pack.
+`MANIFEST.json` `build_checks` also records how many reference items share a
+pilot exclusion key with the pilot set in `pilots/` (compatibility: query and
+anchor product; query segmentation: normalised query; brand/category: query).
 Run it twice to confirm the output is byte-identical.
 """
 
@@ -39,6 +42,7 @@ from typing import Any
 
 import adjudicate_pilots
 import eval.datasets as datasets
+from build_pilots import clean
 from adapters.schemas import PROMPT_VERSION, TASK_FIELDS, field_label_space
 from eval.metrics import _key
 from eval.replay_pack import (
@@ -253,6 +257,29 @@ def prediction_rows(slug: str, task: str, order: list[str], private_root: Path) 
             }
         )
     return rows
+
+
+# Per task: the build_checks key and the pilot exclusion key of one manifest row.
+PILOT_OVERLAP_KEYS = {
+    "compatibility": (
+        "compatibility_pilot_query_anchor_overlap",
+        lambda row: (int(row["sampling_context"]["query_id"]), row["adjudication_input"]["anchor_product"]["product_id"]),
+    ),
+    "query_segmentation": (
+        "query_segmentation_pilot_query_overlap",
+        lambda row: clean(row["adjudication_input"]["query"]).casefold(),
+    ),
+    "brand_category": ("brand_category_pilot_query_overlap", lambda row: int(row["sampling_context"]["query_id"])),
+}
+
+
+def pilot_overlaps(references: dict[str, list[dict[str, Any]]], pilots: dict[str, list[dict[str, Any]]]) -> dict[str, int]:
+    """Count reference items whose pilot exclusion key also occurs in that task's pilot set."""
+    out = {}
+    for task, (name, key) in PILOT_OVERLAP_KEYS.items():
+        pilot_keys = {key(row) for row in pilots[task]}
+        out[name] = sum(key(row) in pilot_keys for row in references[task])
+    return out
 
 
 def vocabulary() -> set[str]:
@@ -487,6 +514,10 @@ def build(private_root: Path, staging: Path, build_date: str, builder_commit: st
         "strings_outside_vocabulary": 0,
         "orcas_i_category_names_found": 0,
         "consensus_rule_violations": sum(violations.values()),
+        **pilot_overlaps(
+            {task: read_jsonl(Path(path)) for task, path in adjudicate_pilots.DATASET_TASK_FILES["reference"].items()},
+            {task: read_jsonl(Path(path)) for task, path in adjudicate_pilots.DATASET_TASK_FILES["pilot"].items()},
+        ),
     }
     (staging / MANIFEST_NAME).write_bytes(text_bytes(manifest))
     return manifest

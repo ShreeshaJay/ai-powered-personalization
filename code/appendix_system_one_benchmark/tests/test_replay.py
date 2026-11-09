@@ -31,12 +31,23 @@ from eval.replay_pack import (
     sha256_lf,
 )
 from eval.runner import evaluate_task, prediction_from_dict
-from replay_scores import EXIT_MANIFEST, EXIT_MISMATCH, EXIT_OK, build_report, collapse_orcas_strata, render_report, run_verify
+from replay_scores import (
+    EXIT_MANIFEST,
+    EXIT_MISMATCH,
+    EXIT_OK,
+    PILOT_OVERLAP_CHECKS,
+    build_report,
+    collapse_orcas_strata,
+    judge_agreement,
+    label_space,
+    render_report,
+    run_verify,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 SLUGS = ("majority", "model_a")
 TASKS = ("compatibility", "query_segmentation")
-RAW_QUERY_STRATA = ("esci_single_product", "orcas_alpha", "orcas_beta")
+RAW_QUERY_STRATA = ("esci_single_product", "esci_bundle_or_set", "orcas_alpha", "orcas_beta")
 
 
 def _labels(task: str, count: int, rng: random.Random) -> tuple[list[dict], list[dict]]:
@@ -49,7 +60,7 @@ def _labels(task: str, count: int, rng: random.Random) -> tuple[list[dict], list
             judge_a = space[rng.randrange(len(space))]
             judge_b = judge_a if rng.random() < 0.8 else space[rng.randrange(len(space))]
             fields[field] = {"reference": judge_a if judge_a == judge_b else None, "judge_a": judge_a, "judge_b": judge_b}
-        stratum = RAW_QUERY_STRATA[index % 3] if task == "query_segmentation" else ("s1", "s2")[index % 2]
+        stratum = RAW_QUERY_STRATA[index % len(RAW_QUERY_STRATA)] if task == "query_segmentation" else ("s1", "s2")[index % 2]
         row = {"item_id": f"{task}_ref_{index:05d}", "task": task, "stratum": stratum, "label_source": "dual_judge_consensus", "fields": fields}
         raw.append(row)
         packed.append({**row, "stratum": collapse_stratum(stratum)})
@@ -206,6 +217,109 @@ def test_report_is_deterministic(synthetic) -> None:
     assert "orcas_alpha" not in text and "orcas_beta" not in text
 
 
+def test_class_support_counts_the_labelled_items_of_each_field(synthetic) -> None:
+    pack, _root = synthetic
+    data = build_report(load_pack(pack), resamples=20, seed=1, bins=15)
+    assert set(data["class_support"]) == set(data["fields"])
+    for key, support in data["class_support"].items():
+        entry = data["fields"][key]
+        assert support["labelled_items"] == entry["models"]["majority"]["items"]
+        assert sum(support["counts"].values()) == support["labelled_items"]
+        assert list(support["counts"])[: len(label_space(entry["task"], entry["field"]))] == label_space(entry["task"], entry["field"])
+    assert "## Class support" in render_report(data)
+
+
+def test_esci_strata_are_pooled_for_judge_agreement(synthetic) -> None:
+    pack, _root = synthetic
+    loaded = load_pack(pack)
+    data = build_report(loaded, resamples=20, seed=1, bins=15)
+    pooled = data["agreement_aggregates"]["query_segmentation"]["esci_*"]
+    strata = data["agreement_by_stratum"]["query_segmentation"]
+    esci = [name for name in strata if name.startswith("esci_")]
+    assert len(esci) == 2
+    assert pooled["items"] == sum(strata[name]["items"] for name in esci)
+    weighted = sum(strata[name]["complete_agreement"] * strata[name]["items"] for name in esci) / pooled["items"]
+    assert pooled["complete_agreement"] == pytest.approx(weighted)
+    rows = [row for row in loaded.labels["query_segmentation"] if row["stratum"].startswith("esci_")]
+    assert pooled == judge_agreement("query_segmentation", rows)
+    assert "compatibility" not in data["agreement_aggregates"]
+    assert "Pooled over all `esci_*` strata" in render_report(data)
+
+
+def test_probability_diagnostic_totals_sum_every_field(synthetic) -> None:
+    pack, _root = synthetic
+    data = build_report(load_pack(pack), resamples=20, seed=1, bins=15)
+    totals = {row["model"]: row for row in data["probability_diagnostics_totals"]}
+    assert list(totals) == list(SLUGS)
+    for slug, total in totals.items():
+        rows = [row for row in data["probability_diagnostics"] if row["model"] == slug]
+        assert total["fields"] == sum(len(TASK_FIELDS[task]) for task in TASKS) == len(rows)
+        for key in ("items", "ties_at_max", "argmax_mismatches"):
+            assert total[key] == sum(row[key] for row in rows)
+    assert "Totals per model" in render_report(data)
+
+
+def test_pilot_overlaps_count_shared_exclusion_keys() -> None:
+    from build_replay_pack import PILOT_OVERLAP_KEYS, pilot_overlaps
+
+    def compat(query_id: int, anchor: str, candidate: str) -> dict:
+        return {
+            "sampling_context": {"query_id": query_id},
+            "adjudication_input": {"anchor_product": {"product_id": anchor}, "candidate_product": {"product_id": candidate}},
+        }
+
+    def query(text: str, query_id: int) -> dict:
+        return {"sampling_context": {"query_id": query_id}, "adjudication_input": {"query": text}}
+
+    references = {
+        "compatibility": [compat(1, "A", "X"), compat(1, "A", "Y"), compat(1, "B", "X"), compat(2, "A", "X")],
+        "query_segmentation": [query("Red  Shoes", 5), query("blue hat", 6)],
+        "brand_category": [query("q", 7), query("r", 8), query("s", 9)],
+    }
+    pilots = {
+        "compatibility": [compat(1, "A", "Z")],
+        "query_segmentation": [query("red shoes", 50)],
+        "brand_category": [query("other text", 8), query("more", 9)],
+    }
+    counts = pilot_overlaps(references, pilots)
+    assert counts == {
+        "compatibility_pilot_query_anchor_overlap": 2,
+        "query_segmentation_pilot_query_overlap": 1,
+        "brand_category_pilot_query_overlap": 2,
+    }
+    assert {name for name, _key_fn in PILOT_OVERLAP_KEYS.values()} == {name for name, _ in PILOT_OVERLAP_CHECKS.values()}
+
+
+def test_pilot_overlap_is_reported_only_when_recorded(synthetic) -> None:
+    pack, _root = synthetic
+    loaded = load_pack(pack)
+    data = build_report(loaded, resamples=20, seed=1, bins=15)
+    assert data["pilot_overlap"] == {}
+    assert "Overlap with the 100-item pilot sets" not in render_report(data)
+    loaded.manifest["build_checks"] = {"compatibility_pilot_query_anchor_overlap": 3}
+    loaded.manifest["tasks"] = {"compatibility": {"items": 40}}
+    data = build_report(loaded, resamples=20, seed=1, bins=15)
+    assert data["pilot_overlap"] == {
+        "compatibility": {
+            "check": "compatibility_pilot_query_anchor_overlap",
+            "key": "query and anchor product",
+            "overlapping_items": 3,
+            "reference_items": 40,
+        }
+    }
+    text = render_report(data)
+    assert "`compatibility`, 3 of 40 reference items share the query and anchor product of a pilot item" in text
+    assert "cannot be recomputed" in text
+
+
+def test_readme_maps_every_role_label_to_its_model_key() -> None:
+    from build_replay_pack import ROLE_LABELS
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for slug, label in ROLE_LABELS.items():
+        assert f"| {label} | `{slug}` |" in readme
+
+
 def test_collapse_orcas_strata_merges_counts() -> None:
     block = {
         "fields": {
@@ -311,6 +425,8 @@ def test_figures_are_written_at_print_size(tmp_path: Path) -> None:
 @pytest.mark.skipif(not (ROOT / "replay" / MANIFEST_NAME).is_file(), reason="replay pack not present")
 def test_committed_pack_matches_manifest_and_schema() -> None:
     assert check_manifest(ROOT / "replay", ROOT) == []
+    checks = json.loads((ROOT / "replay" / MANIFEST_NAME).read_text(encoding="utf-8"))["build_checks"]
+    assert all(isinstance(checks[name], int) for name, _ in PILOT_OVERLAP_CHECKS.values())
     for task in TASK_FIELDS:
         rows = read_jsonl_gz(ROOT / "replay" / "labels" / f"{task}.jsonl.gz")
         for row in rows:

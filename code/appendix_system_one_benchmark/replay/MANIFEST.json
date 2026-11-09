@@ -3,8 +3,8 @@
   "build_date": "2026-11-09",
   "builder": {
     "script": "build_replay_pack.py",
-    "script_sha256_lf": "3a82e2cc530f8aaf3f1363ff3ddf2046ba51c8f9e577e82add026a371e9a925f",
-    "commit": "c6e3fda",
+    "script_sha256_lf": "fd333ac63446a317bde9baceea78a9a710cef192d3d74c792681274961be21ea",
+    "commit": "495271c",
     "commit_note": "Repository HEAD when the pack was built."
   },
   "prompt_version": "zero_shot_typed_v1",
@@ -371,6 +371,9 @@
     "summary_mismatches": 0,
     "strings_outside_vocabulary": 0,
     "orcas_i_category_names_found": 0,
-    "consensus_rule_violations": 0
+    "consensus_rule_violations": 0,
+    "compatibility_pilot_query_anchor_overlap": 536,
+    "query_segmentation_pilot_query_overlap": 0,
+    "brand_category_pilot_query_overlap": 0
   }
 }

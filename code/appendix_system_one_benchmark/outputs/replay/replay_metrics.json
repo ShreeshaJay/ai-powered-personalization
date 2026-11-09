@@ -1,7 +1,7 @@
 {
   "pack": {
     "build_date": "2026-11-09",
-    "builder_commit": "c6e3fda",
+    "builder_commit": "495271c",
     "prompt_version": "zero_shot_typed_v1"
   },
   "settings": {
@@ -20745,5 +20745,185 @@
       "ties_at_max": 295,
       "argmax_mismatches": 0
     }
-  ]
+  ],
+  "probability_diagnostics_totals": [
+    {
+      "model": "majority",
+      "fields": 10,
+      "items": 26000,
+      "ties_at_max": 0,
+      "argmax_mismatches": 0
+    },
+    {
+      "model": "laya_typed_decisions",
+      "fields": 10,
+      "items": 26000,
+      "ties_at_max": 116,
+      "argmax_mismatches": 0
+    },
+    {
+      "model": "jev_1_13_0",
+      "fields": 10,
+      "items": 26000,
+      "ties_at_max": 95,
+      "argmax_mismatches": 14
+    },
+    {
+      "model": "kev_0_8b",
+      "fields": 10,
+      "items": 26000,
+      "ties_at_max": 7,
+      "argmax_mismatches": 0
+    },
+    {
+      "model": "kev_4b",
+      "fields": 10,
+      "items": 26000,
+      "ties_at_max": 3,
+      "argmax_mismatches": 0
+    },
+    {
+      "model": "jevlite",
+      "fields": 10,
+      "items": 26000,
+      "ties_at_max": 717,
+      "argmax_mismatches": 0
+    }
+  ],
+  "class_support": {
+    "compatibility.label": {
+      "labelled_items": 1633,
+      "counts": {
+        "incompatible": 1158,
+        "insufficient_evidence": 112,
+        "generic_compatible": 322,
+        "explicit_fit": 41
+      }
+    },
+    "query_segmentation.goal": {
+      "labelled_items": 1788,
+      "counts": {
+        "known_item_navigation": 345,
+        "product_discovery": 759,
+        "comparison_decision": 20,
+        "informational_support": 490,
+        "service_account": 68,
+        "other_unclear": 106
+      }
+    },
+    "query_segmentation.object": {
+      "labelled_items": 1826,
+      "counts": {
+        "product": 200,
+        "category": 700,
+        "brand_store": 40,
+        "service_content": 783,
+        "unclear": 103
+      }
+    },
+    "query_segmentation.specificity": {
+      "labelled_items": 1667,
+      "counts": {
+        "exact_model_or_identifier": 97,
+        "named_entity_or_title": 489,
+        "product_type_with_constraints": 532,
+        "product_type_only": 110,
+        "broad_need_or_occasion": 64,
+        "none_or_unclear": 375
+      }
+    },
+    "query_segmentation.commerce_scope": {
+      "labelled_items": 1735,
+      "counts": {
+        "in_scope": 890,
+        "out_of_scope": 661,
+        "ambiguous": 184
+      }
+    },
+    "brand_category.brand_intent": {
+      "labelled_items": 1824,
+      "counts": {
+        "explicit_brand": 799,
+        "inferred_product_line": 59,
+        "no_brand": 954,
+        "ambiguous_brand": 12
+      }
+    },
+    "brand_category.brand_choice": {
+      "labelled_items": 1947,
+      "counts": {
+        "brand_0": 100,
+        "brand_1": 107,
+        "brand_2": 100,
+        "brand_3": 107,
+        "brand_4": 116,
+        "brand_5": 110,
+        "brand_6": 111,
+        "brand_7": 100,
+        "none_or_other": 1096
+      }
+    },
+    "brand_category.category_choice": {
+      "labelled_items": 1799,
+      "counts": {
+        "category_0": 126,
+        "category_1": 125,
+        "category_2": 137,
+        "category_3": 120,
+        "category_4": 132,
+        "category_5": 128,
+        "category_6": 147,
+        "category_7": 140,
+        "other_or_ambiguous": 744
+      }
+    },
+    "brand_category.multi_target": {
+      "labelled_items": 1996,
+      "counts": {
+        "false": 1995,
+        "true": 1
+      }
+    },
+    "esci.esci_label": {
+      "labelled_items": 8000,
+      "counts": {
+        "E": 2000,
+        "S": 2000,
+        "C": 2000,
+        "I": 2000
+      }
+    }
+  },
+  "agreement_aggregates": {
+    "query_segmentation": {
+      "esci_*": {
+        "items": 1000,
+        "complete_agreement": 0.792,
+        "goal": 0.931,
+        "object": 0.913,
+        "specificity": 0.876,
+        "commerce_scope": 0.934
+      }
+    }
+  },
+  "pilot_overlap": {
+    "compatibility": {
+      "check": "compatibility_pilot_query_anchor_overlap",
+      "key": "query and anchor product",
+      "overlapping_items": 536,
+      "reference_items": 2000
+    },
+    "query_segmentation": {
+      "check": "query_segmentation_pilot_query_overlap",
+      "key": "normalised query text",
+      "overlapping_items": 0,
+      "reference_items": 2000
+    },
+    "brand_category": {
+      "check": "brand_category_pilot_query_overlap",
+      "key": "query",
+      "overlapping_items": 0,
+      "reference_items": 2000
+    }
+  }
 }

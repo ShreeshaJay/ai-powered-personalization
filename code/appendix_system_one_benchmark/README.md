@@ -49,6 +49,18 @@ The committed comparison covers six **completed** zero-shot runs:
 
 `laya_typed_decisions` ran with the adapter's `max_len=512` (`adapters/laya.py`), although the checkpoint accepts 1,024 tokens. A tokenizer check on 2026-11-09 found inputs cut at 512 tokens for 1,996 of the 2,000 brand/category items and 3 of the 2,000 compatibility items; no input exceeded 1,024 tokens. The checkpoint's 256-token question limit kept 127 to 215 of the 452 instruction tokens in each query-segmentation question. ESCI inputs were not cut. Laya's results measure this configuration, not the checkpoint's best case.
 
+The appendix refers to each scorer by its role label. The model key is the name
+used in `outputs/benchmark/<model key>/`, the replay pack and the results files.
+
+| Role label (appendix) | Model key | Adapter | What it is |
+|---|---|---|---|
+| Majority prior | `majority` | `majority` | One fixed class per field, with probability one |
+| Encoder decision model | `laya_typed_decisions` | `laya` | Laya `typed-decisions` checkpoint: an encoder fine-tuned on non-commerce workflows |
+| Hosted typed-decision API | `jev_1_13_0` | `jev` | TypeSafe `jev-1.13.0`, a closed hosted model |
+| Open adapter, small | `kev_0_8b` | `kev` | `jaredpalmer/kev-0.8b`, an adapter on Qwen3.5-0.8B-Base |
+| Open adapter, mid | `kev_4b` | `kev` | `jaredpalmer/kev-4b`, an adapter on Qwen3.5-4B-Base |
+| Option-letter adapter | `jevlite` | `jevlite` | `vagmi/jev-lite`, an adapter on Gemma 4 E4B that reads the logits of option letters |
+
 Headline numbers are in
 [`outputs/benchmark/ZERO_SHOT_RESULTS.md`](outputs/benchmark/ZERO_SHOT_RESULTS.md),
 which `write_comparison_report.py` regenerates from the summaries and the

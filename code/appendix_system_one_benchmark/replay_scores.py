@@ -97,6 +97,13 @@ STRATUM_FIELDS = (
 )
 POSITION_FIELDS = (("brand_category", "brand_choice"), ("brand_category", "category_choice"))
 CONFIDENCE_LEVEL = 0.95
+ESCI_STRATUM_PREFIX = "esci_"
+# The build_checks names written by build_replay_pack.py and the pilot exclusion key each one compares.
+PILOT_OVERLAP_CHECKS = {
+    "compatibility": ("compatibility_pilot_query_anchor_overlap", "query and anchor product"),
+    "query_segmentation": ("query_segmentation_pilot_query_overlap", "normalised query text"),
+    "brand_category": ("brand_category_pilot_query_overlap", "query"),
+}
 
 
 # ---------------------------------------------------------------- verify
@@ -390,22 +397,29 @@ def accuracy_by_stratum(pack: ReplayPack, task: str, field: str, views: dict[str
     return out
 
 
+def judge_agreement(task: str, rows: list[dict[str, Any]]) -> dict[str, float]:
+    agree = [
+        {field: _key(row["fields"][field]["judge_a"]) == _key(row["fields"][field]["judge_b"]) for field in TASK_FIELDS[task]}
+        for row in rows
+    ]
+    return {
+        "items": len(rows),
+        "complete_agreement": sum(all(item.values()) for item in agree) / len(rows),
+        **{field: sum(item[field] for item in agree) / len(rows) for field in TASK_FIELDS[task]},
+    }
+
+
 def agreement_by_stratum(pack: ReplayPack, task: str) -> dict[str, dict[str, float]]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in pack.labels[task]:
         grouped[row["stratum"] or "unknown"].append(row)
-    out = {}
-    for stratum, rows in sorted(grouped.items()):
-        agree = [
-            {field: _key(row["fields"][field]["judge_a"]) == _key(row["fields"][field]["judge_b"]) for field in TASK_FIELDS[task]}
-            for row in rows
-        ]
-        out[stratum] = {
-            "items": len(rows),
-            "complete_agreement": sum(all(item.values()) for item in agree) / len(rows),
-            **{field: sum(item[field] for item in agree) / len(rows) for field in TASK_FIELDS[task]},
-        }
-    return out
+    return {stratum: judge_agreement(task, rows) for stratum, rows in sorted(grouped.items())}
+
+
+def agreement_aggregates(pack: ReplayPack, task: str) -> dict[str, dict[str, float]]:
+    """Judge agreement pooled over every ESCI-sourced (`esci_*`) stratum; `orcas_i` is already one stratum."""
+    rows = [row for row in pack.labels[task] if (row["stratum"] or "").startswith(ESCI_STRATUM_PREFIX)]
+    return {f"{ESCI_STRATUM_PREFIX}*": judge_agreement(task, rows)} if rows else {}
 
 
 def gold_position(label: Any) -> str:
@@ -439,6 +453,36 @@ def probability_diagnostics(pack: ReplayPack) -> list[dict[str, Any]]:
                     mismatches += float(values.get(_key(prediction.fields[field].predicted), 0.0)) < top
                 rows.append({"model": slug, "task": task, "field": field, "items": len(predictions), "ties_at_max": ties, "argmax_mismatches": mismatches})
     return rows
+
+
+def probability_diagnostics_totals(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One row per model: `probability_diagnostics` summed over every task and field."""
+    totals: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        total = totals.setdefault(row["model"], {"model": row["model"], "fields": 0, "items": 0, "ties_at_max": 0, "argmax_mismatches": 0})
+        total["fields"] += 1
+        for key in ("items", "ties_at_max", "argmax_mismatches"):
+            total[key] += row[key]
+    return list(totals.values())
+
+
+def class_support(pack: ReplayPack, task: str, field: str) -> dict[str, Any]:
+    """Reference-label counts over the labelled (agreed) items, in label-space order."""
+    counts = Counter(_key(example["labels"][field]) for example in pack.examples[task] if field in example["labels"])
+    space = label_space(task, field)
+    ordered = {label: counts.get(label, 0) for label in space}
+    ordered.update({label: count for label, count in sorted(counts.items()) if label not in ordered})
+    return {"labelled_items": sum(counts.values()), "counts": ordered}
+
+
+def pilot_overlap(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Pilot-overlap counts that `build_replay_pack.py` recorded in `build_checks`, by task."""
+    checks = manifest.get("build_checks", {})
+    out = {}
+    for task, (name, key) in PILOT_OVERLAP_CHECKS.items():
+        if name in checks:
+            out[task] = {"check": name, "key": key, "overlapping_items": checks[name], "reference_items": manifest["tasks"][task]["items"]}
+    return out
 
 
 def build_report(pack: ReplayPack, *, resamples: int, seed: int, bins: int) -> dict[str, Any]:
@@ -482,6 +526,7 @@ def build_report(pack: ReplayPack, *, resamples: int, seed: int, bins: int) -> d
             }
         fields[f"{task}.{field}"] = entry
     manifest = pack.manifest
+    diagnostics = probability_diagnostics(pack)
     return {
         "pack": {
             "build_date": manifest["build_date"],
@@ -499,7 +544,13 @@ def build_report(pack: ReplayPack, *, resamples: int, seed: int, bins: int) -> d
         "models": {slug: {"model_id": pack.model_id(slug), "role_label": manifest["models"][slug]["role_label"]} for slug in pack.slugs},
         "fields": fields,
         "agreement_by_stratum": {task: agreement_by_stratum(pack, task) for task in pack.tasks if task != "esci"},
-        "probability_diagnostics": probability_diagnostics(pack),
+        "probability_diagnostics": diagnostics,
+        "probability_diagnostics_totals": probability_diagnostics_totals(diagnostics),
+        "class_support": {key: class_support(pack, entry["task"], entry["field"]) for key, entry in fields.items()},
+        "agreement_aggregates": {
+            task: aggregates for task in pack.tasks if task != "esci" and (aggregates := agreement_aggregates(pack, task))
+        },
+        "pilot_overlap": pilot_overlap(manifest),
     }
 
 
@@ -610,6 +661,22 @@ def render_report(data: dict[str, Any]) -> str:
             )
     lines += [
         "",
+        "## Class support",
+        "",
+        "Reference-label counts on the labelled items of each field (for the dual-judge tasks, the items on which both "
+        "judges agreed): the denominators behind accuracy and macro-F1. Every label in the field's label space is listed, "
+        "so a count of 0 is a class that macro-F1 (fixed) scores as 0.",
+        "",
+        "| Field | Reference label | Items | Share of labelled items |",
+        "|---|---|---:|---:|",
+    ]
+    for key in headline + degenerate:
+        support = data["class_support"][key]
+        for label, count in support["counts"].items():
+            share = count / support["labelled_items"] if support["labelled_items"] else math.nan
+            lines.append(f"| {data['fields'][key]['title']} | `{label}` | {count:,} | {pct(share)} |")
+    lines += [
+        "",
         "## Probability quality",
         "",
         f"| Field | Model | Top-label ECE ({bins} equal-width) | Top-label ECE ({bins} equal-mass) "
@@ -716,6 +783,22 @@ def render_report(data: dict[str, Any]) -> str:
                 + " |"
             )
         lines.append("")
+        aggregates = data["agreement_aggregates"].get(task, {})
+        if aggregates:
+            lines += [
+                f"Pooled over all `{ESCI_STRATUM_PREFIX}*` strata (the ESCI-sourced items; `{ORCAS_STRATUM}` is already "
+                "a single stratum above):",
+                "",
+                "| Strata | n | All fields | " + " | ".join(f"`{field}`" for field in fields) + " |",
+                "|---|---:|---:|" + "---:|" * len(fields),
+            ]
+            for name, values in aggregates.items():
+                lines.append(
+                    f"| `{name}` | {values['items']:,} | {pct(values['complete_agreement'])} | "
+                    + " | ".join(pct(values[field]) for field in fields)
+                    + " |"
+                )
+            lines.append("")
 
     lines += ["## Accuracy by position of the reference option", ""]
     for key in present(POSITION_FIELDS):
@@ -745,6 +828,17 @@ def render_report(data: dict[str, Any]) -> str:
     for row in nonzero:
         lines.append(f"| `{row['model']}` | {row['task']}.{row['field']} | {row['items']:,} | {row['ties_at_max']:,} | {row['argmax_mismatches']:,} |")
     lines += ["", f"All other model and field pairs ({len(data['probability_diagnostics']) - len(nonzero)}): no ties and no mismatches.", ""]
+    lines += [
+        "Totals per model, summed over every task and field (items counts item-field pairs):",
+        "",
+        "| Model | Fields | Items | Ties at the maximum | Argmax mismatches |",
+        "|---|---:|---:|---:|---:|",
+        *[
+            f"| `{row['model']}` | {row['fields']} | {row['items']:,} | {row['ties_at_max']:,} | {row['argmax_mismatches']:,} |"
+            for row in data["probability_diagnostics_totals"]
+        ],
+        "",
+    ]
 
     lines += [
         "## Confidence semantics",
@@ -788,8 +882,22 @@ def render_report(data: dict[str, Any]) -> str:
         "- Latency values are recomputed from each prediction's recorded `elapsed_ms`. They describe each run on its own "
         "hardware and batch size, not a controlled latency comparison.",
         "- The pack holds no query or product text, so prompts, model inputs and judge rationales cannot be inspected from it.",
-        "",
     ]
+    overlap = data["pilot_overlap"]
+    if overlap:
+        lines.append(
+            "- Overlap with the 100-item pilot sets in `pilots/`, recorded at build time in `replay/MANIFEST.json` "
+            "`build_checks` from the private reference manifests: "
+            + "; ".join(
+                f"`{task}`, {entry['overlapping_items']:,} of {entry['reference_items']:,} reference items share the "
+                f"{entry['key']} of a pilot item"
+                for task, entry in overlap.items()
+            )
+            + ". The pack holds no query or product IDs, so these counts cannot be recomputed from it. "
+            "For compatibility, `validate_reference_sets.py` rejects a reference item that repeats a pilot item's query, "
+            "anchor and candidate, but allows one that repeats only its query and anchor."
+        )
+    lines.append("")
     return "\n".join(lines)
 
 
