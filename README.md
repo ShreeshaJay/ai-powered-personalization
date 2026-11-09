@@ -59,9 +59,12 @@ While this is not a code-oriented book, there is just enough code within each ch
 16. **A/B Testing, Experimentation, and Bandits**
 
 ### Appendices
-- **Appendix A: RexBERT** — a domain-specialized SBERT model for e-commerce
-- **Appendix B: Superlinked** — vector compute framework for personalization
-- **Appendix C: Hybrid Vector Databases** — combining dense + sparse retrieval at scale
+- **Appendix A: RexBERT, from E-Commerce Language Model to Sentence Encoder**
+- **Appendix B: Hybrid Search with Vector Databases**
+- **Appendix C: Agentic Autoresearch for Recommender Systems**
+- **Appendix D: Structured-Output Scoring Benchmark**
+
+Corrections to published chapters are listed in [ERRATA.md](ERRATA.md).
 
 ## 📂 Repository Structure
 
