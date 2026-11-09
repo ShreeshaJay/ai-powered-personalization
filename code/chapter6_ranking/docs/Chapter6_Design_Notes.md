@@ -269,6 +269,22 @@ model = xgb.XGBClassifier(
 | **Log Loss** | Probability calibration matters |
 | **F1** | Binary decision threshold tuning |
 
+### Validation Protocol (Model Selection)
+
+Every training script uses three time-ordered splits:
+
+```
+[ train (fit) ][ validation ][ 30-min gap ][ test ]
+ |<------- train window ------->|              |<- test_days ->|
+```
+
+- **Validation** is the last `--val_split_ratio` (default 10%) of the train window by timestamp, produced by `split_validation_window()` in `utils/polars_pipeline.py`. `train_xgboost.py` builds the same split with its own `create_temporal_val_split()`.
+- The split happens **before** the feature pipeline is fitted, so validation rows, like test rows, receive historical features computed only from earlier data.
+- Early stopping (XGBoost `eval_set`, DeepFM patience), learning-rate scheduling, and best-checkpoint selection all use the validation set.
+- The test window is scored once, after training, for the final report.
+
+XGBoost's early stopping monitors the **last** entry of `eval_set`, so the scripts pass `eval_set=[(X_train, y_train), (X_val, y_val)]`. Putting the test set in `eval_set` would choose the number of boosting rounds on test data and inflate the reported test metrics.
+
 ---
 
 ## 5. Memory Efficiency Design
@@ -378,6 +394,8 @@ Both are valid; choice depends on use case.
 | Item-level aggregates | **LOW** | ⚠️ Accepted (documented) |
 
 ### Observed Metrics After Fixes
+
+> **Note (2026-11-08):** Recorded before the validation-window fix. At that time `train_xgboost_polars.py` chose its number of boosting rounds on the test window, so if these figures came from that script the test AUCs are optimistic. Rerun before quoting them.
 
 | Metric | Before Fixes | After PIT Fixes |
 |--------|-------------|-----------------|
@@ -510,8 +528,8 @@ model = xgb.XGBRanker(
 model.fit(
     X_train, y_train,
     group=train_groups,  # Array of group sizes: [n1, n2, n3, ...]
-    eval_set=[(X_test, y_test)],
-    eval_group=[test_groups],
+    eval_set=[(X_train, y_train), (X_val, y_val)],  # early stopping uses the last entry
+    eval_group=[train_groups, val_groups],
 )
 ```
 
@@ -554,6 +572,8 @@ should consider session-level grouping.
 | `rank:map` | Optimizes MAP directly | When precision at top matters |
 
 ### Experimental Results Comparison
+
+> **Note (2026-11-08):** The results in this section and in the DeepFM results below were recorded with an earlier version of the scripts in which early stopping, and for DeepFM also learning-rate scheduling and checkpoint selection, monitored the test window. The test metrics are therefore optimistically biased. They are kept as historical development notes. Rerun the current scripts, which select on a separate validation window (see "Validation Protocol" above), for unbiased numbers.
 
 #### 30-Day Training Window (~1.3M samples)
 
@@ -958,6 +978,8 @@ python train_deepfm.py --train_days 30 --embed_dim 32 --mlp_dims 512,256,128 --b
 
 ### Actual Results Comparison (30-Day Training Window)
 
+> **Note (2026-11-08):** Recorded before the validation-window fix; model selection used the test window. See the note under "Experimental Results Comparison".
+
 | Model | Test AUC-ROC | Test AUC-PR | Training Time | Parameters |
 |-------|--------------|-------------|---------------|------------|
 | XGBoost Pointwise | ~0.58 | ~0.80 | ~6s | ~100 trees |
@@ -971,6 +993,8 @@ python train_deepfm.py --train_days 30 --embed_dim 32 --mlp_dims 512,256,128 --b
 This demonstrates the power of **learned embeddings** for high-cardinality IDs (uid, item_id). XGBoost relies on frequency encoding which loses individual user/item preferences, while DeepFM learns dense representations that capture collaborative filtering signals.
 
 ### 150-Day Training Window Results
+
+> **Note (2026-11-08):** Recorded before the validation-window fix; see the note under "Experimental Results Comparison".
 
 | Model | Test AUC-ROC | Test AUC-PR | Training Time |
 |-------|--------------|-------------|---------------|
@@ -999,6 +1023,8 @@ Students can extend the DeepFM implementation with:
 ---
 
 ## 12. Model Implementation Status
+
+> **Note (2026-11-08):** The Test AUC-ROC and NDCG values below were recorded before the validation-window fix; see the note under "Experimental Results Comparison".
 
 | Model | Script | Status | Test AUC-ROC (30d) | Notes |
 |-------|--------|--------|-------------------|-------|
@@ -1109,6 +1135,8 @@ python train_deepfm.py --train_days 30          # DeepFM → AUC (deep learning)
 ```
 
 ### Expected Results (with PIT-correct features)
+
+> **Note (2026-11-08):** These ranges and the "Latest Run" output below were recorded with `train_xgboost_polars.py` before the validation-window fix, when early stopping monitored the test window, so the test metrics are optimistic. Rerun the current script for unbiased numbers.
 
 | Metric | 300-day Window | Full Dataset (~1500 days) |
 |--------|----------------|---------------------------|

@@ -125,6 +125,17 @@ python train_esmm.py --compare_baseline
 python train_split_nn.py --n_samples 500000
 ```
 
+### Evaluation Protocol
+
+Both training scripts keep three disjoint sets. The hold-out set (`ali_ccp_val.parquet`
+for ESMM; the last 11.5% of FedAds rows, the paper's test week, for SplitNN) is the
+**test set** and is scored only once, at the end. Early stopping and checkpoint
+selection use a **validation set** carved from the training data with
+`--val_split_ratio` (default 0.1): seeded random rows for Ali-CCP, which has no
+timestamps, and the last rows of the train portion for FedAds, using the same
+row-order time proxy. For SplitNN's single-epoch paper setting,
+`--val_split_ratio 0` trains on all train rows without any selection.
+
 ## Requirements
 
 ```

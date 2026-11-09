@@ -508,6 +508,19 @@ Both scripts use `models/dcn.py`, but differ in how they handle item_id:
 | `train_days` | 30 | ~1.26M samples; captures weekly patterns, manageable for iteration |
 | `test_days` | 1 | Global Temporal Split; mimics production (predict tomorrow) |
 | `gap_seconds` | 1800 | 30-min gap prevents label leakage across train/test boundary |
+| `val_split_ratio` | 0.1 | Last 10% of the train window by time, used for all model selection |
+
+### Validation Protocol (Model Selection)
+
+All five training scripts (`train_dcn.py`, `train_dcn_pretrained.py`, `train_dlrm.py`, `train_mmoe.py`, `train_mmoe_single.py`) use three time-ordered splits, the same as Chapter 6:
+
+```
+[ train (fit) ][ validation ][ 30-min gap ][ test ]
+```
+
+- `split_validation_window()` in `utils/polars_pipeline.py` holds out the last `--val_split_ratio` of the train window **before** the feature pipeline is fitted, so validation rows get historical features from earlier data only, like test rows.
+- Early stopping, `ReduceLROnPlateau`, and best-checkpoint selection all monitor the validation metric. The test window is scored once, with the selected checkpoint.
+- In `train_mmoe.py`, classification thresholds are tuned on validation and applied to test (`f1_at_threshold`). `f1_max` on test uses a threshold tuned on test itself and is reported only as an optimistic diagnostic.
 
 ### Computed Dimensions
 
@@ -557,6 +570,8 @@ Compare to `train_dcn.py` with learned item embeddings: **~3M parameters**
 ---
 
 ## 9. Experimental Results: Pre-trained vs Learned Embeddings
+
+> **Note (2026-11-08):** All results in this document were recorded with an earlier version of the scripts in which early stopping, learning-rate scheduling, and checkpoint selection monitored the test window, and in which the MMoE "Optimal Threshold" column was tuned on the test window. The test metrics are therefore optimistically biased. They are kept as historical development notes. Rerun the current scripts, which select on a separate validation window (see "Validation Protocol" in Section 7), for unbiased numbers.
 
 ### Results Comparison (30-day training window)
 
@@ -944,6 +959,8 @@ Timeline showing correct labeling:
 
 After fixing the temporal leakage, here are the honest metrics:
 
+> **Note (2026-11-08):** These numbers predate the validation-window fix: checkpoint selection used the test window, and "Optimal Threshold" / "F1-max" were tuned on the test window. See the note at the start of Section 9.
+
 | Task | Test AUC-ROC | Test AUC-PR | F1-max | Optimal Threshold | Positive Rate |
 |------|-------------|-------------|--------|-------------------|---------------|
 | **Engagement** | 0.7688 | 0.9655 | 0.9584 | 0.433 | 91.98% |
@@ -972,7 +989,7 @@ For highly imbalanced tasks, the default threshold of 0.5 is **wrong**:
 | Like | 0.5 (50%) | **0.059 (5.9%)** | Would predict 0% likes with 0.5 |
 | Dislike | 0.5 (50%) | **0.014 (1.4%)** | Would predict 0% dislikes with 0.5 |
 
-The F1-max metric finds the threshold that maximizes F1 score, which is essential for production deployment.
+The F1-max metric finds the threshold that maximizes F1 score, which is essential for production deployment. Choose that threshold on the validation set and apply it unchanged to the test set; a threshold tuned on the test set makes the reported test F1 optimistic.
 
 ### Key Takeaways for the Book
 
@@ -1228,6 +1245,8 @@ At the end of Chapter 7, suggest:
 ---
 
 ## 17. Calibration Analysis and Model Improvements
+
+> **Note (2026-11-08):** This section predates the validation-window fix. The "Optimal F1 Threshold" column was tuned on the test window, and the expert-count comparison that set the default `--num_experts 4` compared test-window metrics. See the note at the start of Section 9; confirm the expert count on the validation set before relying on it.
 
 ### Observed Calibration Ratios (5-Task MMoE, 4 Experts, 30 Days)
 

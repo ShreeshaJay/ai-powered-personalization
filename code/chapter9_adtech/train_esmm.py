@@ -41,6 +41,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 import numpy as np
+import polars as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -55,7 +56,7 @@ from config import (
 )
 from models.esmm import ESMM, CVRBaseline, ESMMConfig
 from data.ali_ccp_dataset import (
-    load_ali_ccp_data, create_data_loaders, AliCCPDataset
+    load_ali_ccp_data, AliCCPDataset
 )
 
 
@@ -68,6 +69,11 @@ def parse_args():
                         help='Which preprocessed data percentage to use (e.g., 10, 20)')
     parser.add_argument('--dev', action='store_true',
                         help='Development mode: fewer epochs, smaller batch size')
+    parser.add_argument('--val_split_ratio', type=float, default=0.1,
+                        help='Fraction of the training file held out as the validation '
+                             'set for early stopping and checkpoint selection')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for the validation split')
     
     # Model
     parser.add_argument('--vocab_size', type=int, default=100_000,
@@ -128,6 +134,8 @@ def setup_experiment(args) -> Tuple[Path, Dict[str, Any]]:
         'timestamp': timestamp,
         'data': {
             'source': 'preprocessed parquet files',
+            'val_split_ratio': args.val_split_ratio,
+            'seed': args.seed,
         },
         'model': {
             'vocab_size': args.vocab_size,
@@ -154,6 +162,24 @@ def setup_experiment(args) -> Tuple[Path, Dict[str, Any]]:
     print(f"Output directory: {exp_dir}")
     
     return exp_dir, config
+
+
+def split_validation_rows(
+    df: pl.DataFrame,
+    val_ratio: float,
+    seed: int,
+) -> Tuple[pl.DataFrame, pl.DataFrame]:
+    """Hold out a random validation set from the training file.
+
+    Ali-CCP has no timestamps and preprocessing forms its hold-out file at
+    random, so validation is drawn the same way. The hold-out file itself is
+    the test set and is never used for model selection.
+    """
+    if not 0 < val_ratio < 1:
+        raise ValueError(f"val_ratio must be in (0, 1), got {val_ratio}")
+    df = df.sample(fraction=1.0, shuffle=True, seed=seed)
+    n_val = int(len(df) * val_ratio)
+    return df[n_val:], df[:n_val]
 
 
 def train_epoch(
@@ -319,6 +345,7 @@ def train_cvr_baseline(
     config: Dict[str, Any],
     train_dataset: AliCCPDataset,
     val_dataset: AliCCPDataset,
+    test_dataset: AliCCPDataset,
     device: torch.device,
     exp_dir: Path,
 ) -> Dict[str, float]:
@@ -328,8 +355,11 @@ def train_cvr_baseline(
     - Model sees only clicked samples during training
     - At inference, applied to ALL impressions
     
+    Early stopping and checkpoint selection use val_dataset; the selected
+    checkpoint is then scored once on test_dataset.
+    
     Returns:
-        Dictionary with baseline metrics
+        Dictionary with baseline metrics (on the test set)
     """
     print("\n" + "=" * 60)
     print("Training CVR Baseline (clicked samples only)")
@@ -443,41 +473,51 @@ def train_cvr_baseline(
                 print(f"Early stopping at epoch {epoch+1}")
                 break
     
-    # Final evaluation on ALL validation samples (to show selection bias)
-    print("\nFinal evaluation (CVR baseline on ALL samples):")
+    # Final evaluation on ALL test samples (to show selection bias), using
+    # the checkpoint selected on validation
+    print("\nFinal evaluation on test set (CVR baseline on ALL samples):")
+    
+    checkpoint = torch.load(exp_dir / 'baseline_model.pt', weights_only=False)
+    model.load_state_dict(checkpoint['model_state_dict'])
     
     model.eval()
     with torch.no_grad():
         all_cvr_preds = []
         batch_size = config['training']['batch_size']
         
-        for i in range(0, len(val_dataset), batch_size):
-            feature_ids = torch.from_numpy(val_dataset.feature_ids[i:i+batch_size]).to(device)
-            feature_values = torch.from_numpy(val_dataset.feature_values[i:i+batch_size]).to(device)
+        for i in range(0, len(test_dataset), batch_size):
+            feature_ids = torch.from_numpy(test_dataset.feature_ids[i:i+batch_size]).to(device)
+            feature_values = torch.from_numpy(test_dataset.feature_values[i:i+batch_size]).to(device)
             
             outputs = model(feature_ids, feature_values)
             all_cvr_preds.append(outputs['cvr'].cpu().numpy())
         
         cvr_preds_all = np.concatenate(all_cvr_preds)
     
-    # Metrics on ALL samples
-    all_purchase_labels = val_dataset.purchases
+    # Metrics on ALL test samples
+    all_purchase_labels = test_dataset.purchases
+    clicked_mask = test_dataset.clicks == 1
     
     baseline_metrics = {
-        'cvr_auc_clicked': best_val_auc,  # On clicked samples
+        'best_val_cvr_auc_clicked': best_val_auc,  # Used for checkpoint selection
     }
+    
+    clicked_labels = all_purchase_labels[clicked_mask]
+    if clicked_labels.sum() > 0 and (1 - clicked_labels).sum() > 0:
+        baseline_metrics['cvr_auc_clicked'] = roc_auc_score(clicked_labels, cvr_preds_all[clicked_mask])
+    else:
+        baseline_metrics['cvr_auc_clicked'] = 0.5
     
     if all_purchase_labels.sum() > 0:
         baseline_metrics['ctcvr_auc_all'] = roc_auc_score(all_purchase_labels, cvr_preds_all)
     
     # Compare predicted CVR distribution
-    clicked_mask = val_dataset.clicks == 1
     baseline_metrics['mean_cvr_pred_all'] = float(cvr_preds_all.mean())
     baseline_metrics['mean_cvr_pred_clicked'] = float(cvr_preds_all[clicked_mask].mean())
     baseline_metrics['true_cvr_clicked'] = float(all_purchase_labels[clicked_mask].mean())
     baseline_metrics['true_cvr_all'] = float(all_purchase_labels.mean())
     
-    print(f"  CVR AUC (clicked samples): {baseline_metrics['cvr_auc_clicked']:.4f}")
+    print(f"  CVR AUC (clicked test samples): {baseline_metrics['cvr_auc_clicked']:.4f}")
     print(f"  CTCVR AUC (all samples): {baseline_metrics.get('ctcvr_auc_all', 'N/A')}")
     print(f"  Mean predicted CVR (all): {baseline_metrics['mean_cvr_pred_all']:.4f}")
     print(f"  Mean predicted CVR (clicked): {baseline_metrics['mean_cvr_pred_clicked']:.4f}")
@@ -499,25 +539,32 @@ def main():
     print("Loading Ali-CCP data (preprocessed)")
     print("=" * 60)
     
-    # Load preprocessed parquet files (from processed/pct_<X>/ directory)
-    train_df, val_df, metadata = load_ali_ccp_data(data_pct=args.data_pct)
+    # Load preprocessed parquet files (from processed/pct_<X>/ directory).
+    # The preprocessed hold-out file (ali_ccp_val.parquet) is used as the TEST
+    # set and scored once, after training. Validation for early stopping and
+    # checkpoint selection is carved from the training file.
+    train_df, test_df, metadata = load_ali_ccp_data(data_pct=args.data_pct)
+    train_df, val_df = split_validation_rows(train_df, args.val_split_ratio, args.seed)
     
     # Create datasets
     train_dataset = AliCCPDataset(train_df)
     val_dataset = AliCCPDataset(val_df)
+    test_dataset = AliCCPDataset(test_df)
+    del train_df, val_df, test_df
     
-    # Create data loaders
-    train_loader, val_loader = create_data_loaders(
-        train_df, val_df,
-        batch_size=config['training']['batch_size'],
-        num_workers=0,  # Use 0 for Windows compatibility
-    )
+    # Create data loaders (num_workers=0 for Windows compatibility)
+    batch_size = config['training']['batch_size']
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
     
     # Print dataset statistics
     train_stats = train_dataset.get_statistics()
     val_stats = val_dataset.get_statistics()
+    test_stats = test_dataset.get_statistics()
     print(f"\nTrain set: {train_stats}")
     print(f"Val set: {val_stats}")
+    print(f"Test set: {test_stats}")
     
     # Create ESMM model
     print("\n" + "=" * 60)
@@ -613,21 +660,24 @@ def main():
     checkpoint = torch.load(exp_dir / 'best_model.pt', weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     
-    final_metrics = evaluate(model, val_loader, device)
-    print(f"\nESMM Performance:")
+    # Test set evaluated once, with the checkpoint selected on validation
+    final_val_metrics = evaluate(model, val_loader, device)
+    final_metrics = evaluate(model, test_loader, device)
+    print(f"\nESMM Performance (test set):")
     print(f"  CTR AUC:   {final_metrics['ctr_auc']:.4f}")
     print(f"  CVR AUC:   {final_metrics['cvr_auc']:.4f} (on clicked samples)")
     print(f"  CTCVR AUC: {final_metrics['ctcvr_auc']:.4f} (on all samples)")
+    print(f"  (validation CTCVR AUC: {final_val_metrics['ctcvr_auc']:.4f})")
     
     # Compare with baseline if requested
     baseline_metrics = None
     if args.compare_baseline:
         baseline_metrics = train_cvr_baseline(
-            config, train_dataset, val_dataset, device, exp_dir
+            config, train_dataset, val_dataset, test_dataset, device, exp_dir
         )
         
         print("\n" + "=" * 60)
-        print("ESMM vs CVR Baseline Comparison")
+        print("ESMM vs CVR Baseline Comparison (test set)")
         print("=" * 60)
         print(f"\nMetric              | ESMM     | Baseline | Delta")
         print("-" * 55)
@@ -639,11 +689,14 @@ def main():
     results = {
         'esmm_metrics': {k: float(v) if isinstance(v, (np.floating, float)) else v 
                         for k, v in final_metrics.items()},
+        'esmm_val_metrics': {k: float(v) if isinstance(v, (np.floating, float)) else v 
+                            for k, v in final_val_metrics.items()},
         'baseline_metrics': baseline_metrics,
         'history': {k: [float(x) for x in v] for k, v in history.items()},
         'config': config,
         'train_stats': train_stats,
         'val_stats': val_stats,
+        'test_stats': test_stats,
     }
     
     with open(exp_dir / 'results.json', 'w') as f:

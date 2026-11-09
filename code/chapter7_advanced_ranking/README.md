@@ -75,6 +75,17 @@ python train_dlrm.py --train_days 30
 python train_mmoe.py --train_days 30 --use_focal_loss
 ```
 
+### Evaluation Protocol
+
+Every training script splits the data by time into train, validation, and test, as in Chapter 6:
+
+- **Test** is the last `--test_days` of the dataset, after a 30-minute gap.
+- **Validation** is the last `--val_split_ratio` (default 0.1) of the train window. It is held out before features are fitted.
+- Early stopping, learning-rate scheduling, best-checkpoint selection, and (in `train_mmoe.py`) classification thresholds use the **validation** set only.
+- The test set is scored once, at the end, and is never used to choose the model.
+
+`results.json` reports `train_metrics`, `val_metrics`, and `test_metrics` separately.
+
 ## Model Details
 
 ### DCN-V2: Deep & Cross Network V2
@@ -328,7 +339,7 @@ plt.tight_layout()
 | DeepFM (Ch6) | 30 | ~0.55-0.58 | - | - | Baseline |
 | XGBoost (Ch6) | 30 | ~0.58-0.60 | - | - | Feature engineering |
 
-Note: Results depend on hardware, random seeds, and hyperparameters. Engagement AUC is typically high (>0.95) since almost all listens have played_ratio_pct > 0 in the dataset.
+Note: These ranges were recorded before the validation-window fix (2026-11-08), when model selection monitored the test window, so they are optimistic. Results depend on hardware, random seeds, and hyperparameters. Engagement AUC is typically high (>0.95) since almost all listens have played_ratio_pct > 0 in the dataset.
 
 ## Comparison with Chapter 6
 

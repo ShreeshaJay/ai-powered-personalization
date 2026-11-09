@@ -111,6 +111,42 @@ def load_yambda_polars(
     return train_lf, test_lf
 
 
+def split_validation_window(
+    train_lf: Union[pl.LazyFrame, pl.DataFrame],
+    val_ratio: float = 0.1,
+) -> Tuple[Union[pl.LazyFrame, pl.DataFrame], Union[pl.LazyFrame, pl.DataFrame]]:
+    """
+    Hold out the most recent part of the train window as a validation set.
+
+    Every model-selection decision (early stopping, learning-rate scheduling,
+    checkpoint choice) must use this validation set, never the test window.
+    Call this BEFORE fitting the feature pipeline, so that the validation
+    rows, like the test rows, receive historical features computed only
+    from earlier data.
+
+    Args:
+        train_lf: Train window from load_yambda_polars
+        val_ratio: Fraction of train rows, taken from the end of the window
+            by timestamp, to hold out (default: 0.1)
+
+    Returns:
+        Tuple of (fit_data, val_data), same type as the input
+    """
+    if not 0 < val_ratio < 1:
+        raise ValueError(f"val_ratio must be in (0, 1), got {val_ratio}")
+
+    cutoff = train_lf.select(col('timestamp').quantile(1 - val_ratio))
+    if isinstance(cutoff, pl.LazyFrame):
+        cutoff = cutoff.collect()
+    cutoff = cutoff.item()
+
+    fit_lf = train_lf.filter(col('timestamp') < cutoff)
+    val_lf = train_lf.filter(col('timestamp') >= cutoff)
+    logger.info(f"Validation window: last {val_ratio:.0%} of train window "
+                f"(timestamp >= {cutoff:,.0f})")
+    return fit_lf, val_lf
+
+
 def _cast_dtypes(lf: pl.LazyFrame) -> pl.LazyFrame:
     """Cast columns to optimal dtypes."""
     existing_cols = lf.collect_schema().names()

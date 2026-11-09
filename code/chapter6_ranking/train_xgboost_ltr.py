@@ -43,7 +43,7 @@ import numpy as np
 import polars as pl
 from sklearn.metrics import roc_auc_score, average_precision_score
 
-from utils.polars_pipeline import load_yambda_polars, PolarsPipeline
+from utils.polars_pipeline import load_yambda_polars, PolarsPipeline, split_validation_window
 
 # Configure logging
 logging.basicConfig(
@@ -71,6 +71,11 @@ def parse_args():
     parser.add_argument(
         '--test_days', type=int, default=1,
         help='Test window in days (default: 1)'
+    )
+    parser.add_argument(
+        '--val_split_ratio', type=float, default=0.1,
+        help='Fraction of the train window, taken from its end, held out as '
+             'the validation set for early stopping (default: 0.1)'
     )
     
     # LTR-specific arguments
@@ -416,6 +421,11 @@ def main():
         lazy=True
     )
     
+    # Validation window: the last val_split_ratio of the train window by time.
+    # It is held out before the pipeline is fitted, so its historical features
+    # come only from earlier data, exactly as for the test window.
+    train_lf, val_lf = split_validation_window(train_lf, args.val_split_ratio)
+    
     load_time = time.time() - start_time
     logger.info(f"Data scan complete in {load_time:.1f}s")
     
@@ -427,11 +437,13 @@ def main():
     
     pipeline = PolarsPipeline()
     train_df, feature_cols = pipeline.fit_transform(train_lf)
+    val_df, _ = pipeline.transform(val_lf)
     test_df, _ = pipeline.transform(test_lf)
     
     feature_time = time.time() - start_time
     logger.info(f"Feature engineering complete in {feature_time:.1f}s")
     logger.info(f"Train samples (before LTR filter): {train_df.height:,}")
+    logger.info(f"Validation samples (before LTR filter): {val_df.height:,}")
     logger.info(f"Test samples (before LTR filter): {test_df.height:,}")
     logger.info(f"Features: {len(feature_cols)}")
     
@@ -453,6 +465,17 @@ def main():
     logger.info(f"Train groups: {len(train_groups):,} users, {train_df.height:,} samples")
     logger.info(f"Avg items per user: {train_df.height / len(train_groups):.1f}")
     
+    # Filter and prepare validation data
+    logger.info("Processing validation data...")
+    val_df = filter_and_prepare_groups(
+        val_df,
+        min_group_size=args.min_group_size,
+        max_group_size=args.max_group_size,
+        group_col='uid'
+    )
+    val_groups = create_query_groups(val_df, group_col='uid')
+    logger.info(f"Validation groups: {len(val_groups):,} users, {val_df.height:,} samples")
+    
     # Filter and prepare test data
     logger.info("Processing test data...")
     test_df = filter_and_prepare_groups(
@@ -470,10 +493,11 @@ def main():
     # Convert to pandas for XGBoost
     logger.info("\nConverting to pandas...")
     X_train, y_train = pipeline.to_pandas(train_df, feature_cols)
+    X_val, y_val = pipeline.to_pandas(val_df, feature_cols)
     X_test, y_test = pipeline.to_pandas(test_df, feature_cols)
     
     # Free Polars memory
-    del train_df, test_df, train_lf, test_lf
+    del train_df, val_df, test_df, train_lf, val_lf, test_lf
     
     # Log class distribution
     train_pos_rate = y_train.mean()
@@ -504,18 +528,21 @@ def main():
     
     logger.info(f"Model config: objective={args.objective}")
     
-    # Train with group information
+    # Train with group information. Early stopping monitors the LAST entry in
+    # eval_set, so the validation set goes last. The test set never appears here.
     model.fit(
         X_train, y_train,
         group=train_groups,
-        eval_set=[(X_train, y_train), (X_test, y_test)],
-        eval_group=[train_groups, test_groups],
+        eval_set=[(X_train, y_train), (X_val, y_val)],
+        eval_group=[train_groups, val_groups],
         verbose=10
     )
     
     train_time = time.time() - start_time
+    # best_iteration only exists when early stopping is enabled
+    best_iteration = getattr(model, 'best_iteration', None)
     logger.info(f"Training complete in {train_time:.1f}s")
-    logger.info(f"Best iteration: {model.best_iteration}")
+    logger.info(f"Best iteration: {best_iteration}")
     
     # =========================================================================
     # Step 5: Evaluate Model
@@ -602,9 +629,12 @@ def main():
         'model_type': 'XGBRanker (pairwise LTR)',
         'objective': args.objective,
         'train_days': args.train_days,
+        'val_split_ratio': args.val_split_ratio,
         'train_samples': int(len(y_train)),
+        'val_samples': int(len(y_val)),
         'test_samples': int(len(y_test)),
         'train_groups': int(len(train_groups)),
+        'val_groups': int(len(val_groups)),
         'test_groups': int(len(test_groups)),
         'features': len(feature_cols),
         'feature_names': feature_cols,
@@ -643,7 +673,7 @@ def main():
             'train_time': train_time,
             'total_time': total_time,
         },
-        'best_iteration': model.best_iteration,
+        'best_iteration': best_iteration,
     }
     
     results_path = output_dir / 'results.json'

@@ -46,7 +46,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 sys.path.insert(0, str(Path(__file__).parent))
 
 from models.dlrm import DLRM, DLRMConfig, DLRMDataset, collate_fn
-from utils.polars_pipeline import load_yambda_polars, PolarsPipeline
+from utils.polars_pipeline import load_yambda_polars, PolarsPipeline, split_validation_window
 
 # Configure logging
 logging.basicConfig(
@@ -223,6 +223,9 @@ def main():
     parser.add_argument('--data_dir', type=str, default=os.environ.get('YAMBDA_DATA_DIR', ''))
     parser.add_argument('--train_days', type=int, default=30)
     parser.add_argument('--test_days', type=int, default=1)
+    parser.add_argument('--val_split_ratio', type=float, default=0.1,
+                        help='Fraction of the train window, taken from its end, held out '
+                             'as the validation set for model selection')
     
     parser.add_argument('--embed_dim', type=int, default=16)
     parser.add_argument('--bottom_mlp_dims', type=str, default='64,32,16')
@@ -278,18 +281,26 @@ def main():
         test_days=args.test_days,
     )
     
+    # Validation window: the last val_split_ratio of the train window by time.
+    # It is held out before the pipeline is fitted, so its historical features
+    # come only from earlier data, exactly as for the test window.
+    train_lf, val_lf = split_validation_window(train_lf, args.val_split_ratio)
+    
     # Feature Engineering
     logger.info("\n[2/5] Running feature pipeline...")
     pipeline = PolarsPipeline()
     pipeline.fit(train_lf)
     
     train_polars_df, _ = pipeline.transform(train_lf)
+    val_polars_df, _ = pipeline.transform(val_lf)
     test_polars_df, _ = pipeline.transform(test_lf)
     
     train_df = train_polars_df.to_pandas()
+    val_df = val_polars_df.to_pandas()
     test_df = test_polars_df.to_pandas()
     
     logger.info(f"Train samples: {len(train_df):,}")
+    logger.info(f"Validation samples: {len(val_df):,}")
     logger.info(f"Test samples: {len(test_df):,}")
     
     # Prepare Features
@@ -297,14 +308,17 @@ def main():
     feature_processor = DLRMFeatureProcessor(SPARSE_FEATURES, DENSE_FEATURES)
     
     train_sparse, train_dense, train_labels = feature_processor.fit_transform(train_df)
+    val_sparse, val_dense, val_labels = feature_processor.transform(val_df)
     test_sparse, test_dense, test_labels = feature_processor.transform(test_df)
     
     logger.info(f"Train positive rate: {train_labels.mean():.1%}")
     
     train_dataset = DLRMDataset(train_sparse, train_dense, train_labels)
+    val_dataset = DLRMDataset(val_sparse, val_dense, val_labels)
     test_dataset = DLRMDataset(test_sparse, test_dense, test_labels)
     
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn, num_workers=0)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn, num_workers=0)
     
     # Train Model
@@ -331,32 +345,34 @@ def main():
     best_auc = 0.0
     best_epoch = 0
     patience_counter = 0
-    history = {'train': [], 'test': []}
+    history = {'train': [], 'val': []}
     
+    # Validation AUC drives LR scheduling, early stopping and checkpoint
+    # selection; the test set is only touched after training.
     for epoch in range(args.epochs):
         epoch_start = time.time()
         
         train_loss = train_epoch(model, train_loader, optimizer, criterion, device)
         train_metrics = evaluate(model, train_loader, criterion, device)
-        test_metrics = evaluate(model, test_loader, criterion, device)
+        val_metrics = evaluate(model, val_loader, criterion, device)
         
         logger.info(
             f"Epoch {epoch+1:2d}/{args.epochs} | "
             f"Train AUC: {train_metrics['auc_roc']:.4f} | "
-            f"Test AUC: {test_metrics['auc_roc']:.4f} | "
+            f"Val AUC: {val_metrics['auc_roc']:.4f} | "
             f"Time: {time.time() - epoch_start:.1f}s"
         )
         
         history['train'].append(train_metrics)
-        history['test'].append(test_metrics)
+        history['val'].append(val_metrics)
         
-        scheduler.step(test_metrics['auc_roc'])
+        scheduler.step(val_metrics['auc_roc'])
         
-        if test_metrics['auc_roc'] > best_auc:
-            best_auc = test_metrics['auc_roc']
+        if val_metrics['auc_roc'] > best_auc:
+            best_auc = val_metrics['auc_roc']
             best_epoch = epoch + 1
             patience_counter = 0
-            torch.save({'model_state_dict': model.state_dict(), 'config': config, 'metrics': test_metrics}, output_path / 'best_model.pt')
+            torch.save({'model_state_dict': model.state_dict(), 'config': config, 'metrics': val_metrics}, output_path / 'best_model.pt')
         else:
             patience_counter += 1
             if patience_counter >= args.patience:
@@ -371,11 +387,13 @@ def main():
     model.load_state_dict(checkpoint['model_state_dict'])
     
     train_metrics = evaluate(model, train_loader, criterion, device)
+    val_metrics = evaluate(model, val_loader, criterion, device)
     test_metrics = evaluate(model, test_loader, criterion, device)
     
     logger.info("\n" + "=" * 60)
     logger.info("FINAL RESULTS")
     logger.info("=" * 60)
+    logger.info(f"Val AUC-ROC: {val_metrics['auc_roc']:.4f}")
     logger.info(f"Test AUC-ROC: {test_metrics['auc_roc']:.4f}")
     logger.info(f"Test AUC-PR: {test_metrics['auc_pr']:.4f}")
     logger.info(f"Test F1: {test_metrics['f1']:.4f}")
@@ -383,8 +401,10 @@ def main():
     results = {
         'experiment': exp_name,
         'train_days': train_days,
+        'val_split_ratio': args.val_split_ratio,
         'best_epoch': best_epoch,
         'train_metrics': train_metrics,
+        'val_metrics': val_metrics,
         'test_metrics': test_metrics,
         'n_params': n_params,
         'train_time_seconds': train_time,

@@ -26,11 +26,14 @@ Training Settings (Paper Sec 5.1.4):
     - Loss: standard cross-entropy (no focal loss)
     - No dropout, no weight decay, no gradient clipping
     - Train/test split: time-based (row-order proxy)
-    - Val ratio: 11.5% (~1.3M test / 11.3M total in paper)
+    - Test ratio: 11.5% (~1.3M test / 11.3M total in paper)
+    - Validation: last --val_split_ratio of the train rows (row-order proxy),
+      used for checkpoint selection; the test rows are only scored at the end
 
 Usage:
-    python train_split_nn.py                  # Default: all data, paper settings
-    python train_split_nn.py --n_samples 500000  # Quick test with subset
+    python train_split_nn.py                      # All data, paper settings, 10% validation
+    python train_split_nn.py --val_split_ratio 0  # Exact paper protocol (1 epoch, no validation)
+    python train_split_nn.py --n_samples 500000   # Quick test with subset
 
 Output:
     outputs/split_nn_YYYYMMDD_HHMMSS/
@@ -47,12 +50,12 @@ import json
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from sklearn.metrics import roc_auc_score, log_loss
 from tqdm import tqdm
 
@@ -74,6 +77,10 @@ def parse_args():
     # Data
     parser.add_argument('--n_samples', type=int, default=None,
                         help='Number of samples to load (default: all aligned data)')
+    parser.add_argument('--val_split_ratio', type=float, default=0.1,
+                        help='Fraction of the train rows, taken from their end, held out '
+                             'as the validation set for checkpoint selection. 0 disables '
+                             'validation (allowed only with --epochs 1, the paper setting).')
     
     # Training overrides (paper defaults shown)
     parser.add_argument('--epochs', type=int,
@@ -111,7 +118,8 @@ def setup_experiment(args) -> Tuple[Path, Dict[str, Any]]:
         'paper': 'Wei et al. FedAds (SIGIR 2023)',
         'data': {
             'n_samples': args.n_samples,
-            'val_ratio': PAPER_TRAINING_DEFAULTS['val_ratio'],
+            'test_ratio': PAPER_TRAINING_DEFAULTS['val_ratio'],
+            'val_split_ratio': args.val_split_ratio,
             'split': 'time-based (row-order proxy)',
         },
         'model': {
@@ -233,14 +241,20 @@ def evaluate(
 def train_model(
     model: nn.Module,
     train_loader: DataLoader,
-    val_loader: DataLoader,
+    val_loader: Optional[DataLoader],
+    test_loader: DataLoader,
     config: Dict[str, Any],
     device: torch.device,
     model_name: str,
     model_type: str,
     exp_dir: Path,
 ) -> Tuple[Dict[str, float], Dict[str, list]]:
-    """Train a model with early stopping."""
+    """Train a model with early stopping on the validation set.
+    
+    The test set is scored once, with the selected checkpoint. If val_loader
+    is None (single-epoch paper setting), no selection is made and the final
+    model is scored.
+    """
     
     optimizer = optim.Adam(
         model.parameters(),
@@ -254,9 +268,17 @@ def train_model(
     
     for epoch in range(config['training']['epochs']):
         train_loss = train_epoch(model, train_loader, optimizer, device, model_type)
-        val_metrics = evaluate(model, val_loader, device, model_type)
-        
         history['train_loss'].append(train_loss)
+        
+        if val_loader is None:
+            print(f"  Epoch {epoch+1}: train_loss={train_loss:.4f}")
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'epoch': epoch,
+            }, exp_dir / f'{model_name}_model.pt')
+            continue
+        
+        val_metrics = evaluate(model, val_loader, device, model_type)
         history['val_loss'].append(val_metrics['loss'])
         history['val_auc'].append(val_metrics['auc'])
         
@@ -277,16 +299,21 @@ def train_model(
                 print(f"  Early stopping at epoch {epoch+1}")
                 break
     
-    # Load best model and get final metrics
+    # Load selected model and score the test set once
     checkpoint = torch.load(exp_dir / f'{model_name}_model.pt', weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
-    final_metrics = evaluate(model, val_loader, device, model_type)
+    final_metrics = evaluate(model, test_loader, device, model_type)
     
     return final_metrics, history
 
 
 def main():
     args = parse_args()
+    if not 0 <= args.val_split_ratio < 1:
+        raise ValueError(f"--val_split_ratio must be in [0, 1), got {args.val_split_ratio}")
+    if args.val_split_ratio == 0 and args.epochs > 1:
+        raise ValueError("--val_split_ratio 0 is only allowed with --epochs 1: "
+                         "multi-epoch training needs a validation set for checkpoint selection")
     
     # Setup
     exp_dir, config = setup_experiment(args)
@@ -298,21 +325,34 @@ def main():
     print("Loading FedAds data")
     print("=" * 60)
     
-    train_dataset, val_dataset = load_fedads_split(
+    # The loader's hold-out (last 11.5% of rows, the paper's test week) is the
+    # TEST set. Validation for checkpoint selection is the last
+    # val_split_ratio of the remaining train rows (same row-order time proxy).
+    train_dataset, test_dataset = load_fedads_split(
         n_samples=args.n_samples,
-        val_ratio=config['data']['val_ratio'],
+        val_ratio=config['data']['test_ratio'],
         party='both',
     )
     
-    train_loader, val_loader = create_federated_dataloaders(
-        train_dataset, val_dataset,
+    n_train = len(train_dataset)
+    n_val = int(n_train * args.val_split_ratio)
+    fit_dataset = Subset(train_dataset, range(n_train - n_val)) if n_val else train_dataset
+    
+    train_loader, test_loader = create_federated_dataloaders(
+        fit_dataset, test_dataset,
         batch_size=config['training']['batch_size'],
     )
+    val_loader = None
+    if n_val:
+        val_dataset = Subset(train_dataset, range(n_train - n_val, n_train))
+        val_loader = DataLoader(val_dataset, batch_size=config['training']['batch_size'],
+                                shuffle=False, num_workers=0)
     
     train_stats = train_dataset.get_statistics()
-    val_stats = val_dataset.get_statistics()
-    print(f"\nTrain set: {train_stats}")
-    print(f"Val set: {val_stats}")
+    test_stats = test_dataset.get_statistics()
+    print(f"\nTrain rows (before validation hold-out): {train_stats}")
+    print(f"Validation rows: {n_val:,} (last {args.val_split_ratio:.0%} of train rows)")
+    print(f"Test set: {test_stats}")
     
     # Model configuration (paper defaults)
     model_config = SplitNNConfig()
@@ -331,7 +371,7 @@ def main():
     print(f"SplitNN parameters: {split_model.get_parameter_count()}")
     
     split_metrics, split_history = train_model(
-        split_model, train_loader, val_loader, config, device,
+        split_model, train_loader, val_loader, test_loader, config, device,
         model_name='split_nn', model_type='split', exp_dir=exp_dir
     )
     results['VanillaVFL'] = split_metrics
@@ -347,7 +387,7 @@ def main():
     centralized_model = CentralizedBaseline(model_config).to(device)
     
     central_metrics, central_history = train_model(
-        centralized_model, train_loader, val_loader, config, device,
+        centralized_model, train_loader, val_loader, test_loader, config, device,
         model_name='centralized', model_type='centralized', exp_dir=exp_dir
     )
     results['ORALE'] = central_metrics
@@ -364,7 +404,7 @@ def main():
     label_party_model = LabelPartyOnlyModel(model_config).to(device)
     
     label_metrics, label_history = train_model(
-        label_party_model, train_loader, val_loader, config, device,
+        label_party_model, train_loader, val_loader, test_loader, config, device,
         model_name='label_party_only', model_type='label_party_only',
         exp_dir=exp_dir
     )
@@ -382,7 +422,7 @@ def main():
     nonlabel_model = NonLabelPartyOnlyModel(model_config).to(device)
     
     nonlabel_metrics, nonlabel_history = train_model(
-        nonlabel_model, train_loader, val_loader, config, device,
+        nonlabel_model, train_loader, val_loader, test_loader, config, device,
         model_name='nonlabel_party_only', model_type='nonlabel_only',
         exp_dir=exp_dir
     )
@@ -441,7 +481,8 @@ def main():
         'histories': histories,
         'config': config,
         'train_stats': train_stats,
-        'val_stats': val_stats,
+        'val_samples': n_val,
+        'test_stats': test_stats,
     }
     
     with open(exp_dir / 'results.json', 'w') as f:

@@ -39,7 +39,7 @@ from sklearn.metrics import (
 )
 import numpy as np
 
-from utils.polars_pipeline import load_yambda_polars, PolarsPipeline
+from utils.polars_pipeline import load_yambda_polars, PolarsPipeline, split_validation_window
 
 # Configure logging
 logging.basicConfig(
@@ -68,6 +68,11 @@ def parse_args():
     parser.add_argument(
         '--test_days', type=int, default=1,
         help='Test window in days (default: 1)'
+    )
+    parser.add_argument(
+        '--val_split_ratio', type=float, default=0.1,
+        help='Fraction of the train window, taken from its end, held out as '
+             'the validation set for early stopping (default: 0.1)'
     )
     
     # Model hyperparameters
@@ -197,6 +202,11 @@ def main():
         lazy=True
     )
     
+    # Validation window: the last val_split_ratio of the train window by time.
+    # It is held out before the pipeline is fitted, so its historical features
+    # come only from earlier data, exactly as for the test window.
+    train_lf, val_lf = split_validation_window(train_lf, args.val_split_ratio)
+    
     load_time = time.time() - start_time
     logger.info(f"Data scan complete in {load_time:.1f}s")
     
@@ -208,21 +218,24 @@ def main():
     
     pipeline = PolarsPipeline()
     train_df, feature_cols = pipeline.fit_transform(train_lf)
+    val_df, _ = pipeline.transform(val_lf)
     test_df, _ = pipeline.transform(test_lf)
     
     feature_time = time.time() - start_time
     logger.info(f"Feature engineering complete in {feature_time:.1f}s")
     logger.info(f"Train samples: {train_df.height:,}")
+    logger.info(f"Validation samples: {val_df.height:,}")
     logger.info(f"Test samples: {test_df.height:,}")
     logger.info(f"Features: {len(feature_cols)}")
     
     # Convert to pandas for XGBoost
     logger.info("\nConverting to pandas...")
     X_train, y_train = pipeline.to_pandas(train_df, feature_cols)
+    X_val, y_val = pipeline.to_pandas(val_df, feature_cols)
     X_test, y_test = pipeline.to_pandas(test_df, feature_cols)
     
     # Free Polars memory
-    del train_df, test_df, train_lf, test_lf
+    del train_df, val_df, test_df, train_lf, val_lf, test_lf
     
     # Log class distribution
     train_pos_rate = y_train.mean()
@@ -255,8 +268,9 @@ def main():
     
     logger.info(f"Model config: objective={args.objective}, eval_metric={args.eval_metric}")
     
-    # Training with evaluation set
-    eval_set = [(X_train, y_train), (X_test, y_test)]
+    # Early stopping monitors the LAST entry in eval_set, so the validation
+    # set goes last. The test set never appears here.
+    eval_set = [(X_train, y_train), (X_val, y_val)]
     
     model.fit(
         X_train, y_train,
@@ -264,7 +278,8 @@ def main():
         verbose=10
     )
     
-    best_iteration = model.best_iteration if model.best_iteration else args.n_estimators
+    # best_iteration only exists when early stopping is enabled
+    best_iteration = getattr(model, 'best_iteration', None) or args.n_estimators
     
     train_time = time.time() - start_time
     logger.info(f"Training complete in {train_time:.1f}s")
@@ -277,16 +292,23 @@ def main():
     
     # Predictions
     y_train_pred = model.predict_proba(X_train)[:, 1]
+    y_val_pred = model.predict_proba(X_val)[:, 1]
     y_test_pred = model.predict_proba(X_test)[:, 1]
     
     # Compute metrics
     train_metrics = compute_metrics(y_train, y_train_pred)
+    val_metrics = compute_metrics(y_val, y_val_pred)
     test_metrics = compute_metrics(y_test, y_test_pred)
     
     logger.info("\nTraining Metrics:")
     logger.info(f"  AUC-ROC: {train_metrics['auc_roc']:.4f}")
     logger.info(f"  AUC-PR:  {train_metrics['auc_pr']:.4f}")
     logger.info(f"  F1:      {train_metrics['f1']:.4f}")
+    
+    logger.info("\nValidation Metrics:")
+    logger.info(f"  AUC-ROC: {val_metrics['auc_roc']:.4f}")
+    logger.info(f"  AUC-PR:  {val_metrics['auc_pr']:.4f}")
+    logger.info(f"  F1:      {val_metrics['f1']:.4f}")
     
     logger.info("\nTest Metrics:")
     logger.info(f"  AUC-ROC: {test_metrics['auc_roc']:.4f}")
@@ -317,6 +339,7 @@ def main():
         'config': {
             'train_days': args.train_days,
             'test_days': args.test_days,
+            'val_split_ratio': args.val_split_ratio,
             'n_estimators': args.n_estimators,
             'max_depth': args.max_depth,
             'learning_rate': args.learning_rate,
@@ -330,6 +353,7 @@ def main():
         },
         'data': {
             'train_samples': len(X_train),
+            'val_samples': len(X_val),
             'test_samples': len(X_test),
             'n_features': len(feature_cols),
             'feature_columns': feature_cols,
@@ -338,6 +362,7 @@ def main():
         },
         'metrics': {
             'train': train_metrics,
+            'validation': val_metrics,
             'test': test_metrics,
         },
         'timing': {

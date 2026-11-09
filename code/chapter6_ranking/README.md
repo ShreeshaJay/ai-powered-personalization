@@ -144,6 +144,17 @@ Output Options:
   --experiment_name STR   Experiment name for output directory
 ```
 
+## Evaluation Protocol
+
+All four training scripts (`train_xgboost.py`, `train_xgboost_polars.py`, `train_xgboost_ltr.py`, `train_deepfm.py`) split the data by time into train, validation, and test:
+
+- **Test** is the last `--test_days` of the dataset, after a 30-minute gap.
+- **Validation** is the last `--val_split_ratio` (default 0.1) of the train window. It is held out before features are fitted.
+- Early stopping, learning-rate scheduling, and best-checkpoint selection use the **validation** set only.
+- The test set is scored once, at the end, and is never used to choose the model.
+
+See "Validation Protocol" in `docs/Chapter6_Design_Notes.md` for details.
+
 ## Chapter Progression
 
 ### 6.1-6.2: Problem Setup & Feature Engineering

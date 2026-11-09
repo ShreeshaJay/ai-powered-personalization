@@ -733,8 +733,9 @@ Absolute AUC numbers will differ from Table 3, but relative ordering should hold
 | Dropout | 0.0 | Not mentioned |
 | Weight decay | 0.0 | Not mentioned |
 | Grad clipping | None | Not mentioned |
-| Train/Val split | Time-based (row-order proxy) | "last week = test set" |
-| Val ratio | 11.5% | ~1.3M test / 11.3M total |
+| Train/Test split | Time-based (row-order proxy) | "last week = test set" |
+| Test ratio | 11.5% | ~1.3M test / 11.3M total |
+| Validation | Last `--val_split_ratio` (default 10%) of the train rows | Not in paper; used for checkpoint selection |
 
 ### Models Compared
 
@@ -778,6 +779,17 @@ The paper splits train/test by click timestamp (last week = test). The public da
 has `l_c_fea` (click timestamp) and `f_c` (conversion timestamp) but both are
 hashed/discretized, making exact temporal ordering unrecoverable. We use row order
 as an approximation, assuming the CSV preserves chronological order.
+
+### Validation Protocol (Model Selection)
+
+The last 11.5% of rows (the paper's test week) is the **test set** and is scored
+once, with the selected checkpoint. Checkpoint selection and early stopping use a
+separate **validation set**: the last `--val_split_ratio` (default 10%) of the
+remaining train rows, using the same row-order time proxy. With the paper's single
+epoch there is only one checkpoint, so `--val_split_ratio 0` reproduces the paper
+setting exactly (all train rows used for training, no selection). The script rejects
+`--val_split_ratio 0` with more than one epoch, because multi-epoch training needs
+a validation set to choose a checkpoint.
 
 ### Implementation Decisions
 
@@ -1368,6 +1380,26 @@ chapter9_adtech/
 ---
 
 ## 10. Experiments Log
+
+### Validation Protocol (Model Selection)
+
+`train_esmm.py` treats the preprocessed hold-out file (`ali_ccp_val.parquet`) as the
+**test set**. A validation set is carved from the training file
+(`--val_split_ratio`, default 10%, seeded random rows, since Ali-CCP has no timestamps
+and preprocessing already shuffles rows). Early stopping, checkpoint selection, and the
+`best_val_*` metrics use only the validation set, for both ESMM and the clicked-only
+baseline. The baseline reloads its best checkpoint before the final pass. The test set
+is scored once at the end.
+
+> **Note (2026-11-08):** Experiment 1 below was recorded before this protocol was
+> adopted. At that time the hold-out file drove early stopping and checkpoint selection
+> and also produced the reported metrics, so those numbers are optimistically biased and
+> should be treated as historical; rerun before quoting them. The clicked-only baseline
+> numbers also came from its last-epoch model rather than its best checkpoint.
+> Experiment 3 trained for a single epoch, so no checkpoint was selected on the
+> reported set; it matches the current `--val_split_ratio 0` mode, while the current
+> default holds out 10% of the train rows. In both experiments, "val" refers to the
+> hold-out rows that the current scripts call the test set.
 
 ### Experiment 1: ESMM vs Clicked-Only CVR Baseline
 

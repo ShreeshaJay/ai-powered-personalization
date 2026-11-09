@@ -48,7 +48,7 @@ from sklearn.calibration import calibration_curve
 sys.path.insert(0, str(Path(__file__).parent))
 
 from models.mmoe import MMoE, MMoEConfig, MMoEDataset, MultiTaskLoss, collate_fn
-from utils.polars_pipeline import load_yambda_polars, PolarsPipeline
+from utils.polars_pipeline import load_yambda_polars, PolarsPipeline, split_validation_window
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -812,7 +812,13 @@ def train_epoch(model, train_loader, optimizer, criterion, device):
     return total_loss / n_batches, {name: loss / n_batches for name, loss in task_losses.items()}
 
 
-def evaluate(model, data_loader, criterion, device):
+def evaluate(model, data_loader, criterion, device, thresholds: Optional[Dict[str, float]] = None):
+    """Evaluate all tasks.
+
+    f1_max / f1_threshold are tuned on the data being evaluated, so they are
+    optimistic diagnostics. Pass `thresholds` (chosen on the validation set)
+    to also get f1_at_threshold, the F1 to report on the test set.
+    """
     model.eval()
     
     all_preds = {name: [] for name in model.task_names}
@@ -870,12 +876,12 @@ def evaluate(model, data_loader, criterion, device):
             }
         else:
             # Binary task: Compute F1-max: optimal threshold F1 (better for imbalanced data)
-            precision, recall, thresholds = precision_recall_curve(labels, preds)
+            precision, recall, pr_thresholds = precision_recall_curve(labels, preds)
             # F1 = 2 * (precision * recall) / (precision + recall)
             f1_scores = 2 * (precision[:-1] * recall[:-1]) / (precision[:-1] + recall[:-1] + 1e-8)
             best_f1_idx = np.argmax(f1_scores)
             f1_max = f1_scores[best_f1_idx]
-            best_threshold = thresholds[best_f1_idx]
+            best_threshold = pr_thresholds[best_f1_idx]
             
             results[name] = {
                 'loss': task_losses[name] / n_batches,
@@ -885,6 +891,12 @@ def evaluate(model, data_loader, criterion, device):
                 'f1_threshold': float(best_threshold),  # The optimal threshold
                 'positive_rate': float(labels.mean()),
             }
+        
+        if thresholds is not None and name in thresholds and name not in REGRESSION_TASKS:
+            results[name]['f1_at_threshold'] = float(
+                f1_score(labels, (preds >= thresholds[name]).astype(int), zero_division=0)
+            )
+            results[name]['applied_threshold'] = float(thresholds[name])
     
     return results
 
@@ -899,6 +911,9 @@ def main():
     parser.add_argument('--data_dir', type=str, default=os.environ.get('YAMBDA_DATA_DIR', ''))
     parser.add_argument('--train_days', type=int, default=30)
     parser.add_argument('--test_days', type=int, default=1)
+    parser.add_argument('--val_split_ratio', type=float, default=0.1,
+                        help='Fraction of the train window, taken from its end, held out '
+                             'as the validation set for model selection')
     
     parser.add_argument('--embed_dim', type=int, default=16)
     parser.add_argument('--num_experts', type=int, default=4)  # 4 experts performed best in experiments
@@ -959,18 +974,26 @@ def main():
     logger.info("\n[1/5] Loading multi-task data...")
     train_lf, test_lf = load_multitask_data(data_dir=args.data_dir, train_days=train_days, test_days=args.test_days)
     
+    # Validation window: the last val_split_ratio of the train window by time.
+    # It is held out before the pipeline is fitted, so its historical features
+    # come only from earlier data, exactly as for the test window.
+    train_lf, val_lf = split_validation_window(train_lf, args.val_split_ratio)
+    
     # Feature Engineering
     logger.info("\n[2/5] Running feature pipeline...")
     pipeline = PolarsPipeline()
     pipeline.fit(train_lf)
     
     train_polars_df, _ = pipeline.transform(train_lf)
+    val_polars_df, _ = pipeline.transform(val_lf)
     test_polars_df, _ = pipeline.transform(test_lf)
     
     train_df = train_polars_df.to_pandas()
+    val_df = val_polars_df.to_pandas()
     test_df = test_polars_df.to_pandas()
     
     logger.info(f"Train samples: {len(train_df):,}")
+    logger.info(f"Validation samples: {len(val_df):,}")
     logger.info(f"Test samples: {len(test_df):,}")
     
     # Prepare Features
@@ -978,6 +1001,7 @@ def main():
     feature_processor = MMoEFeatureProcessor(SPARSE_FEATURES, DENSE_FEATURES, TASK_NAMES)
     
     train_sparse, train_dense, train_labels = feature_processor.fit_transform(train_df)
+    val_sparse, val_dense, val_labels = feature_processor.transform(val_df)
     test_sparse, test_dense, test_labels = feature_processor.transform(test_df)
     
     for task_name in TASK_NAMES:
@@ -988,9 +1012,11 @@ def main():
                 logger.info(f"Task '{task_name}' (binary) - Train positive rate: {train_labels[task_name].mean():.2%}")
     
     train_dataset = MMoEDataset(train_sparse, train_dense, train_labels)
+    val_dataset = MMoEDataset(val_sparse, val_dense, val_labels)
     test_dataset = MMoEDataset(test_sparse, test_dense, test_labels)
     
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn, num_workers=0)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn, num_workers=0)
     
     # Train Model
@@ -1042,27 +1068,29 @@ def main():
     best_auc = 0.0
     best_epoch = 0
     patience_counter = 0
-    history = {'train': [], 'test': []}
+    history = {'train': [], 'val': []}
     
+    # Validation metrics drive LR scheduling, early stopping and checkpoint
+    # selection; the test set is only touched after training.
     for epoch in range(args.epochs):
         epoch_start = time.time()
         
         train_loss, train_task_losses = train_epoch(model, train_loader, optimizer, criterion, device)
         train_metrics = evaluate(model, train_loader, criterion, device)
-        test_metrics = evaluate(model, test_loader, criterion, device)
+        val_metrics = evaluate(model, val_loader, criterion, device)
         
-        completion_auc = test_metrics['completion']['auc_roc']
-        like_auc_pr = test_metrics['like']['auc_pr']  # Use AUC-PR for imbalanced task
+        completion_auc = val_metrics['completion']['auc_roc']
+        like_auc_pr = val_metrics['like']['auc_pr']  # Use AUC-PR for imbalanced task
         
         logger.info(
             f"Epoch {epoch+1:2d}/{args.epochs} | "
-            f"Completion AUC: {completion_auc:.4f} | "
-            f"Like AUC-PR: {like_auc_pr:.4f} | "  # AUC-PR better for imbalanced
+            f"Val Completion AUC: {completion_auc:.4f} | "
+            f"Val Like AUC-PR: {like_auc_pr:.4f} | "  # AUC-PR better for imbalanced
             f"Time: {time.time() - epoch_start:.1f}s"
         )
         
         history['train'].append(train_metrics)
-        history['test'].append(test_metrics)
+        history['val'].append(val_metrics)
         
         scheduler.step(completion_auc)
         
@@ -1070,7 +1098,7 @@ def main():
             best_auc = completion_auc
             best_epoch = epoch + 1
             patience_counter = 0
-            torch.save({'model_state_dict': model.state_dict(), 'config': config, 'metrics': test_metrics}, output_path / 'best_model.pt')
+            torch.save({'model_state_dict': model.state_dict(), 'config': config, 'metrics': val_metrics}, output_path / 'best_model.pt')
         else:
             patience_counter += 1
             if patience_counter >= args.patience:
@@ -1085,7 +1113,13 @@ def main():
     model.load_state_dict(checkpoint['model_state_dict'])
     
     train_metrics = evaluate(model, train_loader, criterion, device)
-    test_metrics = evaluate(model, test_loader, criterion, device)
+    val_metrics = evaluate(model, val_loader, criterion, device)
+    # Classification thresholds are chosen on validation and applied to test
+    val_thresholds = {
+        name: val_metrics[name]['f1_threshold']
+        for name in TASK_NAMES if name not in REGRESSION_TASKS
+    }
+    test_metrics = evaluate(model, test_loader, criterion, device, thresholds=val_thresholds)
     
     logger.info("\n" + "=" * 70)
     logger.info("FINAL RESULTS")
@@ -1106,14 +1140,18 @@ def main():
             # Binary task metrics
             logger.info(f"  Test AUC-ROC: {metrics['auc_roc']:.4f}")
             logger.info(f"  Test AUC-PR:  {metrics['auc_pr']:.4f}  (better for imbalanced data)")
-            logger.info(f"  F1-max:       {metrics['f1_max']:.4f}  (at threshold {metrics['f1_threshold']:.3f})")
+            if 'f1_at_threshold' in metrics:
+                logger.info(f"  Test F1:      {metrics['f1_at_threshold']:.4f}  (at val-tuned threshold {metrics['applied_threshold']:.3f})")
+            logger.info(f"  F1-max:       {metrics['f1_max']:.4f}  (oracle: threshold {metrics['f1_threshold']:.3f} tuned on test, diagnostic only)")
             logger.info(f"  Positive rate: {metrics['positive_rate']:.2%}")
     
     results = {
         'experiment': exp_name,
         'train_days': train_days,
+        'val_split_ratio': args.val_split_ratio,
         'best_epoch': best_epoch,
         'train_metrics': train_metrics,
+        'val_metrics': val_metrics,
         'test_metrics': test_metrics,
         'n_params': n_params,
         'train_time_seconds': train_time,
