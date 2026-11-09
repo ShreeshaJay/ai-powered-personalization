@@ -1,0 +1,80 @@
+{
+  "entry_point": "scripts.ex2a_ann_operating_points",
+  "written_at_utc": "2026-11-09T09:03:11Z",
+  "command": "python -m scripts.ex2a_ann_operating_points --datasets auto --recall-floor 0.95",
+  "args": {
+    "recall_floor": 0.95,
+    "datasets": [
+      "coveo",
+      "synthetic"
+    ],
+    "n_items": null,
+    "ks": [
+      100,
+      500,
+      1000
+    ],
+    "indexes": [
+      "flat",
+      "ivf_flat",
+      "hnsw_flat",
+      "ivf_pq"
+    ],
+    "n_eval_queries": 2000,
+    "n_lat_queries": 200,
+    "repeats": 5,
+    "seed": 14,
+    "quick": false,
+    "summary_dir": null
+  },
+  "platform": {
+    "python": "3.11.2",
+    "platform": "Linux-6.1.0-54-cloud-amd64-x86_64-with-glibc2.36",
+    "os": "linux",
+    "cpu": {
+      "logical_cpus": 8,
+      "machine": "x86_64",
+      "processor": null,
+      "usable_cpus": 8,
+      "model_name": "Intel(R) Xeon(R) Platinum 8481C CPU @ 2.70GHz"
+    },
+    "perf_counter_resolution_s": 1e-09,
+    "sleep_1ms": {
+      "target_ms": 1.0,
+      "median_overshoot_ms": 0.0608130000946403,
+      "p99_overshoot_ms": 0.07167493981251025
+    },
+    "asyncio_sleep_1ms": {
+      "target_ms": 1.0,
+      "median_overshoot_ms": 0.07179650012767524,
+      "p99_overshoot_ms": 0.10243209991494949
+    },
+    "thread_env": {
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null,
+      "VECLIB_MAXIMUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null
+    },
+    "packages": {
+      "numpy": "2.3.5",
+      "polars": "1.36.1",
+      "pyarrow": "22.0.0",
+      "scipy": "1.16.3",
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "faiss-cpu": "1.13.1",
+      "torch": "2.6.0+cpu",
+      "onnx": "1.18.0",
+      "onnxruntime": "1.22.0"
+    },
+    "max_granularity_ms": 2.0,
+    "timer_ok": true
+  },
+  "threads": {
+    "torch_intra_op_threads": 4,
+    "torch_inter_op_threads": 4,
+    "faiss_omp_max_threads": 8
+  },
+  "runtime_s": 682.9558473829998
+}

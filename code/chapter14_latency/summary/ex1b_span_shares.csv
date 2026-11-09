@@ -1,0 +1,845 @@
+config,load,band,span,mean_critical_ms,share,critical_frequency
+baseline,0.3,above p99,features.fetch.store,28.9628,0.824432,1
+baseline,0.3,above p99,two_tower.network,1.62129,0.0461503,1
+baseline,0.3,above p99,light_ranker,1.58382,0.0450837,1
+baseline,0.3,above p99,heavy_ranker,1.14968,0.0327258,1
+baseline,0.3,above p99,queue,0.317335,0.009033,1
+baseline,0.3,above p99,retrieval.merge,0.316586,0.00901168,1
+baseline,0.3,above p99,rerank,0.275725,0.00784858,1
+baseline,0.3,above p99,two_tower.search,0.173387,0.00493549,1
+baseline,0.3,above p99,context,0.123239,0.00350802,1
+baseline,0.3,above p99,features,0.103918,0.00295805,1
+baseline,0.3,above p99,features.fetch.pool_wait,0.0994448,0.00283072,1
+baseline,0.3,above p99,(residual),0.0923252,0.00262806,1
+baseline,0.3,above p99,serialize,0.0663152,0.00188768,1
+baseline,0.3,above p99,two_tower.pool_wait,0.0532504,0.00151578,1
+baseline,0.3,above p99,queue.generator_lag,0.0496864,0.00141433,1
+baseline,0.3,above p99,features.assemble,0.049415,0.00140661,1
+baseline,0.3,above p99,features.cache,0.0418646,0.00119169,1
+baseline,0.3,above p99,retrieval,0.0371198,0.00105662,1
+baseline,0.3,above p99,two_tower,0.00724757,0.000206304,1
+baseline,0.3,above p99,features.fetch,0.00617358,0.000175732,1
+baseline,0.3,p40 to p60,features.fetch.store,3.33912,0.372411,1
+baseline,0.3,p40 to p60,two_tower.network,1.69747,0.189318,1
+baseline,0.3,p40 to p60,light_ranker,1.53383,0.171068,1
+baseline,0.3,p40 to p60,heavy_ranker,0.992799,0.110726,1
+baseline,0.3,p40 to p60,retrieval.merge,0.274314,0.0305941,1
+baseline,0.3,p40 to p60,rerank,0.25579,0.0285281,1
+baseline,0.3,p40 to p60,two_tower.search,0.161242,0.0179833,1
+baseline,0.3,p40 to p60,context,0.123597,0.0137847,1
+baseline,0.3,p40 to p60,features.fetch.pool_wait,0.10875,0.0121288,1
+baseline,0.3,p40 to p60,(residual),0.0929085,0.0103621,1
+baseline,0.3,p40 to p60,serialize,0.0655156,0.00730693,1
+baseline,0.3,p40 to p60,features,0.0578172,0.00644833,1
+baseline,0.3,p40 to p60,two_tower.pool_wait,0.0510805,0.00569699,1
+baseline,0.3,p40 to p60,queue.generator_lag,0.0464558,0.0051812,1
+baseline,0.3,p40 to p60,queue,0.0432807,0.00482709,1
+baseline,0.3,p40 to p60,retrieval,0.0400618,0.00446807,1
+baseline,0.3,p40 to p60,features.cache,0.0352773,0.00393447,1
+baseline,0.3,p40 to p60,features.assemble,0.0338083,0.00377063,1
+baseline,0.3,p40 to p60,two_tower,0.00728786,0.000812813,1
+baseline,0.3,p40 to p60,features.fetch,0.00582207,0.000649333,1
+baseline,0.5,above p99,features.fetch.store,28.6471,0.776804,1
+baseline,0.5,above p99,queue,1.71615,0.0465355,1
+baseline,0.5,above p99,light_ranker,1.71043,0.0463806,1
+baseline,0.5,above p99,two_tower.network,1.67162,0.0453282,1
+baseline,0.5,above p99,heavy_ranker,1.47929,0.0401128,1
+baseline,0.5,above p99,rerank,0.324802,0.00880744,1
+baseline,0.5,above p99,retrieval.merge,0.322265,0.00873863,1
+baseline,0.5,above p99,two_tower.search,0.186798,0.00506527,1
+baseline,0.5,above p99,features.fetch.pool_wait,0.148499,0.00402675,1
+baseline,0.5,above p99,context,0.122524,0.00332239,1
+baseline,0.5,above p99,(residual),0.0883747,0.00239639,1
+baseline,0.5,above p99,queue.generator_lag,0.0799279,0.00216735,1
+baseline,0.5,above p99,features,0.0792609,0.00214926,1
+baseline,0.5,above p99,serialize,0.0689727,0.00187028,1
+baseline,0.5,above p99,features.assemble,0.0627952,0.00170277,1
+baseline,0.5,above p99,two_tower.pool_wait,0.0598773,0.00162365,1
+baseline,0.5,above p99,retrieval,0.0570516,0.00154703,1
+baseline,0.5,above p99,features.cache,0.0386131,0.00104704,1
+baseline,0.5,above p99,two_tower,0.0074639,0.000202393,1
+baseline,0.5,above p99,features.fetch,0.00635219,0.000172248,1
+baseline,0.5,p40 to p60,features.fetch.store,3.41909,0.359301,1
+baseline,0.5,p40 to p60,two_tower.network,1.74277,0.183143,1
+baseline,0.5,p40 to p60,light_ranker,1.59945,0.168081,1
+baseline,0.5,p40 to p60,heavy_ranker,1.20995,0.12715,1
+baseline,0.5,p40 to p60,retrieval.merge,0.296133,0.0311197,1
+baseline,0.5,p40 to p60,rerank,0.281685,0.0296015,1
+baseline,0.5,p40 to p60,two_tower.search,0.172444,0.0181216,1
+baseline,0.5,p40 to p60,features.fetch.pool_wait,0.123586,0.0129873,1
+baseline,0.5,p40 to p60,context,0.120555,0.0126688,1
+baseline,0.5,p40 to p60,(residual),0.0901912,0.00947792,1
+baseline,0.5,p40 to p60,queue,0.0760762,0.00799462,1
+baseline,0.5,p40 to p60,features,0.0674964,0.007093,1
+baseline,0.5,p40 to p60,serialize,0.06639,0.00697672,1
+baseline,0.5,p40 to p60,two_tower.pool_wait,0.0584074,0.00613785,1
+baseline,0.5,p40 to p60,queue.generator_lag,0.0513217,0.00539324,1
+baseline,0.5,p40 to p60,retrieval,0.0465079,0.00488738,1
+baseline,0.5,p40 to p60,features.assemble,0.0426932,0.0044865,1
+baseline,0.5,p40 to p60,features.cache,0.0379136,0.00398423,1
+baseline,0.5,p40 to p60,two_tower,0.00745644,0.000783575,1
+baseline,0.5,p40 to p60,features.fetch,0.00581088,0.000610648,1
+baseline,0.7,above p99,features.fetch.store,25.4638,0.586394,1
+baseline,0.7,above p99,queue,10.7743,0.248116,1
+baseline,0.7,above p99,light_ranker,1.79926,0.0414343,1
+baseline,0.7,above p99,heavy_ranker,1.78759,0.0411656,1
+baseline,0.7,above p99,two_tower.network,1.62504,0.0374224,1
+baseline,0.7,above p99,retrieval.merge,0.397003,0.00914241,1
+baseline,0.7,above p99,rerank,0.374472,0.00862355,1
+baseline,0.7,above p99,two_tower.search,0.226949,0.0052263,1
+baseline,0.7,above p99,features.fetch.pool_wait,0.187517,0.00431825,1
+baseline,0.7,above p99,context,0.128315,0.00295492,1
+baseline,0.7,above p99,queue.generator_lag,0.118221,0.00272245,1
+baseline,0.7,above p99,features,0.10444,0.00240509,1
+baseline,0.7,above p99,(residual),0.0897007,0.00206568,1
+baseline,0.7,above p99,features.assemble,0.0743739,0.00171272,1
+baseline,0.7,above p99,two_tower.pool_wait,0.0727332,0.00167494,1
+baseline,0.7,above p99,retrieval,0.0722483,0.00166377,1
+baseline,0.7,above p99,serialize,0.0690625,0.00159041,1
+baseline,0.7,above p99,features.cache,0.0451978,0.00104084,1
+baseline,0.7,above p99,two_tower,0.00783451,0.000180417,1
+baseline,0.7,above p99,features.fetch,0.00635399,0.000146323,1
+baseline,0.7,p40 to p60,features.fetch.store,3.57213,0.320463,1
+baseline,0.7,p40 to p60,two_tower.network,1.77351,0.159106,0.999714
+baseline,0.7,p40 to p60,light_ranker,1.76209,0.158081,1
+baseline,0.7,p40 to p60,heavy_ranker,1.69949,0.152465,1
+baseline,0.7,p40 to p60,queue,0.587017,0.0526625,1
+baseline,0.7,p40 to p60,retrieval.merge,0.350885,0.0314786,1
+baseline,0.7,p40 to p60,rerank,0.341825,0.0306658,1
+baseline,0.7,p40 to p60,two_tower.search,0.196169,0.0175987,0.999714
+baseline,0.7,p40 to p60,features.fetch.pool_wait,0.165992,0.0148915,1
+baseline,0.7,p40 to p60,context,0.121685,0.0109166,1
+baseline,0.7,p40 to p60,(residual),0.0900046,0.00807449,1
+baseline,0.7,p40 to p60,features,0.0860857,0.00772292,1
+baseline,0.7,p40 to p60,queue.generator_lag,0.0788817,0.00707663,1
+baseline,0.7,p40 to p60,two_tower.pool_wait,0.0753657,0.00676121,0.999714
+baseline,0.7,p40 to p60,serialize,0.0682208,0.00612023,1
+baseline,0.7,p40 to p60,retrieval,0.0607778,0.0054525,1
+baseline,0.7,p40 to p60,features.assemble,0.0596266,0.00534922,1
+baseline,0.7,p40 to p60,features.cache,0.0428183,0.00384131,1
+baseline,0.7,p40 to p60,two_tower,0.00770692,0.000691404,0.999714
+baseline,0.7,p40 to p60,features.fetch,0.00599541,0.00053786,1
+baseline,0.7,p40 to p60,popularity.compute,0.00043105,3.86703e-05,0.000285878
+baseline,0.7,p40 to p60,popularity.pool_wait,6.38325e-05,5.72654e-06,0.000285878
+baseline,0.7,p40 to p60,popularity,2.30703e-06,2.06969e-07,0.000285878
+baseline,0.85,above p99,queue,54.9315,0.754237,1
+baseline,0.85,above p99,features.fetch.store,10.5734,0.145178,1
+baseline,0.85,above p99,light_ranker,1.80885,0.0248364,1
+baseline,0.85,above p99,heavy_ranker,1.74897,0.0240142,1
+baseline,0.85,above p99,two_tower.network,1.74316,0.0239345,1
+baseline,0.85,above p99,retrieval.merge,0.408123,0.00560373,1
+baseline,0.85,above p99,rerank,0.358116,0.00491711,1
+baseline,0.85,above p99,two_tower.search,0.242067,0.0033237,1
+baseline,0.85,above p99,features.fetch.pool_wait,0.197864,0.00271677,1
+baseline,0.85,above p99,context,0.122059,0.00167593,1
+baseline,0.85,above p99,features,0.121873,0.00167338,1
+baseline,0.85,above p99,queue.generator_lag,0.104567,0.00143576,1
+baseline,0.85,above p99,(residual),0.0871182,0.00119618,1
+baseline,0.85,above p99,two_tower.pool_wait,0.0857281,0.00117709,1
+baseline,0.85,above p99,features.assemble,0.0841974,0.00115607,1
+baseline,0.85,above p99,retrieval,0.0809993,0.00111216,1
+baseline,0.85,above p99,serialize,0.0695067,0.000954361,1
+baseline,0.85,above p99,features.cache,0.048307,0.000663279,1
+baseline,0.85,above p99,two_tower,0.00787507,0.000108129,1
+baseline,0.85,above p99,features.fetch,0.00622511,8.54739e-05,1
+baseline,0.85,p40 to p60,queue,4.95359,0.314477,1
+baseline,0.85,p40 to p60,features.fetch.store,3.73009,0.236804,1
+baseline,0.85,p40 to p60,light_ranker,1.79524,0.11397,1
+baseline,0.85,p40 to p60,two_tower.network,1.70713,0.108377,0.997881
+baseline,0.85,p40 to p60,heavy_ranker,1.671,0.106083,1
+baseline,0.85,p40 to p60,retrieval.merge,0.383422,0.0243414,1
+baseline,0.85,p40 to p60,rerank,0.335866,0.0213223,1
+baseline,0.85,p40 to p60,two_tower.search,0.217718,0.0138218,0.997881
+baseline,0.85,p40 to p60,features.fetch.pool_wait,0.18238,0.0115783,1
+baseline,0.85,p40 to p60,context,0.123828,0.00786116,1
+baseline,0.85,p40 to p60,queue.generator_lag,0.110314,0.00700326,1
+baseline,0.85,p40 to p60,features,0.0965678,0.00613058,1
+baseline,0.85,p40 to p60,(residual),0.087462,0.0055525,1
+baseline,0.85,p40 to p60,two_tower.pool_wait,0.082472,0.00523571,0.997881
+baseline,0.85,p40 to p60,features.assemble,0.0722797,0.00458865,1
+baseline,0.85,p40 to p60,retrieval,0.0699846,0.00444295,1
+baseline,0.85,p40 to p60,serialize,0.0686746,0.00435979,1
+baseline,0.85,p40 to p60,features.cache,0.046315,0.0029403,1
+baseline,0.85,p40 to p60,two_tower,0.00782421,0.000496718,0.997881
+baseline,0.85,p40 to p60,features.fetch,0.00616685,0.000391501,1
+baseline,0.85,p40 to p60,popularity.compute,0.00272517,0.000173007,0.00211864
+baseline,0.85,p40 to p60,popularity.pool_wait,0.000764472,4.85323e-05,0.00211864
+baseline,0.85,p40 to p60,popularity,1.06631e-05,6.76946e-07,0.00211864
+lever: popularity=precomputed,0.3,above p99,features.fetch.store,28.9877,0.828014,1
+lever: popularity=precomputed,0.3,above p99,two_tower.network,1.62461,0.0464059,1
+lever: popularity=precomputed,0.3,above p99,light_ranker,1.56718,0.0447653,1
+lever: popularity=precomputed,0.3,above p99,heavy_ranker,1.07742,0.0307757,1
+lever: popularity=precomputed,0.3,above p99,retrieval.merge,0.304376,0.00869428,1
+lever: popularity=precomputed,0.3,above p99,queue,0.287573,0.00821431,1
+lever: popularity=precomputed,0.3,above p99,rerank,0.265021,0.00757015,1
+lever: popularity=precomputed,0.3,above p99,two_tower.search,0.159111,0.00454489,1
+lever: popularity=precomputed,0.3,above p99,context,0.123354,0.00352352,1
+lever: popularity=precomputed,0.3,above p99,features.fetch.pool_wait,0.116351,0.00332349,1
+lever: popularity=precomputed,0.3,above p99,(residual),0.0931284,0.00266015,1
+lever: popularity=precomputed,0.3,above p99,features.assemble,0.0838158,0.00239414,1
+lever: popularity=precomputed,0.3,above p99,features,0.0660675,0.00188717,1
+lever: popularity=precomputed,0.3,above p99,serialize,0.0637981,0.00182235,1
+lever: popularity=precomputed,0.3,above p99,queue.generator_lag,0.05036,0.0014385,1
+lever: popularity=precomputed,0.3,above p99,two_tower.pool_wait,0.0462292,0.0013205,1
+lever: popularity=precomputed,0.3,above p99,features.cache,0.0415669,0.00118733,1
+lever: popularity=precomputed,0.3,above p99,retrieval,0.0376186,0.00107455,1
+lever: popularity=precomputed,0.3,above p99,two_tower,0.00719059,0.000205394,1
+lever: popularity=precomputed,0.3,above p99,features.fetch,0.00623309,0.000178044,1
+lever: popularity=precomputed,0.3,p40 to p60,features.fetch.store,3.34234,0.377526,1
+lever: popularity=precomputed,0.3,p40 to p60,two_tower.network,1.68701,0.190553,1
+lever: popularity=precomputed,0.3,p40 to p60,light_ranker,1.52616,0.172384,1
+lever: popularity=precomputed,0.3,p40 to p60,heavy_ranker,0.96571,0.10908,1
+lever: popularity=precomputed,0.3,p40 to p60,retrieval.merge,0.253824,0.0286701,1
+lever: popularity=precomputed,0.3,p40 to p60,rerank,0.246176,0.0278063,1
+lever: popularity=precomputed,0.3,p40 to p60,two_tower.search,0.157596,0.0178009,1
+lever: popularity=precomputed,0.3,p40 to p60,context,0.122083,0.0137895,1
+lever: popularity=precomputed,0.3,p40 to p60,features.fetch.pool_wait,0.0969381,0.0109494,1
+lever: popularity=precomputed,0.3,p40 to p60,(residual),0.0925142,0.0104497,1
+lever: popularity=precomputed,0.3,p40 to p60,serialize,0.0644805,0.00728324,1
+lever: popularity=precomputed,0.3,p40 to p60,features,0.0558378,0.00630703,1
+lever: popularity=precomputed,0.3,p40 to p60,two_tower.pool_wait,0.0457488,0.00516745,1
+lever: popularity=precomputed,0.3,p40 to p60,queue.generator_lag,0.0426959,0.00482262,1
+lever: popularity=precomputed,0.3,p40 to p60,queue,0.038797,0.00438223,1
+lever: popularity=precomputed,0.3,p40 to p60,retrieval,0.0383458,0.00433126,1
+lever: popularity=precomputed,0.3,p40 to p60,features.cache,0.0333884,0.00377131,1
+lever: popularity=precomputed,0.3,p40 to p60,features.assemble,0.0307267,0.00347066,1
+lever: popularity=precomputed,0.3,p40 to p60,two_tower,0.00724774,0.000818652,1
+lever: popularity=precomputed,0.3,p40 to p60,features.fetch,0.00563795,0.000636821,1
+lever: popularity=precomputed,0.5,above p99,features.fetch.store,28.6506,0.783192,1
+lever: popularity=precomputed,0.5,above p99,queue,1.73574,0.0474482,1
+lever: popularity=precomputed,0.5,above p99,light_ranker,1.66051,0.0453917,1
+lever: popularity=precomputed,0.5,above p99,two_tower.network,1.63733,0.0447579,1
+lever: popularity=precomputed,0.5,above p99,heavy_ranker,1.33234,0.0364208,1
+lever: popularity=precomputed,0.5,above p99,retrieval.merge,0.326881,0.00893561,1
+lever: popularity=precomputed,0.5,above p99,rerank,0.298854,0.00816945,1
+lever: popularity=precomputed,0.5,above p99,two_tower.search,0.181071,0.00494976,1
+lever: popularity=precomputed,0.5,above p99,features.fetch.pool_wait,0.134969,0.00368949,1
+lever: popularity=precomputed,0.5,above p99,context,0.121655,0.00332555,1
+lever: popularity=precomputed,0.5,above p99,(residual),0.0898763,0.00245686,1
+lever: popularity=precomputed,0.5,above p99,features,0.0750915,0.0020527,1
+lever: popularity=precomputed,0.5,above p99,serialize,0.0673646,0.00184148,1
+lever: popularity=precomputed,0.5,above p99,two_tower.pool_wait,0.0593403,0.00162212,1
+lever: popularity=precomputed,0.5,above p99,retrieval,0.0560614,0.00153249,1
+lever: popularity=precomputed,0.5,above p99,queue.generator_lag,0.0560431,0.00153199,1
+lever: popularity=precomputed,0.5,above p99,features.assemble,0.0442013,0.00120829,1
+lever: popularity=precomputed,0.5,above p99,features.cache,0.0401762,0.00109825,1
+lever: popularity=precomputed,0.5,above p99,two_tower,0.00739232,0.000202076,1
+lever: popularity=precomputed,0.5,above p99,features.fetch,0.00632855,0.000172997,1
+lever: popularity=precomputed,0.5,p40 to p60,features.fetch.store,3.40538,0.363088,1
+lever: popularity=precomputed,0.5,p40 to p60,two_tower.network,1.73894,0.185409,1
+lever: popularity=precomputed,0.5,p40 to p60,light_ranker,1.5932,0.16987,1
+lever: popularity=precomputed,0.5,p40 to p60,heavy_ranker,1.14785,0.122386,1
+lever: popularity=precomputed,0.5,p40 to p60,retrieval.merge,0.283074,0.0301819,1
+lever: popularity=precomputed,0.5,p40 to p60,rerank,0.2744,0.029257,1
+lever: popularity=precomputed,0.5,p40 to p60,two_tower.search,0.165365,0.0176316,1
+lever: popularity=precomputed,0.5,p40 to p60,context,0.121308,0.0129341,1
+lever: popularity=precomputed,0.5,p40 to p60,features.fetch.pool_wait,0.118312,0.0126146,1
+lever: popularity=precomputed,0.5,p40 to p60,(residual),0.0907691,0.00967798,1
+lever: popularity=precomputed,0.5,p40 to p60,queue,0.069015,0.00735852,1
+lever: popularity=precomputed,0.5,p40 to p60,serialize,0.0659696,0.00703381,1
+lever: popularity=precomputed,0.5,p40 to p60,features,0.0634063,0.00676051,1
+lever: popularity=precomputed,0.5,p40 to p60,two_tower.pool_wait,0.0573362,0.0061133,1
+lever: popularity=precomputed,0.5,p40 to p60,queue.generator_lag,0.0506729,0.00540284,1
+lever: popularity=precomputed,0.5,p40 to p60,retrieval,0.0436505,0.0046541,1
+lever: popularity=precomputed,0.5,p40 to p60,features.assemble,0.040174,0.00428343,1
+lever: popularity=precomputed,0.5,p40 to p60,features.cache,0.0369886,0.0039438,1
+lever: popularity=precomputed,0.5,p40 to p60,two_tower,0.00731308,0.000779735,1
+lever: popularity=precomputed,0.5,p40 to p60,features.fetch,0.00581252,0.000619743,1
+lever: popularity=precomputed,0.7,above p99,features.fetch.store,25.8492,0.610246,1
+lever: popularity=precomputed,0.7,above p99,queue,9.63605,0.227487,1
+lever: popularity=precomputed,0.7,above p99,light_ranker,1.79765,0.0424387,1
+lever: popularity=precomputed,0.7,above p99,heavy_ranker,1.64297,0.0387871,1
+lever: popularity=precomputed,0.7,above p99,two_tower.network,1.61105,0.0380335,1
+lever: popularity=precomputed,0.7,above p99,retrieval.merge,0.364418,0.00860315,1
+lever: popularity=precomputed,0.7,above p99,rerank,0.323453,0.00763604,1
+lever: popularity=precomputed,0.7,above p99,two_tower.search,0.203287,0.00479917,1
+lever: popularity=precomputed,0.7,above p99,features.fetch.pool_wait,0.185392,0.00437672,1
+lever: popularity=precomputed,0.7,above p99,context,0.121904,0.0028779,1
+lever: popularity=precomputed,0.7,above p99,features,0.0981843,0.00231792,1
+lever: popularity=precomputed,0.7,above p99,queue.generator_lag,0.0939265,0.00221741,1
+lever: popularity=precomputed,0.7,above p99,(residual),0.0870335,0.00205468,1
+lever: popularity=precomputed,0.7,above p99,two_tower.pool_wait,0.0837121,0.00197627,1
+lever: popularity=precomputed,0.7,above p99,features.assemble,0.0763887,0.00180338,1
+lever: popularity=precomputed,0.7,above p99,serialize,0.0684691,0.00161641,1
+lever: popularity=precomputed,0.7,above p99,retrieval,0.0566593,0.00133761,1
+lever: popularity=precomputed,0.7,above p99,features.cache,0.0447773,0.0010571,1
+lever: popularity=precomputed,0.7,above p99,two_tower,0.00790045,0.000186513,1
+lever: popularity=precomputed,0.7,above p99,features.fetch,0.00625467,0.00014766,1
+lever: popularity=precomputed,0.7,p40 to p60,features.fetch.store,3.56972,0.330649,1
+lever: popularity=precomputed,0.7,p40 to p60,two_tower.network,1.7788,0.164763,1
+lever: popularity=precomputed,0.7,p40 to p60,light_ranker,1.73952,0.161124,1
+lever: popularity=precomputed,0.7,p40 to p60,heavy_ranker,1.58096,0.146438,1
+lever: popularity=precomputed,0.7,p40 to p60,queue,0.451699,0.0418391,1
+lever: popularity=precomputed,0.7,p40 to p60,retrieval.merge,0.332411,0.0307899,1
+lever: popularity=precomputed,0.7,p40 to p60,rerank,0.326234,0.0302177,1
+lever: popularity=precomputed,0.7,p40 to p60,two_tower.search,0.187649,0.0173811,1
+lever: popularity=precomputed,0.7,p40 to p60,features.fetch.pool_wait,0.153216,0.0141918,1
+lever: popularity=precomputed,0.7,p40 to p60,context,0.122177,0.0113168,1
+lever: popularity=precomputed,0.7,p40 to p60,(residual),0.0900834,0.00834406,1
+lever: popularity=precomputed,0.7,p40 to p60,features,0.0810285,0.00750535,1
+lever: popularity=precomputed,0.7,p40 to p60,queue.generator_lag,0.0737029,0.0068268,1
+lever: popularity=precomputed,0.7,p40 to p60,two_tower.pool_wait,0.0725848,0.00672324,1
+lever: popularity=precomputed,0.7,p40 to p60,serialize,0.0683742,0.00633323,1
+lever: popularity=precomputed,0.7,p40 to p60,features.assemble,0.0566326,0.00524565,1
+lever: popularity=precomputed,0.7,p40 to p60,retrieval,0.0557301,0.00516206,1
+lever: popularity=precomputed,0.7,p40 to p60,features.cache,0.0420248,0.00389259,1
+lever: popularity=precomputed,0.7,p40 to p60,two_tower,0.00754472,0.000698837,1
+lever: popularity=precomputed,0.7,p40 to p60,features.fetch,0.00601495,0.000557141,1
+lever: popularity=precomputed,0.85,above p99,queue,42.4486,0.686625,1
+lever: popularity=precomputed,0.85,above p99,features.fetch.store,12.2084,0.197476,1
+lever: popularity=precomputed,0.85,above p99,light_ranker,1.80283,0.0291616,1
+lever: popularity=precomputed,0.85,above p99,two_tower.network,1.78842,0.0289286,1
+lever: popularity=precomputed,0.85,above p99,heavy_ranker,1.74144,0.0281686,1
+lever: popularity=precomputed,0.85,above p99,retrieval.merge,0.350185,0.0056644,1
+lever: popularity=precomputed,0.85,above p99,rerank,0.340604,0.00550941,1
+lever: popularity=precomputed,0.85,above p99,two_tower.search,0.210249,0.00340088,1
+lever: popularity=precomputed,0.85,above p99,features.fetch.pool_wait,0.173338,0.00280381,1
+lever: popularity=precomputed,0.85,above p99,context,0.123566,0.00199873,1
+lever: popularity=precomputed,0.85,above p99,queue.generator_lag,0.103893,0.00168051,1
+lever: popularity=precomputed,0.85,above p99,two_tower.pool_wait,0.0917598,0.00148426,1
+lever: popularity=precomputed,0.85,above p99,features,0.0902543,0.0014599,1
+lever: popularity=precomputed,0.85,above p99,(residual),0.0863717,0.0013971,1
+lever: popularity=precomputed,0.85,above p99,serialize,0.0684657,0.00110746,1
+lever: popularity=precomputed,0.85,above p99,retrieval,0.0680556,0.00110083,1
+lever: popularity=precomputed,0.85,above p99,features.assemble,0.0663958,0.00107398,1
+lever: popularity=precomputed,0.85,above p99,features.cache,0.0451749,0.000730725,1
+lever: popularity=precomputed,0.85,above p99,two_tower,0.00781857,0.000126469,1
+lever: popularity=precomputed,0.85,above p99,features.fetch,0.00624223,0.000100971,1
+lever: popularity=precomputed,0.85,p40 to p60,queue,3.93603,0.272863,1
+lever: popularity=precomputed,0.85,p40 to p60,features.fetch.store,3.6166,0.250719,1
+lever: popularity=precomputed,0.85,p40 to p60,light_ranker,1.77586,0.123111,1
+lever: popularity=precomputed,0.85,p40 to p60,two_tower.network,1.70475,0.118181,1
+lever: popularity=precomputed,0.85,p40 to p60,heavy_ranker,1.582,0.109671,1
+lever: popularity=precomputed,0.85,p40 to p60,retrieval.merge,0.361337,0.0250495,1
+lever: popularity=precomputed,0.85,p40 to p60,rerank,0.331868,0.0230066,1
+lever: popularity=precomputed,0.85,p40 to p60,two_tower.search,0.208535,0.0144566,1
+lever: popularity=precomputed,0.85,p40 to p60,features.fetch.pool_wait,0.169802,0.0117714,1
+lever: popularity=precomputed,0.85,p40 to p60,context,0.124086,0.00860219,1
+lever: popularity=precomputed,0.85,p40 to p60,queue.generator_lag,0.101585,0.00704232,1
+lever: popularity=precomputed,0.85,p40 to p60,features,0.0894094,0.00619826,1
+lever: popularity=precomputed,0.85,p40 to p60,(residual),0.0871688,0.00604293,1
+lever: popularity=precomputed,0.85,p40 to p60,two_tower.pool_wait,0.0812854,0.00563507,1
+lever: popularity=precomputed,0.85,p40 to p60,serialize,0.0687543,0.00476635,1
+lever: popularity=precomputed,0.85,p40 to p60,features.assemble,0.0633569,0.00439219,1
+lever: popularity=precomputed,0.85,p40 to p60,retrieval,0.0628671,0.00435823,1
+lever: popularity=precomputed,0.85,p40 to p60,features.cache,0.0457972,0.00317486,1
+lever: popularity=precomputed,0.85,p40 to p60,two_tower,0.00773952,0.000536538,1
+lever: popularity=precomputed,0.85,p40 to p60,features.fetch,0.00608775,0.00042203,1
+lever: hedge-feature-fetch=on,0.3,above p99,features.fetch.store_hedged,5.50976,0.351574,0.75
+lever: hedge-feature-fetch=on,0.3,above p99,queue,2.07087,0.132141,1
+lever: hedge-feature-fetch=on,0.3,above p99,two_tower.network,1.91584,0.122248,1
+lever: hedge-feature-fetch=on,0.3,above p99,light_ranker,1.78607,0.113968,1
+lever: hedge-feature-fetch=on,0.3,above p99,heavy_ranker,1.7211,0.109822,1
+lever: hedge-feature-fetch=on,0.3,above p99,features.fetch.store,0.781083,0.0498403,0.25
+lever: hedge-feature-fetch=on,0.3,above p99,retrieval.merge,0.431215,0.0275155,1
+lever: hedge-feature-fetch=on,0.3,above p99,rerank,0.326632,0.0208421,1
+lever: hedge-feature-fetch=on,0.3,above p99,two_tower.search,0.241556,0.0154135,1
+lever: hedge-feature-fetch=on,0.3,above p99,features.fetch.pool_wait,0.180095,0.0114918,1
+lever: hedge-feature-fetch=on,0.3,above p99,context,0.12273,0.00783132,1
+lever: hedge-feature-fetch=on,0.3,above p99,two_tower.pool_wait,0.0926916,0.00591459,1
+lever: hedge-feature-fetch=on,0.3,above p99,(residual),0.0895676,0.00571525,1
+lever: hedge-feature-fetch=on,0.3,above p99,features,0.0819129,0.00522681,1
+lever: hedge-feature-fetch=on,0.3,above p99,queue.generator_lag,0.0681627,0.00434941,1
+lever: hedge-feature-fetch=on,0.3,above p99,serialize,0.0654615,0.00417705,1
+lever: hedge-feature-fetch=on,0.3,above p99,retrieval,0.0628973,0.00401343,1
+lever: hedge-feature-fetch=on,0.3,above p99,features.assemble,0.0618506,0.00394664,1
+lever: hedge-feature-fetch=on,0.3,above p99,features.cache,0.0486854,0.00310658,1
+lever: hedge-feature-fetch=on,0.3,above p99,two_tower,0.00763349,0.000487088,1
+lever: hedge-feature-fetch=on,0.3,above p99,features.fetch,0.00588428,0.000375472,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,features.fetch.store,2.72796,0.30543,0.852122
+lever: hedge-feature-fetch=on,0.3,p40 to p60,two_tower.network,1.69363,0.189623,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,light_ranker,1.52858,0.171144,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,heavy_ranker,0.986544,0.110456,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,features.fetch.store_hedged,0.621987,0.0696393,0.147878
+lever: hedge-feature-fetch=on,0.3,p40 to p60,retrieval.merge,0.264323,0.0295943,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,rerank,0.250312,0.0280256,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,two_tower.search,0.160282,0.0179455,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,context,0.122004,0.0136598,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,features.fetch.pool_wait,0.103226,0.0115574,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,(residual),0.0925824,0.0103658,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,serialize,0.0648806,0.00726419,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,features,0.0583265,0.00653039,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,two_tower.pool_wait,0.0481104,0.00538656,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,queue.generator_lag,0.0442917,0.00495901,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,retrieval,0.0411656,0.00460901,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,queue,0.0399797,0.00447624,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,features.cache,0.0391537,0.00438374,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,features.assemble,0.0312449,0.00349826,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,two_tower,0.00728929,0.000816128,1
+lever: hedge-feature-fetch=on,0.3,p40 to p60,features.fetch,0.00568753,0.00063679,1
+lever: hedge-feature-fetch=on,0.5,above p99,queue,8.5938,0.38961,1
+lever: hedge-feature-fetch=on,0.5,above p99,features.fetch.store_hedged,4.24204,0.192318,0.467742
+lever: hedge-feature-fetch=on,0.5,above p99,two_tower.network,1.84702,0.083737,1
+lever: hedge-feature-fetch=on,0.5,above p99,light_ranker,1.82331,0.0826621,1
+lever: hedge-feature-fetch=on,0.5,above p99,heavy_ranker,1.79076,0.081186,1
+lever: hedge-feature-fetch=on,0.5,above p99,features.fetch.store,1.69299,0.0767536,0.532258
+lever: hedge-feature-fetch=on,0.5,above p99,retrieval.merge,0.42708,0.0193622,1
+lever: hedge-feature-fetch=on,0.5,above p99,rerank,0.350887,0.0159079,1
+lever: hedge-feature-fetch=on,0.5,above p99,two_tower.search,0.236097,0.0107037,1
+lever: hedge-feature-fetch=on,0.5,above p99,features.fetch.pool_wait,0.216178,0.00980066,1
+lever: hedge-feature-fetch=on,0.5,above p99,context,0.122907,0.00557213,1
+lever: hedge-feature-fetch=on,0.5,above p99,queue.generator_lag,0.11744,0.00532427,1
+lever: hedge-feature-fetch=on,0.5,above p99,features,0.10655,0.00483057,1
+lever: hedge-feature-fetch=on,0.5,above p99,retrieval,0.0994476,0.00450857,1
+lever: hedge-feature-fetch=on,0.5,above p99,two_tower.pool_wait,0.0953767,0.00432401,1
+lever: hedge-feature-fetch=on,0.5,above p99,(residual),0.0895669,0.00406062,1
+lever: hedge-feature-fetch=on,0.5,above p99,features.assemble,0.0704833,0.00319545,1
+lever: hedge-feature-fetch=on,0.5,above p99,serialize,0.0699807,0.00317266,1
+lever: hedge-feature-fetch=on,0.5,above p99,features.cache,0.0510533,0.00231456,1
+lever: hedge-feature-fetch=on,0.5,above p99,two_tower,0.00823707,0.000373437,1
+lever: hedge-feature-fetch=on,0.5,above p99,features.fetch,0.00623081,0.000282481,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,features.fetch.store,2.57105,0.269037,0.807351
+lever: hedge-feature-fetch=on,0.5,p40 to p60,two_tower.network,1.72039,0.180023,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,light_ranker,1.62564,0.170108,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,heavy_ranker,1.21942,0.127601,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,features.fetch.store_hedged,0.841244,0.0880285,0.192649
+lever: hedge-feature-fetch=on,0.5,p40 to p60,retrieval.merge,0.296878,0.0310655,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,rerank,0.287175,0.0300502,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,two_tower.search,0.175049,0.0183173,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,features.fetch.pool_wait,0.13337,0.0139559,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,context,0.122242,0.0127915,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,(residual),0.0915148,0.00957618,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,queue,0.0751394,0.00786264,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,features,0.0675143,0.00706475,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,serialize,0.0662627,0.00693378,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,two_tower.pool_wait,0.0609775,0.00638073,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,queue.generator_lag,0.0537096,0.00562021,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,retrieval,0.04723,0.00494218,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,features.assemble,0.0445711,0.00466396,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,features.cache,0.0438019,0.00458346,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,two_tower,0.00751974,0.000786872,1
+lever: hedge-feature-fetch=on,0.5,p40 to p60,features.fetch,0.0058086,0.000607816,1
+lever: hedge-feature-fetch=on,0.7,above p99,queue,16.9601,0.560912,1
+lever: hedge-feature-fetch=on,0.7,above p99,features.fetch.store_hedged,3.63617,0.120257,0.405714
+lever: hedge-feature-fetch=on,0.7,above p99,features.fetch.store,1.97786,0.0654129,0.594286
+lever: hedge-feature-fetch=on,0.7,above p99,heavy_ranker,1.96109,0.0648582,1
+lever: hedge-feature-fetch=on,0.7,above p99,light_ranker,1.90728,0.0630785,1
+lever: hedge-feature-fetch=on,0.7,above p99,two_tower.network,1.69341,0.0560054,0.994286
+lever: hedge-feature-fetch=on,0.7,above p99,retrieval.merge,0.406021,0.0134281,1
+lever: hedge-feature-fetch=on,0.7,above p99,rerank,0.371412,0.0122835,1
+lever: hedge-feature-fetch=on,0.7,above p99,two_tower.search,0.23617,0.00781074,0.994286
+lever: hedge-feature-fetch=on,0.7,above p99,features.fetch.pool_wait,0.208304,0.00688912,1
+lever: hedge-feature-fetch=on,0.7,above p99,queue.generator_lag,0.147906,0.00489164,1
+lever: hedge-feature-fetch=on,0.7,above p99,context,0.124941,0.00413212,1
+lever: hedge-feature-fetch=on,0.7,above p99,two_tower.pool_wait,0.10563,0.00349344,0.994286
+lever: hedge-feature-fetch=on,0.7,above p99,features,0.104582,0.00345879,1
+lever: hedge-feature-fetch=on,0.7,above p99,(residual),0.0888337,0.00293796,1
+lever: hedge-feature-fetch=on,0.7,above p99,features.assemble,0.0850782,0.00281375,1
+lever: hedge-feature-fetch=on,0.7,above p99,retrieval,0.0715785,0.00236728,1
+lever: hedge-feature-fetch=on,0.7,above p99,serialize,0.0694508,0.00229691,1
+lever: hedge-feature-fetch=on,0.7,above p99,features.cache,0.0559707,0.00185109,1
+lever: hedge-feature-fetch=on,0.7,above p99,two_tower,0.00807405,0.000267029,0.994286
+lever: hedge-feature-fetch=on,0.7,above p99,popularity.compute,0.00770703,0.000254891,0.00571429
+lever: hedge-feature-fetch=on,0.7,above p99,features.fetch,0.00632046,0.000209034,1
+lever: hedge-feature-fetch=on,0.7,above p99,popularity.pool_wait,0.00268223,8.87083e-05,0.00571429
+lever: hedge-feature-fetch=on,0.7,above p99,popularity,3.24057e-05,1.07174e-06,0.00571429
+lever: hedge-feature-fetch=on,0.7,p40 to p60,features.fetch.store,2.22922,0.207073,0.695254
+lever: hedge-feature-fetch=on,0.7,p40 to p60,light_ranker,1.74767,0.162341,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,two_tower.network,1.71519,0.159324,0.999714
+lever: hedge-feature-fetch=on,0.7,p40 to p60,heavy_ranker,1.61427,0.149949,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,features.fetch.store_hedged,1.49586,0.13895,0.304746
+lever: hedge-feature-fetch=on,0.7,p40 to p60,retrieval.merge,0.347275,0.0322584,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,rerank,0.330065,0.0306597,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,queue,0.246077,0.0228581,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,two_tower.search,0.193649,0.0179881,0.999714
+lever: hedge-feature-fetch=on,0.7,p40 to p60,features.fetch.pool_wait,0.159888,0.014852,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,context,0.123143,0.0114387,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,(residual),0.0913144,0.0084822,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,features,0.0819991,0.0076169,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,two_tower.pool_wait,0.0754676,0.00701019,0.999714
+lever: hedge-feature-fetch=on,0.7,p40 to p60,queue.generator_lag,0.068365,0.00635043,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,serialize,0.0679987,0.0063164,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,features.assemble,0.061327,0.00569667,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,retrieval,0.0566917,0.0052661,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,features.cache,0.0458385,0.00425794,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,two_tower,0.00768047,0.000713439,0.999714
+lever: hedge-feature-fetch=on,0.7,p40 to p60,features.fetch,0.0059961,0.000556978,1
+lever: hedge-feature-fetch=on,0.7,p40 to p60,popularity.compute,0.000405969,3.77104e-05,0.000285878
+lever: hedge-feature-fetch=on,0.7,p40 to p60,popularity.pool_wait,2.54131e-05,2.36062e-06,0.000285878
+lever: hedge-feature-fetch=on,0.7,p40 to p60,popularity,1.502e-06,1.39521e-07,0.000285878
+lever: hedge-feature-fetch=on,0.85,above p99,queue,34.5757,0.739802,1
+lever: hedge-feature-fetch=on,0.85,above p99,features.fetch.store_hedged,2.37582,0.0508345,0.375587
+lever: hedge-feature-fetch=on,0.85,above p99,features.fetch.store,2.0257,0.043343,0.624413
+lever: hedge-feature-fetch=on,0.85,above p99,heavy_ranker,2.00607,0.042923,1
+lever: hedge-feature-fetch=on,0.85,above p99,light_ranker,1.91586,0.0409928,1
+lever: hedge-feature-fetch=on,0.85,above p99,two_tower.network,1.68702,0.0360966,0.981221
+lever: hedge-feature-fetch=on,0.85,above p99,retrieval.merge,0.434702,0.00930115,1
+lever: hedge-feature-fetch=on,0.85,above p99,rerank,0.396706,0.00848816,1
+lever: hedge-feature-fetch=on,0.85,above p99,two_tower.search,0.240501,0.00514591,0.981221
+lever: hedge-feature-fetch=on,0.85,above p99,features.fetch.pool_wait,0.208421,0.0044595,1
+lever: hedge-feature-fetch=on,0.85,above p99,queue.generator_lag,0.13158,0.00281537,1
+lever: hedge-feature-fetch=on,0.85,above p99,context,0.125772,0.00269109,1
+lever: hedge-feature-fetch=on,0.85,above p99,two_tower.pool_wait,0.104163,0.00222873,0.981221
+lever: hedge-feature-fetch=on,0.85,above p99,(residual),0.0889985,0.00190426,1
+lever: hedge-feature-fetch=on,0.85,above p99,features,0.0879809,0.00188249,1
+lever: hedge-feature-fetch=on,0.85,above p99,features.assemble,0.0841545,0.00180062,1
+lever: hedge-feature-fetch=on,0.85,above p99,retrieval,0.0812732,0.00173897,1
+lever: hedge-feature-fetch=on,0.85,above p99,serialize,0.0709031,0.00151709,1
+lever: hedge-feature-fetch=on,0.85,above p99,features.cache,0.0509046,0.00108918,1
+lever: hedge-feature-fetch=on,0.85,above p99,popularity.compute,0.0221663,0.000474284,0.0187793
+lever: hedge-feature-fetch=on,0.85,above p99,popularity.pool_wait,0.0079923,0.000171008,0.0187793
+lever: hedge-feature-fetch=on,0.85,above p99,two_tower,0.0079802,0.000170749,0.981221
+lever: hedge-feature-fetch=on,0.85,above p99,features.fetch,0.00597025,0.000127743,1
+lever: hedge-feature-fetch=on,0.85,above p99,popularity,9.32817e-05,1.99591e-06,0.0187793
+lever: hedge-feature-fetch=on,0.85,p40 to p60,features.fetch.store,2.03154,0.159101,0.632062
+lever: hedge-feature-fetch=on,0.85,p40 to p60,features.fetch.store_hedged,1.97988,0.155055,0.367938
+lever: hedge-feature-fetch=on,0.85,p40 to p60,heavy_ranker,1.8842,0.147562,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,light_ranker,1.84463,0.144463,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,two_tower.network,1.73974,0.136249,0.998823
+lever: hedge-feature-fetch=on,0.85,p40 to p60,queue,1.37298,0.107525,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,retrieval.merge,0.385239,0.0301702,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,rerank,0.358764,0.0280967,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,two_tower.search,0.212814,0.0166666,0.998823
+lever: hedge-feature-fetch=on,0.85,p40 to p60,features.fetch.pool_wait,0.182286,0.0142758,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,context,0.124361,0.00973936,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,queue.generator_lag,0.0998195,0.00781741,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,features,0.0975267,0.00763785,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,two_tower.pool_wait,0.0911704,0.00714005,0.998823
+lever: hedge-feature-fetch=on,0.85,p40 to p60,(residual),0.0897437,0.00702832,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,features.assemble,0.0717926,0.00562247,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,serialize,0.06913,0.00541395,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,retrieval,0.0669967,0.00524687,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,features.cache,0.0504267,0.00394919,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,two_tower,0.00775978,0.000607711,0.998823
+lever: hedge-feature-fetch=on,0.85,p40 to p60,features.fetch,0.00616112,0.000482511,1
+lever: hedge-feature-fetch=on,0.85,p40 to p60,popularity.compute,0.00151323,0.000118509,0.00117702
+lever: hedge-feature-fetch=on,0.85,p40 to p60,popularity.pool_wait,0.00039549,3.0973e-05,0.00117702
+lever: hedge-feature-fetch=on,0.85,p40 to p60,popularity,7.55155e-06,5.91403e-07,0.00117702
+lever: feature-cache=on,0.3,above p99,features.fetch.store,23.6658,0.801525,1
+lever: feature-cache=on,0.3,above p99,two_tower.network,1.6763,0.0567739,1
+lever: feature-cache=on,0.3,above p99,light_ranker,1.57267,0.053264,1
+lever: feature-cache=on,0.3,above p99,heavy_ranker,1.14539,0.0387927,1
+lever: feature-cache=on,0.3,above p99,retrieval.merge,0.278969,0.00944825,1
+lever: feature-cache=on,0.3,above p99,rerank,0.259077,0.00877454,1
+lever: feature-cache=on,0.3,above p99,two_tower.search,0.164848,0.00558316,1
+lever: feature-cache=on,0.3,above p99,context,0.12395,0.004198,1
+lever: feature-cache=on,0.3,above p99,queue,0.102496,0.00347138,1
+lever: feature-cache=on,0.3,above p99,(residual),0.0948772,0.00321335,1
+lever: feature-cache=on,0.3,above p99,features.fetch.pool_wait,0.0679879,0.00230265,1
+lever: feature-cache=on,0.3,above p99,features,0.0671445,0.00227408,1
+lever: feature-cache=on,0.3,above p99,serialize,0.0633556,0.00214576,1
+lever: feature-cache=on,0.3,above p99,features.cache,0.05789,0.00196065,1
+lever: feature-cache=on,0.3,above p99,retrieval,0.0470352,0.00159301,1
+lever: feature-cache=on,0.3,above p99,two_tower.pool_wait,0.0452538,0.00153268,1
+lever: feature-cache=on,0.3,above p99,features.assemble,0.0415799,0.00140825,1
+lever: feature-cache=on,0.3,above p99,queue.generator_lag,0.0371324,0.00125762,1
+lever: feature-cache=on,0.3,above p99,two_tower,0.00754896,0.000255672,1
+lever: feature-cache=on,0.3,above p99,features.fetch,0.00665349,0.000225344,1
+lever: feature-cache=on,0.3,p40 to p60,features.fetch.store,2.91484,0.351322,1
+lever: feature-cache=on,0.3,p40 to p60,two_tower.network,1.66249,0.200378,1
+lever: feature-cache=on,0.3,p40 to p60,light_ranker,1.50002,0.180795,1
+lever: feature-cache=on,0.3,p40 to p60,heavy_ranker,0.924145,0.111386,1
+lever: feature-cache=on,0.3,p40 to p60,retrieval.merge,0.25456,0.0306818,1
+lever: feature-cache=on,0.3,p40 to p60,rerank,0.243715,0.0293747,1
+lever: feature-cache=on,0.3,p40 to p60,two_tower.search,0.154324,0.0186005,1
+lever: feature-cache=on,0.3,p40 to p60,context,0.121595,0.0146557,1
+lever: feature-cache=on,0.3,p40 to p60,(residual),0.0916971,0.0110521,1
+lever: feature-cache=on,0.3,p40 to p60,serialize,0.0635779,0.00766297,1
+lever: feature-cache=on,0.3,p40 to p60,features.fetch.pool_wait,0.0577164,0.00695649,1
+lever: feature-cache=on,0.3,p40 to p60,features,0.0481983,0.00580929,1
+lever: feature-cache=on,0.3,p40 to p60,features.cache,0.0480613,0.00579277,1
+lever: feature-cache=on,0.3,p40 to p60,two_tower.pool_wait,0.0438861,0.00528954,1
+lever: feature-cache=on,0.3,p40 to p60,queue.generator_lag,0.0406021,0.00489373,1
+lever: feature-cache=on,0.3,p40 to p60,queue,0.0403561,0.00486407,1
+lever: feature-cache=on,0.3,p40 to p60,retrieval,0.0385437,0.00464563,1
+lever: feature-cache=on,0.3,p40 to p60,features.assemble,0.0354703,0.0042752,1
+lever: feature-cache=on,0.3,p40 to p60,two_tower,0.00730188,0.000880087,1
+lever: feature-cache=on,0.3,p40 to p60,features.fetch,0.00566856,0.000683225,1
+lever: feature-cache=on,0.5,above p99,features.fetch.store,24.6535,0.773171,1
+lever: feature-cache=on,0.5,above p99,two_tower.network,1.75965,0.0551855,1
+lever: feature-cache=on,0.5,above p99,light_ranker,1.61832,0.0507532,1
+lever: feature-cache=on,0.5,above p99,heavy_ranker,1.25422,0.0393344,1
+lever: feature-cache=on,0.5,above p99,queue,0.994642,0.0311935,1
+lever: feature-cache=on,0.5,above p99,retrieval.merge,0.333432,0.0104569,1
+lever: feature-cache=on,0.5,above p99,rerank,0.295054,0.00925334,1
+lever: feature-cache=on,0.5,above p99,two_tower.search,0.191259,0.00599818,1
+lever: feature-cache=on,0.5,above p99,context,0.122081,0.00382864,1
+lever: feature-cache=on,0.5,above p99,features.fetch.pool_wait,0.103411,0.00324313,1
+lever: feature-cache=on,0.5,above p99,(residual),0.0896734,0.0028123,1
+lever: feature-cache=on,0.5,above p99,queue.generator_lag,0.0817448,0.00256364,1
+lever: feature-cache=on,0.5,above p99,features.cache,0.0702633,0.00220357,1
+lever: feature-cache=on,0.5,above p99,features,0.0692304,0.00217117,1
+lever: feature-cache=on,0.5,above p99,serialize,0.0664385,0.00208361,1
+lever: feature-cache=on,0.5,above p99,retrieval,0.064984,0.002038,1
+lever: feature-cache=on,0.5,above p99,two_tower.pool_wait,0.0568247,0.00178211,1
+lever: feature-cache=on,0.5,above p99,features.assemble,0.0473235,0.00148414,1
+lever: feature-cache=on,0.5,above p99,two_tower,0.00775344,0.00024316,1
+lever: feature-cache=on,0.5,above p99,features.fetch,0.00640247,0.000200791,1
+lever: feature-cache=on,0.5,p40 to p60,features.fetch.store,2.92895,0.332321,1
+lever: feature-cache=on,0.5,p40 to p60,two_tower.network,1.70245,0.193161,1
+lever: feature-cache=on,0.5,p40 to p60,light_ranker,1.59217,0.180648,1
+lever: feature-cache=on,0.5,p40 to p60,heavy_ranker,1.12871,0.128064,1
+lever: feature-cache=on,0.5,p40 to p60,retrieval.merge,0.282929,0.0321014,1
+lever: feature-cache=on,0.5,p40 to p60,rerank,0.277109,0.031441,1
+lever: feature-cache=on,0.5,p40 to p60,two_tower.search,0.16759,0.0190149,1
+lever: feature-cache=on,0.5,p40 to p60,context,0.121183,0.0137495,1
+lever: feature-cache=on,0.5,p40 to p60,(residual),0.0909127,0.010315,1
+lever: feature-cache=on,0.5,p40 to p60,features.fetch.pool_wait,0.0684419,0.00776547,1
+lever: feature-cache=on,0.5,p40 to p60,serialize,0.0658128,0.00746717,1
+lever: feature-cache=on,0.5,p40 to p60,queue,0.060471,0.00686109,1
+lever: feature-cache=on,0.5,p40 to p60,features,0.0589526,0.00668881,1
+lever: feature-cache=on,0.5,p40 to p60,features.cache,0.0585586,0.0066441,1
+lever: feature-cache=on,0.5,p40 to p60,two_tower.pool_wait,0.0526495,0.00597365,1
+lever: feature-cache=on,0.5,p40 to p60,queue.generator_lag,0.0494584,0.00561159,1
+lever: feature-cache=on,0.5,p40 to p60,features.assemble,0.047458,0.00538462,1
+lever: feature-cache=on,0.5,p40 to p60,retrieval,0.046409,0.0052656,1
+lever: feature-cache=on,0.5,p40 to p60,two_tower,0.00759973,0.00086227,1
+lever: feature-cache=on,0.5,p40 to p60,features.fetch,0.00581322,0.000659572,1
+lever: feature-cache=on,0.7,above p99,features.fetch.store,23.0655,0.624827,1
+lever: feature-cache=on,0.7,above p99,queue,6.71054,0.181783,1
+lever: feature-cache=on,0.7,above p99,light_ranker,1.816,0.0491941,1
+lever: feature-cache=on,0.7,above p99,heavy_ranker,1.7807,0.0482377,1
+lever: feature-cache=on,0.7,above p99,two_tower.network,1.62187,0.0439351,1
+lever: feature-cache=on,0.7,above p99,retrieval.merge,0.396139,0.0107311,1
+lever: feature-cache=on,0.7,above p99,rerank,0.355477,0.00962958,1
+lever: feature-cache=on,0.7,above p99,two_tower.search,0.218231,0.00591172,1
+lever: feature-cache=on,0.7,above p99,features.fetch.pool_wait,0.129153,0.00349865,1
+lever: feature-cache=on,0.7,above p99,context,0.123911,0.00335665,1
+lever: feature-cache=on,0.7,above p99,queue.generator_lag,0.103825,0.00281254,1
+lever: feature-cache=on,0.7,above p99,features,0.0942786,0.00255393,1
+lever: feature-cache=on,0.7,above p99,features.cache,0.09325,0.00252607,1
+lever: feature-cache=on,0.7,above p99,(residual),0.0889476,0.00240952,1
+lever: feature-cache=on,0.7,above p99,retrieval,0.0864633,0.00234222,1
+lever: feature-cache=on,0.7,above p99,two_tower.pool_wait,0.0785663,0.0021283,1
+lever: feature-cache=on,0.7,above p99,serialize,0.0693483,0.00187859,1
+lever: feature-cache=on,0.7,above p99,features.assemble,0.0680463,0.00184332,1
+lever: feature-cache=on,0.7,above p99,two_tower,0.00825377,0.000223588,1
+lever: feature-cache=on,0.7,above p99,features.fetch,0.00651842,0.000176579,1
+lever: feature-cache=on,0.7,p40 to p60,features.fetch.store,3.04001,0.308694,1
+lever: feature-cache=on,0.7,p40 to p60,two_tower.network,1.73945,0.17663,0.999428
+lever: feature-cache=on,0.7,p40 to p60,light_ranker,1.70023,0.172648,1
+lever: feature-cache=on,0.7,p40 to p60,heavy_ranker,1.50662,0.152988,1
+lever: feature-cache=on,0.7,p40 to p60,retrieval.merge,0.336014,0.0341201,1
+lever: feature-cache=on,0.7,p40 to p60,rerank,0.317892,0.03228,1
+lever: feature-cache=on,0.7,p40 to p60,queue,0.228315,0.023184,1
+lever: feature-cache=on,0.7,p40 to p60,two_tower.search,0.18947,0.0192395,0.999428
+lever: feature-cache=on,0.7,p40 to p60,context,0.122186,0.0124072,1
+lever: feature-cache=on,0.7,p40 to p60,features.fetch.pool_wait,0.0912897,0.00926991,1
+lever: feature-cache=on,0.7,p40 to p60,(residual),0.0910165,0.00924217,1
+lever: feature-cache=on,0.7,p40 to p60,features.cache,0.0794816,0.00807087,1
+lever: feature-cache=on,0.7,p40 to p60,features,0.0724716,0.00735904,1
+lever: feature-cache=on,0.7,p40 to p60,serialize,0.0679759,0.00690253,1
+lever: feature-cache=on,0.7,p40 to p60,two_tower.pool_wait,0.0675295,0.0068572,0.999428
+lever: feature-cache=on,0.7,p40 to p60,queue.generator_lag,0.0663752,0.00673999,1
+lever: feature-cache=on,0.7,p40 to p60,features.assemble,0.0618192,0.00627736,1
+lever: feature-cache=on,0.7,p40 to p60,retrieval,0.0549308,0.00557788,1
+lever: feature-cache=on,0.7,p40 to p60,two_tower,0.007824,0.000794479,0.999428
+lever: feature-cache=on,0.7,p40 to p60,features.fetch,0.00599022,0.000608269,1
+lever: feature-cache=on,0.7,p40 to p60,popularity.compute,0.000921282,9.35505e-05,0.000571755
+lever: feature-cache=on,0.7,p40 to p60,popularity.pool_wait,0.000148366,1.50656e-05,0.000571755
+lever: feature-cache=on,0.7,p40 to p60,popularity,3.83476e-06,3.89396e-07,0.000571755
+lever: feature-cache=on,0.85,above p99,queue,23.681,0.524846,1
+lever: feature-cache=on,0.85,above p99,features.fetch.store,14.2408,0.315622,1
+lever: feature-cache=on,0.85,above p99,light_ranker,1.79787,0.0398466,1
+lever: feature-cache=on,0.85,above p99,heavy_ranker,1.76617,0.039144,1
+lever: feature-cache=on,0.85,above p99,two_tower.network,1.63359,0.0362056,0.99061
+lever: feature-cache=on,0.85,above p99,retrieval.merge,0.428423,0.00949522,1
+lever: feature-cache=on,0.85,above p99,rerank,0.35051,0.00776842,1
+lever: feature-cache=on,0.85,above p99,two_tower.search,0.221716,0.00491393,0.99061
+lever: feature-cache=on,0.85,above p99,features.fetch.pool_wait,0.12488,0.00276775,1
+lever: feature-cache=on,0.85,above p99,context,0.124347,0.00275592,1
+lever: feature-cache=on,0.85,above p99,queue.generator_lag,0.117691,0.0026084,1
+lever: feature-cache=on,0.85,above p99,features.cache,0.102483,0.00227135,1
+lever: feature-cache=on,0.85,above p99,retrieval,0.0940751,0.00208501,1
+lever: feature-cache=on,0.85,above p99,features,0.0936589,0.00207578,1
+lever: feature-cache=on,0.85,above p99,(residual),0.0873211,0.00193532,1
+lever: feature-cache=on,0.85,above p99,two_tower.pool_wait,0.0807519,0.00178972,0.99061
+lever: feature-cache=on,0.85,above p99,features.assemble,0.0777263,0.00172266,1
+lever: feature-cache=on,0.85,above p99,serialize,0.0689041,0.00152714,1
+lever: feature-cache=on,0.85,above p99,popularity.compute,0.0124882,0.000276779,0.00938967
+lever: feature-cache=on,0.85,above p99,two_tower,0.00821246,0.000182014,0.99061
+lever: feature-cache=on,0.85,above p99,features.fetch,0.00635811,0.000140916,1
+lever: feature-cache=on,0.85,above p99,popularity.pool_wait,0.000830634,1.84095e-05,0.00938967
+lever: feature-cache=on,0.85,above p99,popularity,7.29343e-05,1.61646e-06,0.00938967
+lever: feature-cache=on,0.85,p40 to p60,features.fetch.store,3.0897,0.269808,1
+lever: feature-cache=on,0.85,p40 to p60,light_ranker,1.82102,0.159021,1
+lever: feature-cache=on,0.85,p40 to p60,heavy_ranker,1.81224,0.158254,1
+lever: feature-cache=on,0.85,p40 to p60,two_tower.network,1.76033,0.153721,0.999294
+lever: feature-cache=on,0.85,p40 to p60,queue,1.14426,0.0999226,1
+lever: feature-cache=on,0.85,p40 to p60,retrieval.merge,0.373327,0.0326009,1
+lever: feature-cache=on,0.85,p40 to p60,rerank,0.346594,0.0302664,1
+lever: feature-cache=on,0.85,p40 to p60,two_tower.search,0.204931,0.0178957,0.999294
+lever: feature-cache=on,0.85,p40 to p60,context,0.122891,0.0107315,1
+lever: feature-cache=on,0.85,p40 to p60,features.fetch.pool_wait,0.105184,0.00918521,1
+lever: feature-cache=on,0.85,p40 to p60,queue.generator_lag,0.0963435,0.00841322,1
+lever: feature-cache=on,0.85,p40 to p60,features.cache,0.092789,0.00810282,1
+lever: feature-cache=on,0.85,p40 to p60,(residual),0.0890098,0.0077728,1
+lever: feature-cache=on,0.85,p40 to p60,features,0.0832684,0.00727143,1
+lever: feature-cache=on,0.85,p40 to p60,two_tower.pool_wait,0.0832053,0.00726593,0.999294
+lever: feature-cache=on,0.85,p40 to p60,features.assemble,0.0749855,0.00654813,1
+lever: feature-cache=on,0.85,p40 to p60,serialize,0.0688871,0.00601558,1
+lever: feature-cache=on,0.85,p40 to p60,retrieval,0.067211,0.00586922,1
+lever: feature-cache=on,0.85,p40 to p60,two_tower,0.00803778,0.000701901,0.999294
+lever: feature-cache=on,0.85,p40 to p60,features.fetch,0.0061141,0.000533915,1
+lever: feature-cache=on,0.85,p40 to p60,popularity.compute,0.000975717,8.52047e-05,0.000706215
+lever: feature-cache=on,0.85,p40 to p60,popularity.pool_wait,0.000145855,1.27368e-05,0.000706215
+lever: feature-cache=on,0.85,p40 to p60,popularity,3.90843e-06,3.41304e-07,0.000706215
+lever: candidates=200,0.3,above p99,features.fetch.store,25.2484,0.830761,1
+lever: candidates=200,0.3,above p99,two_tower.network,1.88015,0.0618634,1
+lever: candidates=200,0.3,above p99,heavy_ranker,1.02531,0.0337363,1
+lever: candidates=200,0.3,above p99,light_ranker,0.907526,0.0298608,1
+lever: candidates=200,0.3,above p99,rerank,0.259318,0.00853248,1
+lever: candidates=200,0.3,above p99,retrieval.merge,0.199834,0.00657523,1
+lever: candidates=200,0.3,above p99,queue,0.16282,0.00535734,1
+lever: candidates=200,0.3,above p99,context,0.120827,0.00397561,1
+lever: candidates=200,0.3,above p99,two_tower.search,0.101955,0.00335466,1
+lever: candidates=200,0.3,above p99,(residual),0.0912686,0.00300305,1
+lever: candidates=200,0.3,above p99,features,0.0672563,0.00221297,1
+lever: candidates=200,0.3,above p99,features.fetch.pool_wait,0.065139,0.0021433,1
+lever: candidates=200,0.3,above p99,serialize,0.0631548,0.00207801,1
+lever: candidates=200,0.3,above p99,two_tower.pool_wait,0.0436621,0.00143663,1
+lever: candidates=200,0.3,above p99,retrieval,0.0434707,0.00143034,1
+lever: candidates=200,0.3,above p99,queue.generator_lag,0.0427113,0.00140535,1
+lever: candidates=200,0.3,above p99,features.cache,0.033046,0.00108733,1
+lever: candidates=200,0.3,above p99,features.assemble,0.0226046,0.000743769,1
+lever: candidates=200,0.3,above p99,two_tower,0.00716509,0.000235756,1
+lever: candidates=200,0.3,above p99,features.fetch,0.00626945,0.000206287,1
+lever: candidates=200,0.3,p40 to p60,features.fetch.store,2.92078,0.386516,1
+lever: candidates=200,0.3,p40 to p60,two_tower.network,1.65998,0.219671,1
+lever: candidates=200,0.3,p40 to p60,heavy_ranker,0.935065,0.12374,1
+lever: candidates=200,0.3,p40 to p60,light_ranker,0.868385,0.114916,1
+lever: candidates=200,0.3,p40 to p60,rerank,0.241834,0.0320027,1
+lever: candidates=200,0.3,p40 to p60,retrieval.merge,0.200822,0.0265754,1
+lever: candidates=200,0.3,p40 to p60,context,0.120912,0.0160008,1
+lever: candidates=200,0.3,p40 to p60,two_tower.search,0.108235,0.0143231,1
+lever: candidates=200,0.3,p40 to p60,(residual),0.0912387,0.0120739,1
+lever: candidates=200,0.3,p40 to p60,serialize,0.0639671,0.00846498,1
+lever: candidates=200,0.3,p40 to p60,features.fetch.pool_wait,0.0617147,0.00816691,1
+lever: candidates=200,0.3,p40 to p60,features,0.0485742,0.00642799,1
+lever: candidates=200,0.3,p40 to p60,two_tower.pool_wait,0.0457363,0.00605244,1
+lever: candidates=200,0.3,p40 to p60,retrieval,0.0411863,0.00545033,1
+lever: candidates=200,0.3,p40 to p60,queue,0.0406168,0.00537496,1
+lever: candidates=200,0.3,p40 to p60,queue.generator_lag,0.0399293,0.00528398,1
+lever: candidates=200,0.3,p40 to p60,features.cache,0.0320243,0.00423789,1
+lever: candidates=200,0.3,p40 to p60,features.assemble,0.0228574,0.00302479,1
+lever: candidates=200,0.3,p40 to p60,two_tower,0.00719773,0.0009525,1
+lever: candidates=200,0.3,p40 to p60,features.fetch,0.00561763,0.000743401,1
+lever: candidates=200,0.5,above p99,features.fetch.store,25.761,0.805452,1
+lever: candidates=200,0.5,above p99,two_tower.network,1.80677,0.0564912,1
+lever: candidates=200,0.5,above p99,heavy_ranker,1.4544,0.045474,1
+lever: candidates=200,0.5,above p99,light_ranker,0.958757,0.0299769,1
+lever: candidates=200,0.5,above p99,queue,0.590346,0.018458,1
+lever: candidates=200,0.5,above p99,rerank,0.295653,0.00924401,1
+lever: candidates=200,0.5,above p99,retrieval.merge,0.247041,0.00772406,1
+lever: candidates=200,0.5,above p99,two_tower.search,0.138017,0.00431528,1
+lever: candidates=200,0.5,above p99,context,0.12187,0.00381043,1
+lever: candidates=200,0.5,above p99,(residual),0.0915998,0.00286399,1
+lever: candidates=200,0.5,above p99,features.fetch.pool_wait,0.089798,0.00280766,1
+lever: candidates=200,0.5,above p99,features,0.0711114,0.0022234,1
+lever: candidates=200,0.5,above p99,two_tower.pool_wait,0.070515,0.00220475,1
+lever: candidates=200,0.5,above p99,queue.generator_lag,0.0700584,0.00219047,1
+lever: candidates=200,0.5,above p99,serialize,0.0662403,0.00207109,1
+lever: candidates=200,0.5,above p99,retrieval,0.0504088,0.0015761,1
+lever: candidates=200,0.5,above p99,features.assemble,0.0463507,0.00144922,1
+lever: candidates=200,0.5,above p99,features.cache,0.0393261,0.00122958,1
+lever: candidates=200,0.5,above p99,two_tower,0.00752319,0.000235223,1
+lever: candidates=200,0.5,above p99,features.fetch,0.00649149,0.000202965,1
+lever: candidates=200,0.5,p40 to p60,features.fetch.store,2.95948,0.370768,1
+lever: candidates=200,0.5,p40 to p60,two_tower.network,1.69126,0.211884,1
+lever: candidates=200,0.5,p40 to p60,heavy_ranker,1.12464,0.140897,1
+lever: candidates=200,0.5,p40 to p60,light_ranker,0.90671,0.113594,1
+lever: candidates=200,0.5,p40 to p60,rerank,0.268998,0.0337004,1
+lever: candidates=200,0.5,p40 to p60,retrieval.merge,0.21627,0.0270946,1
+lever: candidates=200,0.5,p40 to p60,context,0.119455,0.0149654,1
+lever: candidates=200,0.5,p40 to p60,two_tower.search,0.117414,0.0147098,1
+lever: candidates=200,0.5,p40 to p60,(residual),0.0899768,0.0112724,1
+lever: candidates=200,0.5,p40 to p60,features.fetch.pool_wait,0.0768583,0.00962891,1
+lever: candidates=200,0.5,p40 to p60,serialize,0.0656725,0.00822754,1
+lever: candidates=200,0.5,p40 to p60,queue,0.0578931,0.00725292,1
+lever: candidates=200,0.5,p40 to p60,features,0.0565622,0.00708619,1
+lever: candidates=200,0.5,p40 to p60,two_tower.pool_wait,0.0551701,0.00691178,1
+lever: candidates=200,0.5,p40 to p60,queue.generator_lag,0.0516163,0.00646656,1
+lever: candidates=200,0.5,p40 to p60,retrieval,0.0464866,0.00582391,1
+lever: candidates=200,0.5,p40 to p60,features.cache,0.0358435,0.00449052,1
+lever: candidates=200,0.5,p40 to p60,features.assemble,0.028455,0.00356488,1
+lever: candidates=200,0.5,p40 to p60,two_tower,0.00750289,0.000939972,1
+lever: candidates=200,0.5,p40 to p60,features.fetch,0.00576269,0.000721958,1
+lever: candidates=200,0.7,above p99,features.fetch.store,24.68,0.727472,1
+lever: candidates=200,0.7,above p99,queue,3.28264,0.0967597,1
+lever: candidates=200,0.7,above p99,two_tower.network,1.80728,0.0532717,1
+lever: candidates=200,0.7,above p99,heavy_ranker,1.64788,0.0485733,1
+lever: candidates=200,0.7,above p99,light_ranker,0.982126,0.0289494,1
+lever: candidates=200,0.7,above p99,rerank,0.329843,0.00972254,1
+lever: candidates=200,0.7,above p99,retrieval.merge,0.245916,0.00724868,1
+lever: candidates=200,0.7,above p99,two_tower.search,0.148321,0.00437194,1
+lever: candidates=200,0.7,above p99,context,0.123459,0.00363911,1
+lever: candidates=200,0.7,above p99,features.fetch.pool_wait,0.104113,0.00306884,1
+lever: candidates=200,0.7,above p99,queue.generator_lag,0.100438,0.00296053,1
+lever: candidates=200,0.7,above p99,(residual),0.0879517,0.00259249,1
+lever: candidates=200,0.7,above p99,features,0.0877781,0.00258737,1
+lever: candidates=200,0.7,above p99,two_tower.pool_wait,0.068636,0.00202313,1
+lever: candidates=200,0.7,above p99,serialize,0.066553,0.00196173,1
+lever: candidates=200,0.7,above p99,features.assemble,0.0531709,0.00156728,1
+lever: candidates=200,0.7,above p99,retrieval,0.0527438,0.00155469,1
+lever: candidates=200,0.7,above p99,features.cache,0.0427675,0.00126062,1
+lever: candidates=200,0.7,above p99,two_tower,0.00774567,0.000228313,1
+lever: candidates=200,0.7,above p99,features.fetch,0.00632829,0.000186534,1
+lever: candidates=200,0.7,p40 to p60,features.fetch.store,3.06386,0.349045,1
+lever: candidates=200,0.7,p40 to p60,two_tower.network,1.73436,0.197584,0.999714
+lever: candidates=200,0.7,p40 to p60,heavy_ranker,1.46129,0.166476,1
+lever: candidates=200,0.7,p40 to p60,light_ranker,0.959762,0.109339,1
+lever: candidates=200,0.7,p40 to p60,rerank,0.307387,0.0350186,1
+lever: candidates=200,0.7,p40 to p60,retrieval.merge,0.23756,0.0270636,1
+lever: candidates=200,0.7,p40 to p60,queue,0.152665,0.0173921,1
+lever: candidates=200,0.7,p40 to p60,two_tower.search,0.138997,0.015835,0.999714
+lever: candidates=200,0.7,p40 to p60,context,0.119222,0.0135821,1
+lever: candidates=200,0.7,p40 to p60,features.fetch.pool_wait,0.094676,0.0107858,1
+lever: candidates=200,0.7,p40 to p60,(residual),0.0890741,0.0101476,1
+lever: candidates=200,0.7,p40 to p60,two_tower.pool_wait,0.0691679,0.00787985,0.999714
+lever: candidates=200,0.7,p40 to p60,features,0.067777,0.00772138,1
+lever: candidates=200,0.7,p40 to p60,serialize,0.0671708,0.00765233,1
+lever: candidates=200,0.7,p40 to p60,queue.generator_lag,0.0664854,0.00757425,1
+lever: candidates=200,0.7,p40 to p60,retrieval,0.0557969,0.00635658,1
+lever: candidates=200,0.7,p40 to p60,features.assemble,0.0400503,0.00456267,1
+lever: candidates=200,0.7,p40 to p60,features.cache,0.0386578,0.00440402,1
+lever: candidates=200,0.7,p40 to p60,two_tower,0.00764078,0.000870463,0.999714
+lever: candidates=200,0.7,p40 to p60,features.fetch,0.00583385,0.000664612,1
+lever: candidates=200,0.7,p40 to p60,popularity.compute,0.000381447,4.34558e-05,0.000285878
+lever: candidates=200,0.7,p40 to p60,popularity.pool_wait,1.01461e-05,1.15588e-06,0.000285878
+lever: candidates=200,0.7,p40 to p60,popularity,1.61035e-06,1.83456e-07,0.000285878
+lever: candidates=200,0.85,above p99,queue,16.8648,0.426176,1
+lever: candidates=200,0.85,above p99,features.fetch.store,16.1439,0.40796,1
+lever: candidates=200,0.85,above p99,heavy_ranker,2.04943,0.0517895,1
+lever: candidates=200,0.85,above p99,two_tower.network,1.72261,0.0435307,0.995305
+lever: candidates=200,0.85,above p99,light_ranker,1.04946,0.0265201,1
+lever: candidates=200,0.85,above p99,rerank,0.35216,0.00889916,1
+lever: candidates=200,0.85,above p99,retrieval.merge,0.295786,0.00747457,1
+lever: candidates=200,0.85,above p99,two_tower.search,0.180432,0.00455954,0.995305
+lever: candidates=200,0.85,above p99,features.fetch.pool_wait,0.129453,0.00327129,1
+lever: candidates=200,0.85,above p99,queue.generator_lag,0.120205,0.00303759,1
+lever: candidates=200,0.85,above p99,context,0.119739,0.00302582,1
+lever: candidates=200,0.85,above p99,features,0.0973864,0.00246097,1
+lever: candidates=200,0.85,above p99,(residual),0.0853513,0.00215684,1
+lever: candidates=200,0.85,above p99,two_tower.pool_wait,0.0853249,0.00215618,0.995305
+lever: candidates=200,0.85,above p99,retrieval,0.0804726,0.00203356,1
+lever: candidates=200,0.85,above p99,serialize,0.0685948,0.0017334,1
+lever: candidates=200,0.85,above p99,features.assemble,0.0598854,0.00151331,1
+lever: candidates=200,0.85,above p99,features.cache,0.0455923,0.00115212,1
+lever: candidates=200,0.85,above p99,two_tower,0.00817791,0.000206657,0.995305
+lever: candidates=200,0.85,above p99,popularity.compute,0.00624304,0.000157763,0.00469484
+lever: candidates=200,0.85,above p99,features.fetch,0.0061396,0.000155149,1
+lever: candidates=200,0.85,above p99,popularity.pool_wait,0.0011219,2.83507e-05,0.00469484
+lever: candidates=200,0.85,above p99,popularity,3.95587e-05,9.99655e-07,0.00469484
+lever: candidates=200,0.85,p40 to p60,features.fetch.store,3.1188,0.31704,1
+lever: candidates=200,0.85,p40 to p60,heavy_ranker,1.84636,0.187691,1
+lever: candidates=200,0.85,p40 to p60,two_tower.network,1.75383,0.178284,0.998823
+lever: candidates=200,0.85,p40 to p60,light_ranker,1.01717,0.1034,1
+lever: candidates=200,0.85,p40 to p60,queue,0.513117,0.0521605,1
+lever: candidates=200,0.85,p40 to p60,rerank,0.340785,0.0346422,1
+lever: candidates=200,0.85,p40 to p60,retrieval.merge,0.260462,0.0264771,1
+lever: candidates=200,0.85,p40 to p60,two_tower.search,0.15968,0.0162322,0.998823
+lever: candidates=200,0.85,p40 to p60,context,0.120341,0.0122332,1
+lever: candidates=200,0.85,p40 to p60,features.fetch.pool_wait,0.119612,0.0121591,1
+lever: candidates=200,0.85,p40 to p60,(residual),0.0886749,0.00901418,1
+lever: candidates=200,0.85,p40 to p60,queue.generator_lag,0.0860688,0.00874926,1
+lever: candidates=200,0.85,p40 to p60,two_tower.pool_wait,0.0834805,0.00848615,0.998823
+lever: candidates=200,0.85,p40 to p60,features,0.0814693,0.0082817,1
+lever: candidates=200,0.85,p40 to p60,serialize,0.068248,0.0069377,1
+lever: candidates=200,0.85,p40 to p60,retrieval,0.0664596,0.0067559,1
+lever: candidates=200,0.85,p40 to p60,features.assemble,0.0543507,0.00552498,1
+lever: candidates=200,0.85,p40 to p60,features.cache,0.0426393,0.00433447,1
+lever: candidates=200,0.85,p40 to p60,two_tower,0.00785016,0.000798002,0.998823
+lever: candidates=200,0.85,p40 to p60,features.fetch,0.00598687,0.000608591,1
+lever: candidates=200,0.85,p40 to p60,popularity.compute,0.00170505,0.000173325,0.00117702
+lever: candidates=200,0.85,p40 to p60,popularity.pool_wait,0.000161495,1.64166e-05,0.00117702
+lever: candidates=200,0.85,p40 to p60,popularity,7.42232e-06,7.5451e-07,0.00117702

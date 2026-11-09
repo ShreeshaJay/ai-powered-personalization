@@ -1,0 +1,4 @@
+generator,samples,p50_ms,p99_ms,p99.9_ms,max_ms,samples_over_100ms
+closed_loop_recorded,11800,1.5382,10.0868,15.168,996.22,2
+closed_loop_corrected,11896,1.55358,13.8687,896.793,996.22,90
+open_loop,12000,1.39251,27.5557,914.819,1000.39,112

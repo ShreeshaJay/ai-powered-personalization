@@ -1,0 +1,102 @@
+{
+  "entry_point": "scripts.ex1b_pipeline_attribution",
+  "written_at_utc": "2026-11-09T08:51:40Z",
+  "command": "python -m scripts.ex1b_pipeline_attribution --catalog auto --lever popularity=precomputed --lever hedge-feature-fetch=on --lever feature-cache=on --lever candidates=200",
+  "args": {
+    "load": [
+      0.3,
+      0.5,
+      0.7,
+      0.85
+    ],
+    "duration": 15.0,
+    "repeats": 5,
+    "warmup": 3.0,
+    "capacity_duration": 10.0,
+    "workers": 4,
+    "target_pct": 99.0,
+    "attribution_load": 0.7,
+    "process": "poisson",
+    "max_dispatch_lag_ms": 2.0,
+    "catalog": "auto",
+    "n_items": 200000,
+    "nprobe": 16,
+    "candidates": 500,
+    "feature_cache": false,
+    "heavy_batching": "batched",
+    "mmr": "vectorized",
+    "popularity": "naive",
+    "hedge_feature_fetch": false,
+    "lever": [
+      "popularity=precomputed",
+      "hedge-feature-fetch=on",
+      "feature-cache=on",
+      "candidates=200"
+    ],
+    "gc_in_window": false,
+    "no_traces": false,
+    "force": false,
+    "seed": 14,
+    "quick": false,
+    "summary_dir": null
+  },
+  "platform": {
+    "python": "3.11.2",
+    "platform": "Linux-6.1.0-54-cloud-amd64-x86_64-with-glibc2.36",
+    "os": "linux",
+    "cpu": {
+      "logical_cpus": 8,
+      "machine": "x86_64",
+      "processor": null,
+      "usable_cpus": 8,
+      "model_name": "Intel(R) Xeon(R) Platinum 8481C CPU @ 2.70GHz"
+    },
+    "perf_counter_resolution_s": 1e-09,
+    "sleep_1ms": {
+      "target_ms": 1.0,
+      "median_overshoot_ms": 0.06128049999654195,
+      "p99_overshoot_ms": 0.09069896999756095
+    },
+    "asyncio_sleep_1ms": {
+      "target_ms": 1.0,
+      "median_overshoot_ms": 0.07274949999691671,
+      "p99_overshoot_ms": 0.10436384999815117
+    },
+    "thread_env": {
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null,
+      "VECLIB_MAXIMUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null
+    },
+    "packages": {
+      "numpy": "2.3.5",
+      "polars": "1.36.1",
+      "pyarrow": "22.0.0",
+      "scipy": "1.16.3",
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "faiss-cpu": "1.13.1",
+      "torch": "2.6.0+cpu",
+      "onnx": "1.18.0",
+      "onnxruntime": "1.22.0"
+    },
+    "max_granularity_ms": 2.0,
+    "timer_ok": true
+  },
+  "threads": {
+    "torch_intra_op_threads": 1,
+    "torch_inter_op_threads": 1,
+    "faiss_omp_max_threads": 1
+  },
+  "capacity_rps": 336.5960200181221,
+  "configs": [
+    "baseline",
+    "popularity=precomputed",
+    "hedge_feature_fetch=True",
+    "feature_cache=True",
+    "candidates=200"
+  ],
+  "traces": "/opt/ch14/out/full/ex1b/traces/20261109_082451",
+  "runtime_s": 1623.24214647
+}

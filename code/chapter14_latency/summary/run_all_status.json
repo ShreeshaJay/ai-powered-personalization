@@ -1,0 +1,23 @@
+{
+  "ex1a": {
+    "command": "python -m scripts.ex1a_queueing_sim",
+    "exit_code": 0,
+    "seconds": 41.7
+  },
+  "ex1b": {
+    "command": "python -m scripts.ex1b_pipeline_attribution --catalog auto --lever popularity=precomputed --lever hedge-feature-fetch=on --lever feature-cache=on --lever candidates=200",
+    "exit_code": 0,
+    "seconds": 1625.9
+  },
+  "ex2a": {
+    "command": "python -m scripts.ex2a_ann_operating_points --datasets auto --recall-floor 0.95",
+    "exit_code": 0,
+    "seconds": 684.5
+  },
+  "ex2b": {
+    "command": "python -m scripts.ex2b_ranker_inference_parity --data auto",
+    "exit_code": 0,
+    "seconds": 84.6
+  },
+  "total_seconds": 2436.7
+}

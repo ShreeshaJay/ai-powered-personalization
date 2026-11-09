@@ -1,0 +1,20 @@
+# Chapter 14: Latency Optimization - companion code dependencies
+# Python 3.11 (3.10 to 3.12 should also work). CPU only.
+#
+# The extra index supplies CPU-only PyTorch wheels on Linux, which avoids
+# downloading several gigabytes of CUDA libraries that this chapter never uses.
+# On Windows and macOS the same pins resolve to the standard CPU wheels.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+numpy==2.3.5
+polars==1.36.1
+pyarrow==22.0.0
+scipy==1.16.3
+scikit-learn==1.8.0
+xgboost==3.1.2
+# 1.13.x Windows wheels use the MSVC OpenMP runtime, which coexists with
+# PyTorch's; some earlier wheels abort when both libraries run in one process.
+faiss-cpu==1.13.1
+torch==2.6.0
+onnx==1.18.0
+onnxruntime==1.22.0

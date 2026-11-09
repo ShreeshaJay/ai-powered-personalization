@@ -1,0 +1,441 @@
+stage,stage_name,kind,mean_ms,share,config,load,band,requests
+R,unattributed residual,residual,0.0923252,0.00262806,baseline,0.3,above p99,76
+S1,admission and queueing,generator_lag,0.0496864,0.00141433,baseline,0.3,above p99,76
+S1,admission and queueing,wait,0.317335,0.009033,baseline,0.3,above p99,76
+S2,orchestration and request context,service,0.123239,0.00350802,baseline,0.3,above p99,76
+S3,candidate retrieval,service,0.53434,0.0152101,baseline,0.3,above p99,76
+S3,candidate retrieval,wait,1.67454,0.0476661,baseline,0.3,above p99,76
+S4,feature retrieval,service,0.201371,0.00573208,baseline,0.3,above p99,76
+S4,feature retrieval,wait,29.0622,0.827263,baseline,0.3,above p99,76
+S5,model inference,service,2.73349,0.0778095,baseline,0.3,above p99,76
+S6,re-ranking,service,0.275725,0.00784858,baseline,0.3,above p99,76
+S7,response serialization,service,0.0663152,0.00188768,baseline,0.3,above p99,76
+R,unattributed residual,residual,0.0929085,0.0103621,baseline,0.3,p40 to p60,1508
+S1,admission and queueing,generator_lag,0.0464558,0.0051812,baseline,0.3,p40 to p60,1508
+S1,admission and queueing,wait,0.0432807,0.00482709,baseline,0.3,p40 to p60,1508
+S2,orchestration and request context,service,0.123597,0.0137847,baseline,0.3,p40 to p60,1508
+S3,candidate retrieval,service,0.482905,0.0538583,baseline,0.3,p40 to p60,1508
+S3,candidate retrieval,wait,1.74855,0.195015,baseline,0.3,p40 to p60,1508
+S4,feature retrieval,service,0.132725,0.0148028,baseline,0.3,p40 to p60,1508
+S4,feature retrieval,wait,3.44787,0.38454,baseline,0.3,p40 to p60,1508
+S5,model inference,service,2.52663,0.281794,baseline,0.3,p40 to p60,1508
+S6,re-ranking,service,0.25579,0.0285281,baseline,0.3,p40 to p60,1508
+S7,response serialization,service,0.0655156,0.00730693,baseline,0.3,p40 to p60,1508
+R,unattributed residual,residual,0.0883747,0.00239639,baseline,0.5,above p99,124
+S1,admission and queueing,generator_lag,0.0799279,0.00216735,baseline,0.5,above p99,124
+S1,admission and queueing,wait,1.71615,0.0465355,baseline,0.5,above p99,124
+S2,orchestration and request context,service,0.122524,0.00332239,baseline,0.5,above p99,124
+S3,candidate retrieval,service,0.573579,0.0155533,baseline,0.5,above p99,124
+S3,candidate retrieval,wait,1.7315,0.0469518,baseline,0.5,above p99,124
+S4,feature retrieval,service,0.187021,0.00507133,baseline,0.5,above p99,124
+S4,feature retrieval,wait,28.7956,0.780831,baseline,0.5,above p99,124
+S5,model inference,service,3.18972,0.0864934,baseline,0.5,above p99,124
+S6,re-ranking,service,0.324802,0.00880744,baseline,0.5,above p99,124
+S7,response serialization,service,0.0689727,0.00187028,baseline,0.5,above p99,124
+R,unattributed residual,residual,0.0901912,0.00947792,baseline,0.5,p40 to p60,2476
+S1,admission and queueing,generator_lag,0.0513217,0.00539324,baseline,0.5,p40 to p60,2476
+S1,admission and queueing,wait,0.0760762,0.00799462,baseline,0.5,p40 to p60,2476
+S2,orchestration and request context,service,0.120555,0.0126688,baseline,0.5,p40 to p60,2476
+S3,candidate retrieval,service,0.522541,0.0549123,baseline,0.5,p40 to p60,2476
+S3,candidate retrieval,wait,1.80118,0.18928,baseline,0.5,p40 to p60,2476
+S4,feature retrieval,service,0.153914,0.0161744,baseline,0.5,p40 to p60,2476
+S4,feature retrieval,wait,3.54267,0.372289,baseline,0.5,p40 to p60,2476
+S5,model inference,service,2.8094,0.295231,baseline,0.5,p40 to p60,2476
+S6,re-ranking,service,0.281685,0.0296015,baseline,0.5,p40 to p60,2476
+S7,response serialization,service,0.06639,0.00697672,baseline,0.5,p40 to p60,2476
+R,unattributed residual,residual,0.0897007,0.00206568,baseline,0.7,above p99,175
+S1,admission and queueing,generator_lag,0.118221,0.00272245,baseline,0.7,above p99,175
+S1,admission and queueing,wait,10.7743,0.248116,baseline,0.7,above p99,175
+S2,orchestration and request context,service,0.128315,0.00295492,baseline,0.7,above p99,175
+S3,candidate retrieval,service,0.704035,0.0162129,baseline,0.7,above p99,175
+S3,candidate retrieval,wait,1.69778,0.0390973,baseline,0.7,above p99,175
+S4,feature retrieval,service,0.230365,0.00530498,baseline,0.7,above p99,175
+S4,feature retrieval,wait,25.6513,0.590712,baseline,0.7,above p99,175
+S5,model inference,service,3.58685,0.0825999,baseline,0.7,above p99,175
+S6,re-ranking,service,0.374472,0.00862355,baseline,0.7,above p99,175
+S7,response serialization,service,0.0690625,0.00159041,baseline,0.7,above p99,175
+R,unattributed residual,residual,0.0900046,0.00807449,baseline,0.7,p40 to p60,3498
+S1,admission and queueing,generator_lag,0.0788817,0.00707663,baseline,0.7,p40 to p60,3498
+S1,admission and queueing,wait,0.587017,0.0526625,baseline,0.7,p40 to p60,3498
+S2,orchestration and request context,service,0.121685,0.0109166,baseline,0.7,p40 to p60,3498
+S3,candidate retrieval,service,0.615971,0.05526,baseline,0.7,p40 to p60,3498
+S3,candidate retrieval,wait,1.84894,0.165872,baseline,0.7,p40 to p60,3498
+S4,feature retrieval,service,0.194526,0.0174513,baseline,0.7,p40 to p60,3498
+S4,feature retrieval,wait,3.73812,0.335355,baseline,0.7,p40 to p60,3498
+S5,model inference,service,3.46158,0.310545,baseline,0.7,p40 to p60,3498
+S6,re-ranking,service,0.341825,0.0306658,baseline,0.7,p40 to p60,3498
+S7,response serialization,service,0.0682208,0.00612023,baseline,0.7,p40 to p60,3498
+R,unattributed residual,residual,0.0871182,0.00119618,baseline,0.85,above p99,213
+S1,admission and queueing,generator_lag,0.104567,0.00143576,baseline,0.85,above p99,213
+S1,admission and queueing,wait,54.9315,0.754237,baseline,0.85,above p99,213
+S2,orchestration and request context,service,0.122059,0.00167593,baseline,0.85,above p99,213
+S3,candidate retrieval,service,0.739064,0.0101477,baseline,0.85,above p99,213
+S3,candidate retrieval,wait,1.82889,0.0251116,baseline,0.85,above p99,213
+S4,feature retrieval,service,0.260603,0.00357821,baseline,0.85,above p99,213
+S4,feature retrieval,wait,10.7713,0.147895,baseline,0.85,above p99,213
+S5,model inference,service,3.55782,0.0488506,baseline,0.85,above p99,213
+S6,re-ranking,service,0.358116,0.00491711,baseline,0.85,above p99,213
+S7,response serialization,service,0.0695067,0.000954361,baseline,0.85,above p99,213
+R,unattributed residual,residual,0.087462,0.0055525,baseline,0.85,p40 to p60,4248
+S1,admission and queueing,generator_lag,0.110314,0.00700326,baseline,0.85,p40 to p60,4248
+S1,admission and queueing,wait,4.95359,0.314477,baseline,0.85,p40 to p60,4248
+S2,orchestration and request context,service,0.123828,0.00786116,baseline,0.85,p40 to p60,4248
+S3,candidate retrieval,service,0.681685,0.0432766,baseline,0.85,p40 to p60,4248
+S3,candidate retrieval,wait,1.79036,0.113661,baseline,0.85,p40 to p60,4248
+S4,feature retrieval,service,0.221329,0.014051,baseline,0.85,p40 to p60,4248
+S4,feature retrieval,wait,3.91247,0.248382,baseline,0.85,p40 to p60,4248
+S5,model inference,service,3.46624,0.220053,baseline,0.85,p40 to p60,4248
+S6,re-ranking,service,0.335866,0.0213223,baseline,0.85,p40 to p60,4248
+S7,response serialization,service,0.0686746,0.00435979,baseline,0.85,p40 to p60,4248
+R,unattributed residual,residual,0.0931284,0.00266015,lever: popularity=precomputed,0.3,above p99,76
+S1,admission and queueing,generator_lag,0.05036,0.0014385,lever: popularity=precomputed,0.3,above p99,76
+S1,admission and queueing,wait,0.287573,0.00821431,lever: popularity=precomputed,0.3,above p99,76
+S2,orchestration and request context,service,0.123354,0.00352352,lever: popularity=precomputed,0.3,above p99,76
+S3,candidate retrieval,service,0.508296,0.0145191,lever: popularity=precomputed,0.3,above p99,76
+S3,candidate retrieval,wait,1.67084,0.0477264,lever: popularity=precomputed,0.3,above p99,76
+S4,feature retrieval,service,0.197683,0.00564668,lever: popularity=precomputed,0.3,above p99,76
+S4,feature retrieval,wait,29.1041,0.831338,lever: popularity=precomputed,0.3,above p99,76
+S5,model inference,service,2.6446,0.075541,lever: popularity=precomputed,0.3,above p99,76
+S6,re-ranking,service,0.265021,0.00757015,lever: popularity=precomputed,0.3,above p99,76
+S7,response serialization,service,0.0637981,0.00182235,lever: popularity=precomputed,0.3,above p99,76
+R,unattributed residual,residual,0.0925142,0.0104497,lever: popularity=precomputed,0.3,p40 to p60,1508
+S1,admission and queueing,generator_lag,0.0426959,0.00482262,lever: popularity=precomputed,0.3,p40 to p60,1508
+S1,admission and queueing,wait,0.038797,0.00438223,lever: popularity=precomputed,0.3,p40 to p60,1508
+S2,orchestration and request context,service,0.122083,0.0137895,lever: popularity=precomputed,0.3,p40 to p60,1508
+S3,candidate retrieval,service,0.457014,0.0516209,lever: popularity=precomputed,0.3,p40 to p60,1508
+S3,candidate retrieval,wait,1.73276,0.19572,lever: popularity=precomputed,0.3,p40 to p60,1508
+S4,feature retrieval,service,0.125591,0.0141858,lever: popularity=precomputed,0.3,p40 to p60,1508
+S4,feature retrieval,wait,3.43928,0.388476,lever: popularity=precomputed,0.3,p40 to p60,1508
+S5,model inference,service,2.49187,0.281464,lever: popularity=precomputed,0.3,p40 to p60,1508
+S6,re-ranking,service,0.246176,0.0278063,lever: popularity=precomputed,0.3,p40 to p60,1508
+S7,response serialization,service,0.0644805,0.00728324,lever: popularity=precomputed,0.3,p40 to p60,1508
+R,unattributed residual,residual,0.0898763,0.00245686,lever: popularity=precomputed,0.5,above p99,124
+S1,admission and queueing,generator_lag,0.0560431,0.00153199,lever: popularity=precomputed,0.5,above p99,124
+S1,admission and queueing,wait,1.73574,0.0474482,lever: popularity=precomputed,0.5,above p99,124
+S2,orchestration and request context,service,0.121655,0.00332555,lever: popularity=precomputed,0.5,above p99,124
+S3,candidate retrieval,service,0.571406,0.0156199,lever: popularity=precomputed,0.5,above p99,124
+S3,candidate retrieval,wait,1.69667,0.04638,lever: popularity=precomputed,0.5,above p99,124
+S4,feature retrieval,service,0.165798,0.00453224,lever: popularity=precomputed,0.5,above p99,124
+S4,feature retrieval,wait,28.7856,0.786882,lever: popularity=precomputed,0.5,above p99,124
+S5,model inference,service,2.99285,0.0818125,lever: popularity=precomputed,0.5,above p99,124
+S6,re-ranking,service,0.298854,0.00816945,lever: popularity=precomputed,0.5,above p99,124
+S7,response serialization,service,0.0673646,0.00184148,lever: popularity=precomputed,0.5,above p99,124
+R,unattributed residual,residual,0.0907691,0.00967798,lever: popularity=precomputed,0.5,p40 to p60,2476
+S1,admission and queueing,generator_lag,0.0506729,0.00540284,lever: popularity=precomputed,0.5,p40 to p60,2476
+S1,admission and queueing,wait,0.069015,0.00735852,lever: popularity=precomputed,0.5,p40 to p60,2476
+S2,orchestration and request context,service,0.121308,0.0129341,lever: popularity=precomputed,0.5,p40 to p60,2476
+S3,candidate retrieval,service,0.499403,0.0532473,lever: popularity=precomputed,0.5,p40 to p60,2476
+S3,candidate retrieval,wait,1.79627,0.191522,lever: popularity=precomputed,0.5,p40 to p60,2476
+S4,feature retrieval,service,0.146381,0.0156075,lever: popularity=precomputed,0.5,p40 to p60,2476
+S4,feature retrieval,wait,3.52369,0.375703,lever: popularity=precomputed,0.5,p40 to p60,2476
+S5,model inference,service,2.74105,0.292256,lever: popularity=precomputed,0.5,p40 to p60,2476
+S6,re-ranking,service,0.2744,0.029257,lever: popularity=precomputed,0.5,p40 to p60,2476
+S7,response serialization,service,0.0659696,0.00703381,lever: popularity=precomputed,0.5,p40 to p60,2476
+R,unattributed residual,residual,0.0870335,0.00205468,lever: popularity=precomputed,0.7,above p99,175
+S1,admission and queueing,generator_lag,0.0939265,0.00221741,lever: popularity=precomputed,0.7,above p99,175
+S1,admission and queueing,wait,9.63605,0.227487,lever: popularity=precomputed,0.7,above p99,175
+S2,orchestration and request context,service,0.121904,0.0028779,lever: popularity=precomputed,0.7,above p99,175
+S3,candidate retrieval,service,0.632265,0.0149264,lever: popularity=precomputed,0.7,above p99,175
+S3,candidate retrieval,wait,1.69476,0.0400098,lever: popularity=precomputed,0.7,above p99,175
+S4,feature retrieval,service,0.225605,0.00532606,lever: popularity=precomputed,0.7,above p99,175
+S4,feature retrieval,wait,26.0346,0.614623,lever: popularity=precomputed,0.7,above p99,175
+S5,model inference,service,3.44062,0.0812258,lever: popularity=precomputed,0.7,above p99,175
+S6,re-ranking,service,0.323453,0.00763604,lever: popularity=precomputed,0.7,above p99,175
+S7,response serialization,service,0.0684691,0.00161641,lever: popularity=precomputed,0.7,above p99,175
+R,unattributed residual,residual,0.0900834,0.00834406,lever: popularity=precomputed,0.7,p40 to p60,3498
+S1,admission and queueing,generator_lag,0.0737029,0.0068268,lever: popularity=precomputed,0.7,p40 to p60,3498
+S1,admission and queueing,wait,0.451699,0.0418391,lever: popularity=precomputed,0.7,p40 to p60,3498
+S2,orchestration and request context,service,0.122177,0.0113168,lever: popularity=precomputed,0.7,p40 to p60,3498
+S3,candidate retrieval,service,0.583335,0.0540319,lever: popularity=precomputed,0.7,p40 to p60,3498
+S3,candidate retrieval,wait,1.85139,0.171487,lever: popularity=precomputed,0.7,p40 to p60,3498
+S4,feature retrieval,service,0.185701,0.0172007,lever: popularity=precomputed,0.7,p40 to p60,3498
+S4,feature retrieval,wait,3.72294,0.344841,lever: popularity=precomputed,0.7,p40 to p60,3498
+S5,model inference,service,3.32048,0.307562,lever: popularity=precomputed,0.7,p40 to p60,3498
+S6,re-ranking,service,0.326234,0.0302177,lever: popularity=precomputed,0.7,p40 to p60,3498
+S7,response serialization,service,0.0683742,0.00633323,lever: popularity=precomputed,0.7,p40 to p60,3498
+R,unattributed residual,residual,0.0863717,0.0013971,lever: popularity=precomputed,0.85,above p99,213
+S1,admission and queueing,generator_lag,0.103893,0.00168051,lever: popularity=precomputed,0.85,above p99,213
+S1,admission and queueing,wait,42.4486,0.686625,lever: popularity=precomputed,0.85,above p99,213
+S2,orchestration and request context,service,0.123566,0.00199873,lever: popularity=precomputed,0.85,above p99,213
+S3,candidate retrieval,service,0.636309,0.0102926,lever: popularity=precomputed,0.85,above p99,213
+S3,candidate retrieval,wait,1.88018,0.0304128,lever: popularity=precomputed,0.85,above p99,213
+S4,feature retrieval,service,0.208067,0.00336558,lever: popularity=precomputed,0.85,above p99,213
+S4,feature retrieval,wait,12.3817,0.20028,lever: popularity=precomputed,0.85,above p99,213
+S5,model inference,service,3.54427,0.0573301,lever: popularity=precomputed,0.85,above p99,213
+S6,re-ranking,service,0.340604,0.00550941,lever: popularity=precomputed,0.85,above p99,213
+S7,response serialization,service,0.0684657,0.00110746,lever: popularity=precomputed,0.85,above p99,213
+R,unattributed residual,residual,0.0871688,0.00604293,lever: popularity=precomputed,0.85,p40 to p60,4248
+S1,admission and queueing,generator_lag,0.101585,0.00704232,lever: popularity=precomputed,0.85,p40 to p60,4248
+S1,admission and queueing,wait,3.93603,0.272863,lever: popularity=precomputed,0.85,p40 to p60,4248
+S2,orchestration and request context,service,0.124086,0.00860219,lever: popularity=precomputed,0.85,p40 to p60,4248
+S3,candidate retrieval,service,0.640478,0.0444008,lever: popularity=precomputed,0.85,p40 to p60,4248
+S3,candidate retrieval,wait,1.78603,0.123816,lever: popularity=precomputed,0.85,p40 to p60,4248
+S4,feature retrieval,service,0.204651,0.0141873,lever: popularity=precomputed,0.85,p40 to p60,4248
+S4,feature retrieval,wait,3.7864,0.26249,lever: popularity=precomputed,0.85,p40 to p60,4248
+S5,model inference,service,3.35787,0.232782,lever: popularity=precomputed,0.85,p40 to p60,4248
+S6,re-ranking,service,0.331868,0.0230066,lever: popularity=precomputed,0.85,p40 to p60,4248
+S7,response serialization,service,0.0687543,0.00476635,lever: popularity=precomputed,0.85,p40 to p60,4248
+R,unattributed residual,residual,0.0895676,0.00571525,lever: hedge-feature-fetch=on,0.3,above p99,76
+S1,admission and queueing,generator_lag,0.0681627,0.00434941,lever: hedge-feature-fetch=on,0.3,above p99,76
+S1,admission and queueing,wait,2.07087,0.132141,lever: hedge-feature-fetch=on,0.3,above p99,76
+S2,orchestration and request context,service,0.12273,0.00783132,lever: hedge-feature-fetch=on,0.3,above p99,76
+S3,candidate retrieval,service,0.743301,0.0474295,lever: hedge-feature-fetch=on,0.3,above p99,76
+S3,candidate retrieval,wait,2.00853,0.128163,lever: hedge-feature-fetch=on,0.3,above p99,76
+S4,feature retrieval,service,0.198333,0.0126555,lever: hedge-feature-fetch=on,0.3,above p99,76
+S4,feature retrieval,wait,6.47094,0.412906,lever: hedge-feature-fetch=on,0.3,above p99,76
+S5,model inference,service,3.50717,0.22379,lever: hedge-feature-fetch=on,0.3,above p99,76
+S6,re-ranking,service,0.326632,0.0208421,lever: hedge-feature-fetch=on,0.3,above p99,76
+S7,response serialization,service,0.0654615,0.00417705,lever: hedge-feature-fetch=on,0.3,above p99,76
+R,unattributed residual,residual,0.0925824,0.0103658,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S1,admission and queueing,generator_lag,0.0442917,0.00495901,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S1,admission and queueing,wait,0.0399797,0.00447624,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S2,orchestration and request context,service,0.122004,0.0136598,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S3,candidate retrieval,service,0.47306,0.052965,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S3,candidate retrieval,wait,1.74174,0.195009,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S4,feature retrieval,service,0.134413,0.0150492,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S4,feature retrieval,wait,3.45318,0.386626,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S5,model inference,service,2.51512,0.2816,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S6,re-ranking,service,0.250312,0.0280256,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+S7,response serialization,service,0.0648806,0.00726419,lever: hedge-feature-fetch=on,0.3,p40 to p60,1508
+R,unattributed residual,residual,0.0895669,0.00406062,lever: hedge-feature-fetch=on,0.5,above p99,124
+S1,admission and queueing,generator_lag,0.11744,0.00532427,lever: hedge-feature-fetch=on,0.5,above p99,124
+S1,admission and queueing,wait,8.5938,0.38961,lever: hedge-feature-fetch=on,0.5,above p99,124
+S2,orchestration and request context,service,0.122907,0.00557213,lever: hedge-feature-fetch=on,0.5,above p99,124
+S3,candidate retrieval,service,0.770861,0.0349479,lever: hedge-feature-fetch=on,0.5,above p99,124
+S3,candidate retrieval,wait,1.9424,0.088061,lever: hedge-feature-fetch=on,0.5,above p99,124
+S4,feature retrieval,service,0.234317,0.0106231,lever: hedge-feature-fetch=on,0.5,above p99,124
+S4,feature retrieval,wait,6.15121,0.278872,lever: hedge-feature-fetch=on,0.5,above p99,124
+S5,model inference,service,3.61407,0.163848,lever: hedge-feature-fetch=on,0.5,above p99,124
+S6,re-ranking,service,0.350887,0.0159079,lever: hedge-feature-fetch=on,0.5,above p99,124
+S7,response serialization,service,0.0699807,0.00317266,lever: hedge-feature-fetch=on,0.5,above p99,124
+R,unattributed residual,residual,0.0915148,0.00957618,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S1,admission and queueing,generator_lag,0.0537096,0.00562021,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S1,admission and queueing,wait,0.0751394,0.00786264,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S2,orchestration and request context,service,0.122242,0.0127915,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S3,candidate retrieval,service,0.526677,0.0551119,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S3,candidate retrieval,wait,1.78137,0.186403,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S4,feature retrieval,service,0.161696,0.01692,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S4,feature retrieval,wait,3.54567,0.371021,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S5,model inference,service,2.84506,0.297709,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S6,re-ranking,service,0.287175,0.0300502,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+S7,response serialization,service,0.0662627,0.00693378,lever: hedge-feature-fetch=on,0.5,p40 to p60,2476
+R,unattributed residual,residual,0.0888337,0.00293796,lever: hedge-feature-fetch=on,0.7,above p99,175
+S1,admission and queueing,generator_lag,0.147906,0.00489164,lever: hedge-feature-fetch=on,0.7,above p99,175
+S1,admission and queueing,wait,16.9601,0.560912,lever: hedge-feature-fetch=on,0.7,above p99,175
+S2,orchestration and request context,service,0.124941,0.00413212,lever: hedge-feature-fetch=on,0.7,above p99,175
+S3,candidate retrieval,service,0.729583,0.0241291,lever: hedge-feature-fetch=on,0.7,above p99,175
+S3,candidate retrieval,wait,1.80172,0.0595875,lever: hedge-feature-fetch=on,0.7,above p99,175
+S4,feature retrieval,service,0.251951,0.00833267,lever: hedge-feature-fetch=on,0.7,above p99,175
+S4,feature retrieval,wait,5.82233,0.192559,lever: hedge-feature-fetch=on,0.7,above p99,175
+S5,model inference,service,3.86837,0.127937,lever: hedge-feature-fetch=on,0.7,above p99,175
+S6,re-ranking,service,0.371412,0.0122835,lever: hedge-feature-fetch=on,0.7,above p99,175
+S7,response serialization,service,0.0694508,0.00229691,lever: hedge-feature-fetch=on,0.7,above p99,175
+R,unattributed residual,residual,0.0913144,0.0084822,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S1,admission and queueing,generator_lag,0.068365,0.00635043,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S1,admission and queueing,wait,0.246077,0.0228581,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S2,orchestration and request context,service,0.123143,0.0114387,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S3,candidate retrieval,service,0.605704,0.0562638,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S3,candidate retrieval,wait,1.79069,0.166337,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S4,feature retrieval,service,0.195161,0.0181285,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S4,feature retrieval,wait,3.88497,0.360875,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S5,model inference,service,3.36194,0.31229,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S6,re-ranking,service,0.330065,0.0306597,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+S7,response serialization,service,0.0679987,0.0063164,lever: hedge-feature-fetch=on,0.7,p40 to p60,3498
+R,unattributed residual,residual,0.0889985,0.00190426,lever: hedge-feature-fetch=on,0.85,above p99,213
+S1,admission and queueing,generator_lag,0.13158,0.00281537,lever: hedge-feature-fetch=on,0.85,above p99,213
+S1,admission and queueing,wait,34.5757,0.739802,lever: hedge-feature-fetch=on,0.85,above p99,213
+S2,orchestration and request context,service,0.125772,0.00269109,lever: hedge-feature-fetch=on,0.85,above p99,213
+S3,candidate retrieval,service,0.786717,0.0168331,lever: hedge-feature-fetch=on,0.85,above p99,213
+S3,candidate retrieval,wait,1.79918,0.0384963,lever: hedge-feature-fetch=on,0.85,above p99,213
+S4,feature retrieval,service,0.22901,0.00490004,lever: hedge-feature-fetch=on,0.85,above p99,213
+S4,feature retrieval,wait,4.60994,0.098637,lever: hedge-feature-fetch=on,0.85,above p99,213
+S5,model inference,service,3.92192,0.0839158,lever: hedge-feature-fetch=on,0.85,above p99,213
+S6,re-ranking,service,0.396706,0.00848816,lever: hedge-feature-fetch=on,0.85,above p99,213
+S7,response serialization,service,0.0709031,0.00151709,lever: hedge-feature-fetch=on,0.85,above p99,213
+R,unattributed residual,residual,0.0897437,0.00702832,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S1,admission and queueing,generator_lag,0.0998195,0.00781741,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S1,admission and queueing,wait,1.37298,0.107525,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S2,orchestration and request context,service,0.124361,0.00973936,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S3,candidate retrieval,service,0.67433,0.0528105,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S3,candidate retrieval,wait,1.83131,0.14342,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S4,feature retrieval,service,0.225907,0.017692,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S4,feature retrieval,wait,4.19371,0.328432,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S5,model inference,service,3.72883,0.292025,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S6,re-ranking,service,0.358764,0.0280967,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+S7,response serialization,service,0.06913,0.00541395,lever: hedge-feature-fetch=on,0.85,p40 to p60,4248
+R,unattributed residual,residual,0.0948772,0.00321335,lever: feature-cache=on,0.3,above p99,76
+S1,admission and queueing,generator_lag,0.0371324,0.00125762,lever: feature-cache=on,0.3,above p99,76
+S1,admission and queueing,wait,0.102496,0.00347138,lever: feature-cache=on,0.3,above p99,76
+S2,orchestration and request context,service,0.12395,0.004198,lever: feature-cache=on,0.3,above p99,76
+S3,candidate retrieval,service,0.498401,0.0168801,lever: feature-cache=on,0.3,above p99,76
+S3,candidate retrieval,wait,1.72156,0.0583066,lever: feature-cache=on,0.3,above p99,76
+S4,feature retrieval,service,0.173268,0.00586832,lever: feature-cache=on,0.3,above p99,76
+S4,feature retrieval,wait,23.7338,0.803828,lever: feature-cache=on,0.3,above p99,76
+S5,model inference,service,2.71807,0.0920567,lever: feature-cache=on,0.3,above p99,76
+S6,re-ranking,service,0.259077,0.00877454,lever: feature-cache=on,0.3,above p99,76
+S7,response serialization,service,0.0633556,0.00214576,lever: feature-cache=on,0.3,above p99,76
+R,unattributed residual,residual,0.0916971,0.0110521,lever: feature-cache=on,0.3,p40 to p60,1508
+S1,admission and queueing,generator_lag,0.0406021,0.00489373,lever: feature-cache=on,0.3,p40 to p60,1508
+S1,admission and queueing,wait,0.0403561,0.00486407,lever: feature-cache=on,0.3,p40 to p60,1508
+S2,orchestration and request context,service,0.121595,0.0146557,lever: feature-cache=on,0.3,p40 to p60,1508
+S3,candidate retrieval,service,0.454729,0.054808,lever: feature-cache=on,0.3,p40 to p60,1508
+S3,candidate retrieval,wait,1.70638,0.205668,lever: feature-cache=on,0.3,p40 to p60,1508
+S4,feature retrieval,service,0.137399,0.0165605,lever: feature-cache=on,0.3,p40 to p60,1508
+S4,feature retrieval,wait,2.97256,0.358279,lever: feature-cache=on,0.3,p40 to p60,1508
+S5,model inference,service,2.42416,0.292182,lever: feature-cache=on,0.3,p40 to p60,1508
+S6,re-ranking,service,0.243715,0.0293747,lever: feature-cache=on,0.3,p40 to p60,1508
+S7,response serialization,service,0.0635779,0.00766297,lever: feature-cache=on,0.3,p40 to p60,1508
+R,unattributed residual,residual,0.0896734,0.0028123,lever: feature-cache=on,0.5,above p99,124
+S1,admission and queueing,generator_lag,0.0817448,0.00256364,lever: feature-cache=on,0.5,above p99,124
+S1,admission and queueing,wait,0.994642,0.0311935,lever: feature-cache=on,0.5,above p99,124
+S2,orchestration and request context,service,0.122081,0.00382864,lever: feature-cache=on,0.5,above p99,124
+S3,candidate retrieval,service,0.597428,0.0187363,lever: feature-cache=on,0.5,above p99,124
+S3,candidate retrieval,wait,1.81648,0.0569676,lever: feature-cache=on,0.5,above p99,124
+S4,feature retrieval,service,0.19322,0.00605967,lever: feature-cache=on,0.5,above p99,124
+S4,feature retrieval,wait,24.7569,0.776414,lever: feature-cache=on,0.5,above p99,124
+S5,model inference,service,2.87255,0.0900876,lever: feature-cache=on,0.5,above p99,124
+S6,re-ranking,service,0.295054,0.00925334,lever: feature-cache=on,0.5,above p99,124
+S7,response serialization,service,0.0664385,0.00208361,lever: feature-cache=on,0.5,above p99,124
+R,unattributed residual,residual,0.0909127,0.010315,lever: feature-cache=on,0.5,p40 to p60,2476
+S1,admission and queueing,generator_lag,0.0494584,0.00561159,lever: feature-cache=on,0.5,p40 to p60,2476
+S1,admission and queueing,wait,0.060471,0.00686109,lever: feature-cache=on,0.5,p40 to p60,2476
+S2,orchestration and request context,service,0.121183,0.0137495,lever: feature-cache=on,0.5,p40 to p60,2476
+S3,candidate retrieval,service,0.504528,0.0572441,lever: feature-cache=on,0.5,p40 to p60,2476
+S3,candidate retrieval,wait,1.7551,0.199135,lever: feature-cache=on,0.5,p40 to p60,2476
+S4,feature retrieval,service,0.170782,0.0193771,lever: feature-cache=on,0.5,p40 to p60,2476
+S4,feature retrieval,wait,2.99739,0.340086,lever: feature-cache=on,0.5,p40 to p60,2476
+S5,model inference,service,2.72087,0.308712,lever: feature-cache=on,0.5,p40 to p60,2476
+S6,re-ranking,service,0.277109,0.031441,lever: feature-cache=on,0.5,p40 to p60,2476
+S7,response serialization,service,0.0658128,0.00746717,lever: feature-cache=on,0.5,p40 to p60,2476
+R,unattributed residual,residual,0.0889476,0.00240952,lever: feature-cache=on,0.7,above p99,175
+S1,admission and queueing,generator_lag,0.103825,0.00281254,lever: feature-cache=on,0.7,above p99,175
+S1,admission and queueing,wait,6.71054,0.181783,lever: feature-cache=on,0.7,above p99,175
+S2,orchestration and request context,service,0.123911,0.00335665,lever: feature-cache=on,0.7,above p99,175
+S3,candidate retrieval,service,0.709088,0.0192086,lever: feature-cache=on,0.7,above p99,175
+S3,candidate retrieval,wait,1.70043,0.0460634,lever: feature-cache=on,0.7,above p99,175
+S4,feature retrieval,service,0.262093,0.0070999,lever: feature-cache=on,0.7,above p99,175
+S4,feature retrieval,wait,23.1947,0.628326,lever: feature-cache=on,0.7,above p99,175
+S5,model inference,service,3.5967,0.0974319,lever: feature-cache=on,0.7,above p99,175
+S6,re-ranking,service,0.355477,0.00962958,lever: feature-cache=on,0.7,above p99,175
+S7,response serialization,service,0.0693483,0.00187859,lever: feature-cache=on,0.7,above p99,175
+R,unattributed residual,residual,0.0910165,0.00924217,lever: feature-cache=on,0.7,p40 to p60,3498
+S1,admission and queueing,generator_lag,0.0663752,0.00673999,lever: feature-cache=on,0.7,p40 to p60,3498
+S1,admission and queueing,wait,0.228315,0.023184,lever: feature-cache=on,0.7,p40 to p60,3498
+S2,orchestration and request context,service,0.122186,0.0124072,lever: feature-cache=on,0.7,p40 to p60,3498
+S3,candidate retrieval,service,0.589164,0.0598259,lever: feature-cache=on,0.7,p40 to p60,3498
+S3,candidate retrieval,wait,1.80713,0.183502,lever: feature-cache=on,0.7,p40 to p60,3498
+S4,feature retrieval,service,0.219763,0.0223155,lever: feature-cache=on,0.7,p40 to p60,3498
+S4,feature retrieval,wait,3.1313,0.317964,lever: feature-cache=on,0.7,p40 to p60,3498
+S5,model inference,service,3.20685,0.325636,lever: feature-cache=on,0.7,p40 to p60,3498
+S6,re-ranking,service,0.317892,0.03228,lever: feature-cache=on,0.7,p40 to p60,3498
+S7,response serialization,service,0.0679759,0.00690253,lever: feature-cache=on,0.7,p40 to p60,3498
+R,unattributed residual,residual,0.0873211,0.00193532,lever: feature-cache=on,0.85,above p99,213
+S1,admission and queueing,generator_lag,0.117691,0.0026084,lever: feature-cache=on,0.85,above p99,213
+S1,admission and queueing,wait,23.681,0.524846,lever: feature-cache=on,0.85,above p99,213
+S2,orchestration and request context,service,0.124347,0.00275592,lever: feature-cache=on,0.85,above p99,213
+S3,candidate retrieval,service,0.764987,0.0169546,lever: feature-cache=on,0.85,above p99,213
+S3,candidate retrieval,wait,1.71517,0.0380137,lever: feature-cache=on,0.85,above p99,213
+S4,feature retrieval,service,0.280226,0.00621071,lever: feature-cache=on,0.85,above p99,213
+S4,feature retrieval,wait,14.3657,0.318389,lever: feature-cache=on,0.85,above p99,213
+S5,model inference,service,3.56404,0.0789906,lever: feature-cache=on,0.85,above p99,213
+S6,re-ranking,service,0.35051,0.00776842,lever: feature-cache=on,0.85,above p99,213
+S7,response serialization,service,0.0689041,0.00152714,lever: feature-cache=on,0.85,above p99,213
+R,unattributed residual,residual,0.0890098,0.0077728,lever: feature-cache=on,0.85,p40 to p60,4248
+S1,admission and queueing,generator_lag,0.0963435,0.00841322,lever: feature-cache=on,0.85,p40 to p60,4248
+S1,admission and queueing,wait,1.14426,0.0999226,lever: feature-cache=on,0.85,p40 to p60,4248
+S2,orchestration and request context,service,0.122891,0.0107315,lever: feature-cache=on,0.85,p40 to p60,4248
+S3,candidate retrieval,service,0.654486,0.0571532,lever: feature-cache=on,0.85,p40 to p60,4248
+S3,candidate retrieval,wait,1.84368,0.161,lever: feature-cache=on,0.85,p40 to p60,4248
+S4,feature retrieval,service,0.257157,0.0224563,lever: feature-cache=on,0.85,p40 to p60,4248
+S4,feature retrieval,wait,3.19488,0.278994,lever: feature-cache=on,0.85,p40 to p60,4248
+S5,model inference,service,3.63326,0.317275,lever: feature-cache=on,0.85,p40 to p60,4248
+S6,re-ranking,service,0.346594,0.0302664,lever: feature-cache=on,0.85,p40 to p60,4248
+S7,response serialization,service,0.0688871,0.00601558,lever: feature-cache=on,0.85,p40 to p60,4248
+R,unattributed residual,residual,0.0912686,0.00300305,lever: candidates=200,0.3,above p99,76
+S1,admission and queueing,generator_lag,0.0427113,0.00140535,lever: candidates=200,0.3,above p99,76
+S1,admission and queueing,wait,0.16282,0.00535734,lever: candidates=200,0.3,above p99,76
+S2,orchestration and request context,service,0.120827,0.00397561,lever: candidates=200,0.3,above p99,76
+S3,candidate retrieval,service,0.352424,0.011596,lever: candidates=200,0.3,above p99,76
+S3,candidate retrieval,wait,1.92381,0.0633001,lever: candidates=200,0.3,above p99,76
+S4,feature retrieval,service,0.129176,0.00425035,lever: candidates=200,0.3,above p99,76
+S4,feature retrieval,wait,25.3136,0.832905,lever: candidates=200,0.3,above p99,76
+S5,model inference,service,1.93284,0.0635971,lever: candidates=200,0.3,above p99,76
+S6,re-ranking,service,0.259318,0.00853248,lever: candidates=200,0.3,above p99,76
+S7,response serialization,service,0.0631548,0.00207801,lever: candidates=200,0.3,above p99,76
+R,unattributed residual,residual,0.0912387,0.0120739,lever: candidates=200,0.3,p40 to p60,1508
+S1,admission and queueing,generator_lag,0.0399293,0.00528398,lever: candidates=200,0.3,p40 to p60,1508
+S1,admission and queueing,wait,0.0406168,0.00537496,lever: candidates=200,0.3,p40 to p60,1508
+S2,orchestration and request context,service,0.120912,0.0160008,lever: candidates=200,0.3,p40 to p60,1508
+S3,candidate retrieval,service,0.357441,0.0473014,lever: candidates=200,0.3,p40 to p60,1508
+S3,candidate retrieval,wait,1.70572,0.225724,lever: candidates=200,0.3,p40 to p60,1508
+S4,feature retrieval,service,0.109074,0.0144341,lever: candidates=200,0.3,p40 to p60,1508
+S4,feature retrieval,wait,2.98249,0.394683,lever: candidates=200,0.3,p40 to p60,1508
+S5,model inference,service,1.80345,0.238657,lever: candidates=200,0.3,p40 to p60,1508
+S6,re-ranking,service,0.241834,0.0320027,lever: candidates=200,0.3,p40 to p60,1508
+S7,response serialization,service,0.0639671,0.00846498,lever: candidates=200,0.3,p40 to p60,1508
+R,unattributed residual,residual,0.0915998,0.00286399,lever: candidates=200,0.5,above p99,124
+S1,admission and queueing,generator_lag,0.0700584,0.00219047,lever: candidates=200,0.5,above p99,124
+S1,admission and queueing,wait,0.590346,0.018458,lever: candidates=200,0.5,above p99,124
+S2,orchestration and request context,service,0.12187,0.00381043,lever: candidates=200,0.5,above p99,124
+S3,candidate retrieval,service,0.442989,0.0138507,lever: candidates=200,0.5,above p99,124
+S3,candidate retrieval,wait,1.87729,0.058696,lever: candidates=200,0.5,above p99,124
+S4,feature retrieval,service,0.16328,0.00510517,lever: candidates=200,0.5,above p99,124
+S4,feature retrieval,wait,25.8508,0.808259,lever: candidates=200,0.5,above p99,124
+S5,model inference,service,2.41316,0.0754508,lever: candidates=200,0.5,above p99,124
+S6,re-ranking,service,0.295653,0.00924401,lever: candidates=200,0.5,above p99,124
+S7,response serialization,service,0.0662403,0.00207109,lever: candidates=200,0.5,above p99,124
+R,unattributed residual,residual,0.0899768,0.0112724,lever: candidates=200,0.5,p40 to p60,2476
+S1,admission and queueing,generator_lag,0.0516163,0.00646656,lever: candidates=200,0.5,p40 to p60,2476
+S1,admission and queueing,wait,0.0578931,0.00725292,lever: candidates=200,0.5,p40 to p60,2476
+S2,orchestration and request context,service,0.119455,0.0149654,lever: candidates=200,0.5,p40 to p60,2476
+S3,candidate retrieval,service,0.387674,0.0485683,lever: candidates=200,0.5,p40 to p60,2476
+S3,candidate retrieval,wait,1.74643,0.218796,lever: candidates=200,0.5,p40 to p60,2476
+S4,feature retrieval,service,0.126623,0.0158635,lever: candidates=200,0.5,p40 to p60,2476
+S4,feature retrieval,wait,3.03634,0.380397,lever: candidates=200,0.5,p40 to p60,2476
+S5,model inference,service,2.03135,0.25449,lever: candidates=200,0.5,p40 to p60,2476
+S6,re-ranking,service,0.268998,0.0337004,lever: candidates=200,0.5,p40 to p60,2476
+S7,response serialization,service,0.0656725,0.00822754,lever: candidates=200,0.5,p40 to p60,2476
+R,unattributed residual,residual,0.0879517,0.00259249,lever: candidates=200,0.7,above p99,175
+S1,admission and queueing,generator_lag,0.100438,0.00296053,lever: candidates=200,0.7,above p99,175
+S1,admission and queueing,wait,3.28264,0.0967597,lever: candidates=200,0.7,above p99,175
+S2,orchestration and request context,service,0.123459,0.00363911,lever: candidates=200,0.7,above p99,175
+S3,candidate retrieval,service,0.454726,0.0134036,lever: candidates=200,0.7,above p99,175
+S3,candidate retrieval,wait,1.87591,0.0552948,lever: candidates=200,0.7,above p99,175
+S4,feature retrieval,service,0.190045,0.0056018,lever: candidates=200,0.7,above p99,175
+S4,feature retrieval,wait,24.7841,0.730541,lever: candidates=200,0.7,above p99,175
+S5,model inference,service,2.63001,0.0775226,lever: candidates=200,0.7,above p99,175
+S6,re-ranking,service,0.329843,0.00972254,lever: candidates=200,0.7,above p99,175
+S7,response serialization,service,0.066553,0.00196173,lever: candidates=200,0.7,above p99,175
+R,unattributed residual,residual,0.0890741,0.0101476,lever: candidates=200,0.7,p40 to p60,3498
+S1,admission and queueing,generator_lag,0.0664854,0.00757425,lever: candidates=200,0.7,p40 to p60,3498
+S1,admission and queueing,wait,0.152665,0.0173921,lever: candidates=200,0.7,p40 to p60,3498
+S2,orchestration and request context,service,0.119222,0.0135821,lever: candidates=200,0.7,p40 to p60,3498
+S3,candidate retrieval,service,0.440377,0.0501693,lever: candidates=200,0.7,p40 to p60,3498
+S3,candidate retrieval,wait,1.80353,0.205465,lever: candidates=200,0.7,p40 to p60,3498
+S4,feature retrieval,service,0.152319,0.0173527,lever: candidates=200,0.7,p40 to p60,3498
+S4,feature retrieval,wait,3.15854,0.359831,lever: candidates=200,0.7,p40 to p60,3498
+S5,model inference,service,2.42106,0.275815,lever: candidates=200,0.7,p40 to p60,3498
+S6,re-ranking,service,0.307387,0.0350186,lever: candidates=200,0.7,p40 to p60,3498
+S7,response serialization,service,0.0671708,0.00765233,lever: candidates=200,0.7,p40 to p60,3498
+R,unattributed residual,residual,0.0853513,0.00215684,lever: candidates=200,0.85,above p99,213
+S1,admission and queueing,generator_lag,0.120205,0.00303759,lever: candidates=200,0.85,above p99,213
+S1,admission and queueing,wait,16.8648,0.426176,lever: candidates=200,0.85,above p99,213
+S2,orchestration and request context,service,0.119739,0.00302582,lever: candidates=200,0.85,above p99,213
+S3,candidate retrieval,service,0.571151,0.0144331,lever: candidates=200,0.85,above p99,213
+S3,candidate retrieval,wait,1.80906,0.0457153,lever: candidates=200,0.85,above p99,213
+S4,feature retrieval,service,0.209004,0.00528156,lever: candidates=200,0.85,above p99,213
+S4,feature retrieval,wait,16.2734,0.411232,lever: candidates=200,0.85,above p99,213
+S5,model inference,service,3.09889,0.0783096,lever: candidates=200,0.85,above p99,213
+S6,re-ranking,service,0.35216,0.00889916,lever: candidates=200,0.85,above p99,213
+S7,response serialization,service,0.0685948,0.0017334,lever: candidates=200,0.85,above p99,213
+R,unattributed residual,residual,0.0886749,0.00901418,lever: candidates=200,0.85,p40 to p60,4248
+S1,admission and queueing,generator_lag,0.0860688,0.00874926,lever: candidates=200,0.85,p40 to p60,4248
+S1,admission and queueing,wait,0.513117,0.0521605,lever: candidates=200,0.85,p40 to p60,4248
+S2,orchestration and request context,service,0.120341,0.0122332,lever: candidates=200,0.85,p40 to p60,4248
+S3,candidate retrieval,service,0.496164,0.0504372,lever: candidates=200,0.85,p40 to p60,4248
+S3,candidate retrieval,wait,1.83747,0.186787,lever: candidates=200,0.85,p40 to p60,4248
+S4,feature retrieval,service,0.184446,0.0187497,lever: candidates=200,0.85,p40 to p60,4248
+S4,feature retrieval,wait,3.23841,0.329199,lever: candidates=200,0.85,p40 to p60,4248
+S5,model inference,service,2.86353,0.29109,lever: candidates=200,0.85,p40 to p60,4248
+S6,re-ranking,service,0.340785,0.0346422,lever: candidates=200,0.85,p40 to p60,4248
+S7,response serialization,service,0.068248,0.0069377,lever: candidates=200,0.85,p40 to p60,4248

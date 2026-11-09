@@ -1,0 +1,17 @@
+lever,load,spans,baseline_stage_mean_ms,lever_stage_mean_ms,bound_ms,baseline_p99_ms,baseline_p99_lo,baseline_p99_hi,lever_p99_ms,lever_p99_lo,lever_p99_hi,measured_p99_change_ms,p99_ratio,p99_ratio_lo,p99_ratio_hi,change_detected,gain_exceeds_bound,intervals_overlap,lever_hedge_rate,lever_cache_hit_rate,valid
+lever: popularity=precomputed,0.3,popularity,0.397943,0.125072,0,30.743,30.2813,31.2118,30.8043,30.312,31.3045,0.0612416,1.00199,0.996471,1.00754,False,False,True,0,0,True
+lever: popularity=precomputed,0.5,popularity,0.450473,0.139581,0,32.8298,31.9994,33.6817,32.6343,32.003,33.2781,-0.195416,0.994048,0.983123,1.00509,False,False,True,0,0,True
+lever: popularity=precomputed,0.7,popularity,0.525899,0.157768,0,37.6619,36.4255,38.9404,36.9199,35.3543,38.5548,-0.742089,0.980296,0.9523,1.00912,False,False,True,0,0,True
+lever: popularity=precomputed,0.85,popularity,0.580509,0.167391,0,61.3268,50.7596,74.0938,53.6715,47.9093,60.1267,-7.65527,0.875172,0.73639,1.04011,False,False,True,0,0,True
+lever: hedge-feature-fetch=on,0.3,features,4.96245,3.82642,29.2636,30.743,30.2813,31.2118,14.1194,13.2,15.1028,-16.6237,0.459271,0.433584,0.486479,True,False,False,0.0467259,0,True
+lever: hedge-feature-fetch=on,0.5,features,4.99872,3.90299,28.9827,32.8298,31.9994,33.6817,18.5447,17.2521,19.9342,-14.285,0.564876,0.530841,0.601094,True,False,False,0.0454288,0,True
+lever: hedge-feature-fetch=on,0.7,features,5.16861,4.01886,25.8817,37.6619,36.4255,38.9404,26.9055,24.4833,29.5672,-10.7565,0.714394,0.664248,0.768325,True,False,False,0.0477021,0,True
+lever: hedge-feature-fetch=on,0.85,features,5.22591,4.09145,11.0319,61.3268,50.7596,74.0938,40.7014,37.4918,44.1857,-20.6254,0.663681,0.580097,0.759309,True,True,False,0.0476762,0,True
+lever: feature-cache=on,0.3,features,4.96245,3.83657,29.2636,30.743,30.2813,31.2118,27.0128,26.3955,27.6444,-3.73028,0.878663,0.861665,0.895996,True,False,False,0,0.544094,True
+lever: feature-cache=on,0.5,features,4.99872,3.81665,28.9827,32.8298,31.9994,33.6817,28.1656,27.8759,28.4582,-4.66419,0.857928,0.830728,0.886019,True,False,False,0,0.548365,True
+lever: feature-cache=on,0.7,features,5.16861,3.95573,25.8817,37.6619,36.4255,38.9404,32.3756,30.41,34.4683,-5.28634,0.859637,0.828019,0.892463,True,False,False,0,0.546478,True
+lever: feature-cache=on,0.85,features,5.22591,4.00841,11.0319,61.3268,50.7596,74.0938,39.4258,36.4095,42.6921,-21.9009,0.642882,0.572414,0.722024,True,True,False,0,0.547474,True
+lever: candidates=200,0.3,features+light_ranker+retrieval,8.67814,6.8728,33.0563,30.743,30.2813,31.2118,26.852,26.3025,27.4129,-3.89107,0.873432,0.851339,0.896099,True,False,False,0,0,True
+lever: candidates=200,0.5,features+light_ranker+retrieval,8.84748,6.94041,32.9982,32.8298,31.9994,33.6817,28.2217,27.5953,28.8622,-4.60808,0.859637,0.844027,0.875535,True,False,False,0,0,True
+lever: candidates=200,0.7,features+light_ranker+retrieval,9.19874,7.11293,30.0827,37.6619,36.4255,38.9404,29.6613,28.6875,30.6681,-8.00067,0.787566,0.758909,0.817305,True,False,False,0,0,True
+lever: candidates=200,0.85,features+light_ranker+retrieval,9.38646,7.26707,15.4087,61.3268,50.7596,74.0938,34.7802,33.3053,36.3203,-26.5466,0.567129,0.481391,0.668137,True,True,False,0,0,True
