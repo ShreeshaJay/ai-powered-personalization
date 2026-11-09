@@ -24,21 +24,52 @@ REFERENCE_COMPAT = ROOT / "references" / "compatibility_reference_2000.jsonl"
 REFERENCE_CONSENSUS = ROOT / "references" / "consensus" / "compatibility_consensus.jsonl"
 
 
+PRODUCT_KEYS = {"title", "brand", "color", "bullet_point"}
+HIDDEN = {
+    "item_id": "compat_test",
+    "sampling_context": {"source_stratum": "must not appear", "query_id": 424242},
+    "rubric_version": "v1",
+}
+
+
 def test_compact_state_omits_sampling_and_item_id() -> None:
     state = compact_state(
         "compatibility",
         {
-            "item_id": "compat_test",
+            **HIDDEN,
             "query_context": "phone case",
-            "anchor_product": {"title": "Phone", "brand": "Acme"},
+            "anchor_product": {"title": "Phone", "brand": "Acme", "product_id": "B000HIDDEN"},
             "candidate_product": {"title": "Case", "bullet_point": "x" * 500},
         },
     )
-    rendered = str(state)
-    assert "compat_test" not in rendered
-    assert "must not appear" not in rendered
+    rendered = json.dumps(state)
+    for hidden in ("compat_test", "must not appear", "424242", "source_stratum", "sampling_context", "B000HIDDEN"):
+        assert hidden not in rendered
+    assert set(state) == {"query_context", "anchor_product", "candidate_product"}
+    assert set(state["anchor_product"]) == PRODUCT_KEYS
+    assert set(state["candidate_product"]) == PRODUCT_KEYS
     assert len(state["candidate_product"]["bullet_point"]) == 180
     assert state["query_context"] == "phone case"
+
+
+@pytest.mark.parametrize(
+    ("task", "visible", "keys"),
+    [
+        ("query_segmentation", {"query": "6ku bike"}, {"query"}),
+        (
+            "brand_category",
+            {"query": "6ku bike", "brand_candidates": [], "category_candidates": []},
+            {"query", "brand_candidates", "category_candidates"},
+        ),
+        ("esci", {"query": "6ku bike", "product": {"title": "Bike"}}, {"query", "product"}),
+    ],
+)
+def test_compact_state_key_sets(task: str, visible: dict, keys: set[str]) -> None:
+    state = compact_state(task, {**HIDDEN, **visible})
+    assert set(state) == keys
+    rendered = json.dumps(state)
+    assert "must not appear" not in rendered
+    assert "compat_test" not in rendered
 
 
 def test_brand_state_lists_candidate_ids() -> None:

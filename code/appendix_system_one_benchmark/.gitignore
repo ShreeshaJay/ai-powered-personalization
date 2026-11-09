@@ -26,6 +26,12 @@ outputs/benchmark/**/predictions/
 outputs/benchmark/*/*.log
 outputs/benchmark/*/BENCHMARK_RESULTS.md
 
+# Committed: the text-free replay pack and the replay outputs
+!replay/
+!replay/**
+!outputs/replay/
+!outputs/replay/**
+
 # Bundle / download zips
 *.zip
 

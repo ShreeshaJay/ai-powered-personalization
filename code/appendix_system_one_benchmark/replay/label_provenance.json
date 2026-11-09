@@ -1,0 +1,354 @@
+{
+  "judges": {
+    "judge_a": {
+      "provider": "anthropic",
+      "model": "claude-opus-5"
+    },
+    "judge_b": {
+      "provider": "openai",
+      "model": "gpt-5.6-sol"
+    }
+  },
+  "agreement_by_stratum": {
+    "compatibility": {
+      "generated_cross_sell": {
+        "items": 500,
+        "complete_agreement": 0.718,
+        "fields": {
+          "label": 0.718
+        }
+      },
+      "generated_direct_accessory": {
+        "items": 500,
+        "complete_agreement": 0.766,
+        "fields": {
+          "label": 0.766
+        }
+      },
+      "human_irrelevant_negative": {
+        "items": 180,
+        "complete_agreement": 0.8389,
+        "fields": {
+          "label": 0.8389
+        }
+      },
+      "human_substitute_hard_negative": {
+        "items": 400,
+        "complete_agreement": 0.8325,
+        "fields": {
+          "label": 0.8325
+        }
+      },
+      "out_of_category_negative": {
+        "items": 420,
+        "complete_agreement": 0.969,
+        "fields": {
+          "label": 0.969
+        }
+      },
+      "all": {
+        "items": 2000,
+        "complete_agreement": 0.8165,
+        "fields": {
+          "label": 0.8165
+        }
+      }
+    },
+    "query_segmentation": {
+      "esci_accessory_for_product": {
+        "items": 120,
+        "complete_agreement": 0.825,
+        "fields": {
+          "goal": 0.95,
+          "object": 0.9,
+          "specificity": 0.8833,
+          "commerce_scope": 0.975
+        }
+      },
+      "esci_ambiguous": {
+        "items": 75,
+        "complete_agreement": 0.48,
+        "fields": {
+          "goal": 0.7733,
+          "object": 0.6933,
+          "specificity": 0.76,
+          "commerce_scope": 0.7733
+        }
+      },
+      "esci_broad_gift_intent": {
+        "items": 80,
+        "complete_agreement": 0.7375,
+        "fields": {
+          "goal": 0.9375,
+          "object": 0.95,
+          "specificity": 0.85,
+          "commerce_scope": 0.9625
+        }
+      },
+      "esci_bundle_or_set": {
+        "items": 100,
+        "complete_agreement": 0.91,
+        "fields": {
+          "goal": 0.97,
+          "object": 0.95,
+          "specificity": 0.93,
+          "commerce_scope": 0.99
+        }
+      },
+      "esci_single_product": {
+        "items": 550,
+        "complete_agreement": 0.8436,
+        "fields": {
+          "goal": 0.9564,
+          "object": 0.9527,
+          "specificity": 0.8945,
+          "commerce_scope": 0.9545
+        }
+      },
+      "esci_unknown": {
+        "items": 75,
+        "complete_agreement": 0.5733,
+        "fields": {
+          "goal": 0.8133,
+          "object": 0.7733,
+          "specificity": 0.8,
+          "commerce_scope": 0.7733
+        }
+      },
+      "orcas_i": {
+        "items": 1000,
+        "complete_agreement": 0.565,
+        "fields": {
+          "goal": 0.857,
+          "object": 0.913,
+          "specificity": 0.791,
+          "commerce_scope": 0.801
+        }
+      },
+      "all": {
+        "items": 2000,
+        "complete_agreement": 0.6785,
+        "fields": {
+          "goal": 0.894,
+          "object": 0.913,
+          "specificity": 0.8335,
+          "commerce_scope": 0.8675
+        }
+      }
+    },
+    "brand_category": {
+      "ambiguous_or_unmapped": {
+        "items": 400,
+        "complete_agreement": 0.8275,
+        "fields": {
+          "brand_intent": 0.8575,
+          "brand_choice": 0.9725,
+          "category_choice": 0.9775,
+          "multi_target": 0.995
+        }
+      },
+      "explicit_brand_with_category": {
+        "items": 700,
+        "complete_agreement": 0.82,
+        "fields": {
+          "brand_intent": 0.9671,
+          "brand_choice": 0.9686,
+          "category_choice": 0.87,
+          "multi_target": 0.9986
+        }
+      },
+      "generic_query_with_category": {
+        "items": 900,
+        "complete_agreement": 0.7889,
+        "fields": {
+          "brand_intent": 0.8933,
+          "brand_choice": 0.9778,
+          "category_choice": 0.8878,
+          "multi_target": 0.9989
+        }
+      },
+      "all": {
+        "items": 2000,
+        "complete_agreement": 0.8075,
+        "fields": {
+          "brand_intent": 0.912,
+          "brand_choice": 0.9735,
+          "category_choice": 0.8995,
+          "multi_target": 0.998
+        }
+      }
+    }
+  },
+  "consensus_rule_violations": {
+    "compatibility": 0,
+    "query_segmentation": 0,
+    "brand_category": 0,
+    "esci": 0
+  },
+  "label_generation": [
+    {
+      "task": "brand_category",
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "dataset": "pilot",
+      "labels": 100,
+      "input_tokens": 73780,
+      "output_tokens": 9920,
+      "cost_usd": 0.6185,
+      "first_created_at": "2026-09-26T18:53:36.178797+00:00",
+      "last_created_at": "2026-09-26T18:54:56.023484+00:00"
+    },
+    {
+      "task": "brand_category",
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "dataset": "reference",
+      "labels": 2000,
+      "input_tokens": 1484520,
+      "output_tokens": 208160,
+      "cost_usd": 12.6562,
+      "first_created_at": "2026-09-27T01:51:45.645413+00:00",
+      "last_created_at": "2026-09-27T02:42:46.232478+00:00"
+    },
+    {
+      "task": "brand_category",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "dataset": "pilot",
+      "labels": 100,
+      "input_tokens": 44640,
+      "output_tokens": 7800,
+      "cost_usd": 0.3355,
+      "first_created_at": "2026-09-26T18:55:12.116332+00:00",
+      "last_created_at": "2026-09-26T18:56:21.690871+00:00"
+    },
+    {
+      "task": "brand_category",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "dataset": "reference",
+      "labels": 2000,
+      "input_tokens": 895200,
+      "output_tokens": 161500,
+      "cost_usd": 6.8327,
+      "first_created_at": "2026-09-27T02:43:10.373709+00:00",
+      "last_created_at": "2026-09-27T03:03:44.098377+00:00"
+    },
+    {
+      "task": "compatibility",
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "dataset": "pilot",
+      "labels": 100,
+      "input_tokens": 63306,
+      "output_tokens": 9221,
+      "cost_usd": 0.5479,
+      "first_created_at": "2026-09-26T18:47:04.740617+00:00",
+      "last_created_at": "2026-09-26T18:49:17.401016+00:00"
+    },
+    {
+      "task": "compatibility",
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "dataset": "reference",
+      "labels": 2000,
+      "input_tokens": 1254020,
+      "output_tokens": 187100,
+      "cost_usd": 10.9769,
+      "first_created_at": "2026-09-27T01:51:49.312366+00:00",
+      "last_created_at": "2026-09-27T02:25:35.940288+00:00"
+    },
+    {
+      "task": "compatibility",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "dataset": "pilot",
+      "labels": 100,
+      "input_tokens": 35910,
+      "output_tokens": 8252,
+      "cost_usd": 0.31,
+      "first_created_at": "2026-09-26T18:47:21.078538+00:00",
+      "last_created_at": "2026-09-26T18:50:58.966008+00:00"
+    },
+    {
+      "task": "compatibility",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "dataset": "reference",
+      "labels": 2000,
+      "input_tokens": 713560,
+      "output_tokens": 162540,
+      "cost_usd": 6.1292,
+      "first_created_at": "2026-09-27T02:25:57.301174+00:00",
+      "last_created_at": "2026-09-27T03:00:02.546627+00:00"
+    },
+    {
+      "task": "query_segmentation",
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "dataset": "pilot",
+      "labels": 300,
+      "input_tokens": 25500,
+      "output_tokens": 25100,
+      "cost_usd": 0.7593,
+      "first_created_at": "2026-09-26T18:51:16.467217+00:00",
+      "last_created_at": "2026-09-26T19:48:11.111073+00:00"
+    },
+    {
+      "task": "query_segmentation",
+      "provider": "anthropic",
+      "model": "claude-opus-5",
+      "dataset": "reference",
+      "labels": 2000,
+      "input_tokens": 200100,
+      "output_tokens": 171760,
+      "cost_usd": 5.322,
+      "first_created_at": "2026-09-27T01:51:44.435201+00:00",
+      "last_created_at": "2026-09-27T02:18:37.542194+00:00"
+    },
+    {
+      "task": "query_segmentation",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "dataset": "pilot",
+      "labels": 300,
+      "input_tokens": 12920,
+      "output_tokens": 21420,
+      "cost_usd": 0.4833,
+      "first_created_at": "2026-09-26T18:52:30.777560+00:00",
+      "last_created_at": "2026-09-26T19:49:43.552088+00:00"
+    },
+    {
+      "task": "query_segmentation",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "dataset": "reference",
+      "labels": 2000,
+      "input_tokens": 102940,
+      "output_tokens": 155040,
+      "cost_usd": 3.5364,
+      "first_created_at": "2026-09-27T02:19:12.497129+00:00",
+      "last_created_at": "2026-09-27T02:48:28.997836+00:00"
+    }
+  ],
+  "provider_calls": [
+    {
+      "provider": "anthropic",
+      "status": "error",
+      "calls": 3,
+      "cost_usd": 0.0
+    },
+    {
+      "provider": "anthropic",
+      "status": "ok",
+      "calls": 326,
+      "cost_usd": 30.8807
+    },
+    {
+      "provider": "openai",
+      "status": "ok",
+      "calls": 326,
+      "cost_usd": 17.6272
+    }
+  ]
+}

@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "build_date": "2026-11-09",
+  "builder": {
+    "script": "build_replay_pack.py",
+    "script_sha256_lf": "3a82e2cc530f8aaf3f1363ff3ddf2046ba51c8f9e577e82add026a371e9a925f",
+    "commit": "c6e3fda",
+    "commit_note": "Repository HEAD when the pack was built."
+  },
+  "prompt_version": "zero_shot_typed_v1",
+  "model_order": [
+    "majority",
+    "laya_typed_decisions",
+    "jev_1_13_0",
+    "kev_0_8b",
+    "kev_4b",
+    "jevlite"
+  ],
+  "models": {
+    "majority": {
+      "model_id": "majority_prior_v1",
+      "role_label": "Majority prior",
+      "summary": "outputs/benchmark/majority/summary.json",
+      "summary_sha256_lf": "349578561f47519c118a72ed34b930aa40834521c40e6f607f9129c6ca8014e8"
+    },
+    "laya_typed_decisions": {
+      "model_id": "convaiinnovations/laya#typed-decisions",
+      "role_label": "Encoder decision model",
+      "summary": "outputs/benchmark/laya_typed_decisions/summary.json",
+      "summary_sha256_lf": "4e1b266001f0185973f4d77c893b40b67d050b5e26d63959ba042913fb48594c"
+    },
+    "jev_1_13_0": {
+      "model_id": "jev-1.13.0",
+      "role_label": "Hosted typed-decision API",
+      "summary": "outputs/benchmark/jev_1_13_0/summary.json",
+      "summary_sha256_lf": "280c79ee49e93c279db1eb43395969dd4b4380b101e725f11f1bd7042b418367"
+    },
+    "kev_0_8b": {
+      "model_id": "jaredpalmer/kev-0.8b",
+      "role_label": "Open adapter, small",
+      "summary": "outputs/benchmark/kev_0_8b/summary.json",
+      "summary_sha256_lf": "4b075cb6cb980bfedb03dce53efb1381e456af25d67a766592afc0848fa0a136"
+    },
+    "kev_4b": {
+      "model_id": "jaredpalmer/kev-4b",
+      "role_label": "Open adapter, mid",
+      "summary": "outputs/benchmark/kev_4b/summary.json",
+      "summary_sha256_lf": "8f39a01b6a222e5e5563eb9c794bb266c0f257a3eadbe446e1b640f9bd80988c"
+    },
+    "jevlite": {
+      "model_id": "vagmi/jev-lite",
+      "role_label": "Option-letter adapter",
+      "summary": "outputs/benchmark/jevlite/summary.json",
+      "summary_sha256_lf": "dfd907ad9b15240bfc1cc34e917a69fb0b47fc9d9ebe16f595e3286cee6a04f7"
+    }
+  },
+  "tasks": {
+    "compatibility": {
+      "items": 2000,
+      "fields": [
+        "label"
+      ],
+      "label_source": [
+        "dual_judge_consensus"
+      ],
+      "strata": {
+        "generated_cross_sell": 500,
+        "generated_direct_accessory": 500,
+        "human_irrelevant_negative": 180,
+        "human_substitute_hard_negative": 400,
+        "out_of_category_negative": 420
+      }
+    },
+    "query_segmentation": {
+      "items": 2000,
+      "fields": [
+        "goal",
+        "object",
+        "specificity",
+        "commerce_scope"
+      ],
+      "label_source": [
+        "dual_judge_consensus"
+      ],
+      "strata": {
+        "esci_accessory_for_product": 120,
+        "esci_ambiguous": 75,
+        "esci_broad_gift_intent": 80,
+        "esci_bundle_or_set": 100,
+        "esci_single_product": 550,
+        "esci_unknown": 75,
+        "orcas_i": 1000
+      }
+    },
+    "brand_category": {
+      "items": 2000,
+      "fields": [
+        "brand_intent",
+        "brand_choice",
+        "category_choice",
+        "multi_target"
+      ],
+      "label_source": [
+        "dual_judge_consensus"
+      ],
+      "strata": {
+        "ambiguous_or_unmapped": 400,
+        "explicit_brand_with_category": 700,
+        "generic_query_with_category": 900
+      }
+    },
+    "esci": {
+      "items": 8000,
+      "fields": [
+        "esci_label"
+      ],
+      "label_source": [
+        "human"
+      ],
+      "strata": {
+        "human": 8000
+      }
+    }
+  },
+  "label_sources": {
+    "dual_judge_consensus": "Field consensus of two LLM judges (judge_a and judge_b) under the listed rubric. A field is labelled only where both judges returned the same value; otherwise its reference is null and the field is not scored for that item.",
+    "human": "The ESCI human relevance labels (esci_label: E, S, C or I) from the Amazon Shopping Queries Dataset."
+  },
+  "judges": {
+    "judge_a": {
+      "provider": "anthropic",
+      "model": "claude-opus-5"
+    },
+    "judge_b": {
+      "provider": "openai",
+      "model": "gpt-5.6-sol"
+    }
+  },
+  "strata_note": "stratum is the sampling stratum each item was drawn from. Query-segmentation items sampled from ORCAS-I all carry orcas_i; their ORCAS-I intent category is not included. ESCI items carry human.",
+  "rubrics": {
+    "compatibility": {
+      "path": "rubrics/v1.md",
+      "sha256_lf": "2f703ba346dd162702ebf9bfdf8db2dfee71a12740e5e27419728786aed4d7c8"
+    },
+    "query_segmentation": {
+      "path": "rubrics/v3_query_segmentation.md",
+      "sha256_lf": "49027ba3569bd9b92da39bc35d4e142d9e7375ec42994edabc20c53df39454ba"
+    },
+    "brand_category": {
+      "path": "rubrics/v1.md",
+      "sha256_lf": "2f703ba346dd162702ebf9bfdf8db2dfee71a12740e5e27419728786aed4d7c8"
+    }
+  },
+  "licences": [
+    {
+      "source": "Amazon Shopping Queries Dataset (ESCI)",
+      "url": "https://github.com/amazon-science/esci-data",
+      "licence": "Apache-2.0",
+      "use": "Queries and products behind the compatibility, brand/category and ESCI items, 1,000 of the 2,000 query-segmentation queries, and the ESCI human labels for the ESCI slice. No query or product text is in this pack."
+    },
+    {
+      "source": "ESCI-S product metadata",
+      "url": "https://github.com/shuttie/esci-s",
+      "licence": "Apache-2.0",
+      "licence_checked": "2026-11-09: the repository LICENSE file is the Apache License 2.0 and the README 'License' section states Apache-2.0. The README 'Methodology' section states that the product metadata was scraped from the product pages.",
+      "use": "US category paths. The brand/category task's category options, shown to models and judges, are ESCI-S category paths; this pack stores only the option IDs (category_0 to category_7, other_or_ambiguous)."
+    },
+    {
+      "source": "ORCAS-I gold (Alexander, Kusa and de Vries, SIGIR 2022)",
+      "licence": "CC BY-NC 4.0",
+      "use": "1,000 of the 2,000 query-segmentation queries were sampled from ORCAS-I. The queries and their ORCAS-I intent labels are not redistributed: those items carry the single stratum value orcas_i, and the ORCAS-I intent label is not in this pack. The judge labels and model predictions on those items are this project's outputs. The committed summary.json files report query-segmentation accuracy aggregated by ORCAS-I intent category; those aggregates derive from ORCAS-I and are credited under CC BY-NC 4.0."
+    },
+    {
+      "source": "GPT-5.1 enrichment of ESCI queries",
+      "licence": "OpenAI model output; not redistributed except as the stratum names below.",
+      "use": "Query taxonomy, complement candidates and category matches used to form sampling strata and candidate pools. The only enrichment-derived values in this pack are stratum names: each esci_* stratum is the query's GPT-5.1 product-type intent, and several compatibility and brand/category strata name pools built from the enrichment. No enrichment text is in this pack, and none was shown to models or judges except the ESCI-S category paths it matched."
+    },
+    {
+      "source": "Judge labels: judge_a (Anthropic claude-opus-5), judge_b (OpenAI gpt-5.6-sol), and their field consensus",
+      "licence": "AI-generated outputs of the two named models, released with this repository as evaluation labels; Anthropic Commercial Terms and OpenAI Services Agreement and Sharing and Publication Policy checked 2026-11-09.",
+      "use": "Reference labels for compatibility, query segmentation and brand/category."
+    }
+  ],
+  "row_schema": {
+    "labels": "item_id, task, stratum, label_source, fields.<field>.reference (null when withheld); dual-judge tasks add fields.<field>.judge_a and judge_b",
+    "predictions": "item_id, task, elapsed_ms, input_tokens, fields.<field>.predicted, probabilities (label -> probability), confidence (the adapter's reported confidence field)"
+  },
+  "private_inputs_sha256": {
+    "outputs/benchmark/jev_1_13_0/predictions/brand_category.jsonl": "a0478a1528f9e0b90e93a948adf922dc982ded53a42f31445ca23cba3c4ea14c",
+    "outputs/benchmark/jev_1_13_0/predictions/compatibility.jsonl": "2cc9e45f476c2bb058d0cb36b984164e58c6ee7b075e1ac8e16ed576d3137a9a",
+    "outputs/benchmark/jev_1_13_0/predictions/esci.jsonl": "7e6e6c72002bc25c002b79fa61c83430a7916030458b1cf292e285ea569b19c5",
+    "outputs/benchmark/jev_1_13_0/predictions/query_segmentation.jsonl": "bfe776a22a7b014c9e869a2d5b019fc90950ee0231916e4de653c30342583c04",
+    "outputs/benchmark/jevlite/predictions/brand_category.jsonl": "f958de29e61b538460d23365c1cd79c503be7b9096da3194014cbfbc4a26d553",
+    "outputs/benchmark/jevlite/predictions/compatibility.jsonl": "e7f7433eb5adf2bc1ab7e50fa7c640b8106d380f0fbc6a84c95df49541200921",
+    "outputs/benchmark/jevlite/predictions/esci.jsonl": "ef7177fe96027dbf99816c88fbe9db94a4639709f82751b9e829fff7b06a894a",
+    "outputs/benchmark/jevlite/predictions/query_segmentation.jsonl": "e7b2eae61e32356da955a6990e41bf357d8d84b7b4e0af4807f0c2dcb6e88db7",
+    "outputs/benchmark/kev_0_8b/predictions/brand_category.jsonl": "298d7c5ff8ff59945f3fbc6b002feed874668f1fd8c6a162d7567140be389815",
+    "outputs/benchmark/kev_0_8b/predictions/compatibility.jsonl": "8934815a859395f83d54d07852019d84a8917d7df6f9c6a0404b690ce48b9aa2",
+    "outputs/benchmark/kev_0_8b/predictions/esci.jsonl": "792fed2ff5ca2f6f3cc36f83aba37ec871fc5bca1d38c74a2135b5db95bd3510",
+    "outputs/benchmark/kev_0_8b/predictions/query_segmentation.jsonl": "2663357abf5403b4ad006002ef57c40949579c19aa8d1fb8c1f00f0060e35f03",
+    "outputs/benchmark/kev_4b/predictions/brand_category.jsonl": "b12355cf6518f042dd1346fa6abd660a7b39b643b1a6c1b4d81528dec137f2d0",
+    "outputs/benchmark/kev_4b/predictions/compatibility.jsonl": "dcaeb2def407bcc6731ccec9f50ee2dac57308f507c45f64c64cdaddbd9f536f",
+    "outputs/benchmark/kev_4b/predictions/esci.jsonl": "1e020b8870fbee3ef92865128199d1eceae0fcace1aab62c0671ce07ac4ce90e",
+    "outputs/benchmark/kev_4b/predictions/query_segmentation.jsonl": "450cd90dacd6d6b1613a3e6615046e13853beefcf0ce979b69a7fa3aa5004a22",
+    "outputs/benchmark/laya_typed_decisions/predictions/brand_category.jsonl": "aac205886fed8d87cf55d3f306346bfef074cf9ecede519a037273094f97d88d",
+    "outputs/benchmark/laya_typed_decisions/predictions/compatibility.jsonl": "47feee36ad4cd0d079095971dac2cc845d1bc186ae3cbbe7c66f7d609c7a3cc7",
+    "outputs/benchmark/laya_typed_decisions/predictions/esci.jsonl": "00f01e3666335c6b20d18ac54da4a4efe469d5d1c314e6d34a29dba2f148dc4d",
+    "outputs/benchmark/laya_typed_decisions/predictions/query_segmentation.jsonl": "a99c4da9d1a037095c236237dab2441e9e3b5b40ee082d1df5c93500b4e08a3d",
+    "outputs/benchmark/majority/predictions/brand_category.jsonl": "ee1a7dce13d3937fb4c811026a804171dce6fd70d857c4337b4d3b1f2f098567",
+    "outputs/benchmark/majority/predictions/compatibility.jsonl": "2e3af08e919ab5a732b75cd9d89e6f0d2624c73f307564fe0bf90eb90f50b124",
+    "outputs/benchmark/majority/predictions/esci.jsonl": "471b9631a7bb2616e5af013d76fde7649a16a1dc1df11fb807c700ae7ea386d8",
+    "outputs/benchmark/majority/predictions/query_segmentation.jsonl": "d86c7ba10eeb379704060bc98e8dd3e9313a89afaf905903a02c1cbacb444ea0",
+    "references/brand_category_reference_2000.jsonl": "b1ae9f49531df4142a2220b050f02a9166f6c7574f6c1cbc70ebb6be90731e0b",
+    "references/compatibility_reference_2000.jsonl": "6e9e674f0ccf44c0522ab2bb05afc6ef5b65154eec5139db07e51dda00a2f6e2",
+    "references/consensus/brand_category_consensus.jsonl": "5c9d9a2880a577b718f054d86224bd386c66d8e47997755d0beb54b5e0aae3c9",
+    "references/consensus/compatibility_consensus.jsonl": "2558f34ccba9bf10ed5b4df128b2f16765c2565bf992a866a017cdc99e764cef",
+    "references/consensus/query_segmentation_consensus.jsonl": "e42a61ed0ecb573e7590a61a1eeb33dc08b24ca0bd82d5f16b7463c3c52e57ce",
+    "references/esci_eval_slice.jsonl": "a563c9537f0058e717ae56e9dc0527e37f3be2ff3b6b991e770ffb4b34ba48d9",
+    "references/query_segmentation_reference_2000.jsonl": "5cc612dcb29abb326e98db272d41b2cda943ec3b396f075ae5cd1e359fdde39d"
+  },
+  "files": {
+    "labels/brand_category.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 15474,
+      "sha256": "7f46cd4e4c129cab49f75f6d20df4cd776c946ae9d9afb36a81c1e9ff5443057"
+    },
+    "labels/compatibility.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 8712,
+      "sha256": "81e60b7bce987dcca9dce0d922a7b7ac90bf6d44bf34608d20a0dbec9a6b3bf1"
+    },
+    "labels/esci.jsonl.gz": {
+      "rows": 8000,
+      "bytes": 30144,
+      "sha256": "4156bbf7a79144240636d8acca534abedae40042fedfed311100618344740ce2"
+    },
+    "labels/query_segmentation.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 19305,
+      "sha256": "01fcb9df1ac467f3a14d65af3bd6b7668c3a7cc083c043d31868f5d1567b5c3f"
+    },
+    "predictions/jev_1_13_0/brand_category.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 89041,
+      "sha256": "916b76ff233bacdd424835949bb39db024f059417d4a30e54187f5ad581b3596"
+    },
+    "predictions/jev_1_13_0/compatibility.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 47473,
+      "sha256": "ff97129ea97234d1444487b560b62877030693cff5db1a41cd0f3108a97c3baa"
+    },
+    "predictions/jev_1_13_0/esci.jsonl.gz": {
+      "rows": 8000,
+      "bytes": 197585,
+      "sha256": "9f545bf0088abd2b056d5a7e809ebae65b0e40009bb2a1ba89c4d22c022c96e3"
+    },
+    "predictions/jev_1_13_0/query_segmentation.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 110016,
+      "sha256": "bf5fa3ed80b34ef208b9e4b4d26d7753fe5f3f3ac76bfa20826ba8fb9d1e44ce"
+    },
+    "predictions/jevlite/brand_category.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 212030,
+      "sha256": "1ae50a2f63bc42b75b2224f5e09872ecedd20d325144ee62646ff0046a3801af"
+    },
+    "predictions/jevlite/compatibility.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 65492,
+      "sha256": "1cb5f9d00d485316e08ff2fe33173f42cb71774dabd81f49bce9b5ade7d63542"
+    },
+    "predictions/jevlite/esci.jsonl.gz": {
+      "rows": 8000,
+      "bytes": 256391,
+      "sha256": "fb8b85a31018649aa93f65017e53653478422e7007eec7d55031b70e46a2f5e3"
+    },
+    "predictions/jevlite/query_segmentation.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 215838,
+      "sha256": "04c217bf195ffacb47ba44a2a6a9974dd705c29c4f7ec0f6640e71000790b99d"
+    },
+    "predictions/kev_0_8b/brand_category.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 243917,
+      "sha256": "ed007c6f104c8d0f434ff7e5223510cac5c7f7fb2d93fc14d002f4180c9377d8"
+    },
+    "predictions/kev_0_8b/compatibility.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 67670,
+      "sha256": "401c4a856bd6a159ffcf82b59bce644901fb97654c5cc3934f6135e4e6cf28a0"
+    },
+    "predictions/kev_0_8b/esci.jsonl.gz": {
+      "rows": 8000,
+      "bytes": 262397,
+      "sha256": "915e50c2a163f3da2b8af6907e3c6dd8ddc522b061d99188fe573a807c24cddf"
+    },
+    "predictions/kev_0_8b/query_segmentation.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 210174,
+      "sha256": "8c1840901053a0606f505b53fbb7d78ef09e1b5ab5ef3493edabf6625de5e1bc"
+    },
+    "predictions/kev_4b/brand_category.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 241815,
+      "sha256": "812ad6c6b41c8af44b0b43d381b7232e2b902edf1c5d2bb4740d22dd25b1fb46"
+    },
+    "predictions/kev_4b/compatibility.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 67479,
+      "sha256": "7087bee2f141b32bbdc79d98c0ce0054fe5f4e98ea3123d2f2306401a44448c1"
+    },
+    "predictions/kev_4b/esci.jsonl.gz": {
+      "rows": 8000,
+      "bytes": 270918,
+      "sha256": "133566b99ee9a8c7a3642932510e5cbeee0d473b74544c2286c7b6420c884a87"
+    },
+    "predictions/kev_4b/query_segmentation.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 220166,
+      "sha256": "1ee8c24431f1eb5754a0e01a03b28a74e62706c00179f1fa205ded4fab1028ae"
+    },
+    "predictions/laya_typed_decisions/brand_category.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 213270,
+      "sha256": "dd0cb94f8ab2433c67e10b2e11556cb90f34f2c37c5760a47904382ec4482bde"
+    },
+    "predictions/laya_typed_decisions/compatibility.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 47786,
+      "sha256": "29ef49cc489c1d17b017f6979176bbc594bbfc977119e9b901b6ca1f1fdfa3f1"
+    },
+    "predictions/laya_typed_decisions/esci.jsonl.gz": {
+      "rows": 8000,
+      "bytes": 186824,
+      "sha256": "e1f2b19c31cc7da6f9d638ed7afb938413ebadfc7ece60b42832e454070e19f3"
+    },
+    "predictions/laya_typed_decisions/query_segmentation.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 194187,
+      "sha256": "779134c029a63249d1fbbef768c626794a1c772729c94a8c2881b61e0b40c160"
+    },
+    "predictions/majority/brand_category.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 12827,
+      "sha256": "c8154f9ada4a1d4a769e14286d8a2d043d99370be9b3ff623797e29030706d8c"
+    },
+    "predictions/majority/compatibility.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 6243,
+      "sha256": "3d0393cdb03045cf67dc9dbcea258e621bc10ea7338ae5b35052180768ebe317"
+    },
+    "predictions/majority/esci.jsonl.gz": {
+      "rows": 8000,
+      "bytes": 28427,
+      "sha256": "5e362aeabd056c2d64703196125b9f094cc29e98450c3a14ceec3917d017cc9c"
+    },
+    "predictions/majority/query_segmentation.jsonl.gz": {
+      "rows": 2000,
+      "bytes": 13300,
+      "sha256": "4a4470a5b26df3a44b9a444b25a7dd82bbfe03aaa51453053c7f1f54901cf270"
+    }
+  },
+  "label_provenance": {
+    "path": "label_provenance.json",
+    "sha256_lf": "460b2364e333f5de2e58b417d825f393f8777b8120e0ad4bd99aacb323302845"
+  },
+  "build_checks": {
+    "summary_values_stored": 4092,
+    "summary_values_compared_exactly": 3852,
+    "summary_values_verified_in_aggregate": 240,
+    "summary_mismatches": 0,
+    "strings_outside_vocabulary": 0,
+    "orcas_i_category_names_found": 0,
+    "consensus_rule_violations": 0
+  }
+}

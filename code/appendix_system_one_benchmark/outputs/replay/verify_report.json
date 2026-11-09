@@ -1,0 +1,472 @@
+{
+  "manifest_problems": [],
+  "summaries": 6,
+  "task_blocks": 24,
+  "values_stored": 4092,
+  "values_compared_exactly": 3852,
+  "values_verified_in_aggregate": 240,
+  "token_and_cost_values_compared": 20,
+  "models_without_stored_token_counts": [
+    "laya_typed_decisions",
+    "majority"
+  ],
+  "run_only_keys_not_compared": [
+    "adapter",
+    "cached_items",
+    "dataset",
+    "memory",
+    "model_id",
+    "new_items",
+    "prompt_version",
+    "task",
+    "wall_seconds"
+  ],
+  "metadata_problems": [],
+  "mismatches": 0,
+  "mismatch_details": [],
+  "per_task": [
+    {
+      "model": "majority",
+      "task": "compatibility",
+      "values": 49,
+      "compared_exactly": 49,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 0,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "majority",
+      "task": "query_segmentation",
+      "values": 240,
+      "compared_exactly": 200,
+      "verified_in_aggregate": 40,
+      "token_and_cost_values": 0,
+      "orcas_i_merges": [
+        {
+          "field": "goal",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 857,
+          "correct": 53,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "object",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 913,
+          "correct": 59,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "specificity",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 791,
+          "correct": 50,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "commerce_scope",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 801,
+          "correct": 69,
+          "counts_recovered_exactly": true
+        }
+      ],
+      "mismatches": 0
+    },
+    {
+      "model": "majority",
+      "task": "brand_category",
+      "values": 196,
+      "compared_exactly": 196,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 0,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "majority",
+      "task": "esci",
+      "values": 43,
+      "compared_exactly": 43,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 0,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "laya_typed_decisions",
+      "task": "compatibility",
+      "values": 60,
+      "compared_exactly": 60,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 0,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "laya_typed_decisions",
+      "task": "query_segmentation",
+      "values": 318,
+      "compared_exactly": 278,
+      "verified_in_aggregate": 40,
+      "token_and_cost_values": 0,
+      "orcas_i_merges": [
+        {
+          "field": "goal",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 857,
+          "correct": 189,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "object",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 913,
+          "correct": 91,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "specificity",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 791,
+          "correct": 275,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "commerce_scope",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 801,
+          "correct": 301,
+          "counts_recovered_exactly": true
+        }
+      ],
+      "mismatches": 0
+    },
+    {
+      "model": "laya_typed_decisions",
+      "task": "brand_category",
+      "values": 345,
+      "compared_exactly": 345,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 0,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "laya_typed_decisions",
+      "task": "esci",
+      "values": 55,
+      "compared_exactly": 55,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 0,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "jev_1_13_0",
+      "task": "compatibility",
+      "values": 61,
+      "compared_exactly": 61,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 2,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "jev_1_13_0",
+      "task": "query_segmentation",
+      "values": 308,
+      "compared_exactly": 268,
+      "verified_in_aggregate": 40,
+      "token_and_cost_values": 2,
+      "orcas_i_merges": [
+        {
+          "field": "goal",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 857,
+          "correct": 576,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "object",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 913,
+          "correct": 641,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "specificity",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 791,
+          "correct": 604,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "commerce_scope",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 801,
+          "correct": 736,
+          "counts_recovered_exactly": true
+        }
+      ],
+      "mismatches": 0
+    },
+    {
+      "model": "jev_1_13_0",
+      "task": "brand_category",
+      "values": 261,
+      "compared_exactly": 261,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 2,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "jev_1_13_0",
+      "task": "esci",
+      "values": 57,
+      "compared_exactly": 57,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 2,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "kev_0_8b",
+      "task": "compatibility",
+      "values": 62,
+      "compared_exactly": 62,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "kev_0_8b",
+      "task": "query_segmentation",
+      "values": 297,
+      "compared_exactly": 257,
+      "verified_in_aggregate": 40,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [
+        {
+          "field": "goal",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 857,
+          "correct": 154,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "object",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 913,
+          "correct": 109,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "specificity",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 791,
+          "correct": 164,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "commerce_scope",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 801,
+          "correct": 185,
+          "counts_recovered_exactly": true
+        }
+      ],
+      "mismatches": 0
+    },
+    {
+      "model": "kev_0_8b",
+      "task": "brand_category",
+      "values": 294,
+      "compared_exactly": 294,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "kev_0_8b",
+      "task": "esci",
+      "values": 56,
+      "compared_exactly": 56,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "kev_4b",
+      "task": "compatibility",
+      "values": 62,
+      "compared_exactly": 62,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "kev_4b",
+      "task": "query_segmentation",
+      "values": 310,
+      "compared_exactly": 270,
+      "verified_in_aggregate": 40,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [
+        {
+          "field": "goal",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 857,
+          "correct": 358,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "object",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 913,
+          "correct": 405,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "specificity",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 791,
+          "correct": 483,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "commerce_scope",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 801,
+          "correct": 671,
+          "counts_recovered_exactly": true
+        }
+      ],
+      "mismatches": 0
+    },
+    {
+      "model": "kev_4b",
+      "task": "brand_category",
+      "values": 270,
+      "compared_exactly": 270,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "kev_4b",
+      "task": "esci",
+      "values": 56,
+      "compared_exactly": 56,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "jevlite",
+      "task": "compatibility",
+      "values": 61,
+      "compared_exactly": 61,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "jevlite",
+      "task": "query_segmentation",
+      "values": 311,
+      "compared_exactly": 271,
+      "verified_in_aggregate": 40,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [
+        {
+          "field": "goal",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 857,
+          "correct": 636,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "object",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 913,
+          "correct": 608,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "specificity",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 791,
+          "correct": 384,
+          "counts_recovered_exactly": true
+        },
+        {
+          "field": "commerce_scope",
+          "stored_entries": 5,
+          "stored_values": 10,
+          "items": 801,
+          "correct": 696,
+          "counts_recovered_exactly": true
+        }
+      ],
+      "mismatches": 0
+    },
+    {
+      "model": "jevlite",
+      "task": "brand_category",
+      "values": 264,
+      "compared_exactly": 264,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    },
+    {
+      "model": "jevlite",
+      "task": "esci",
+      "values": 56,
+      "compared_exactly": 56,
+      "verified_in_aggregate": 0,
+      "token_and_cost_values": 1,
+      "orcas_i_merges": [],
+      "mismatches": 0
+    }
+  ],
+  "results_file": {
+    "path": "outputs/benchmark/ZERO_SHOT_RESULTS.md",
+    "matches_regenerated": true
+  },
+  "status": "pass"
+}

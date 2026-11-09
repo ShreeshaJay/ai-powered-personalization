@@ -2,14 +2,14 @@
   "seed": 42,
   "rubric_version": "v1",
   "source_files": {
-    "examples": "C:\\Users\\shree\\OneDrive\\Desktop\\RecSys ML Book Writing\\Dataset\\Amazon ESCI\\shopping_queries_dataset\\shopping_queries_dataset_examples.parquet",
-    "products": "C:\\Users\\shree\\OneDrive\\Desktop\\RecSys ML Book Writing\\Dataset\\Amazon ESCI\\shopping_queries_dataset\\shopping_queries_dataset_products.parquet",
-    "augmented_candidates": "C:\\Users\\shree\\OneDrive\\Desktop\\RecSys ML Book Writing\\RecSys book code\\Appendix Hybrid Search\\esci_llm_enrichment\\outputs\\augmented_candidates.jsonl",
-    "query_taxonomy": "C:\\Users\\shree\\OneDrive\\Desktop\\RecSys ML Book Writing\\RecSys book code\\Appendix Hybrid Search\\esci_llm_enrichment\\outputs\\query_taxonomy_with_anchor_product_type.csv"
+    "examples": "shopping_queries_dataset_examples.parquet (not distributed)",
+    "products": "shopping_queries_dataset_products.parquet (not distributed)",
+    "augmented_candidates": "augmented_candidates.jsonl (not distributed)",
+    "query_taxonomy": "query_taxonomy_with_anchor_product_type.csv (not distributed)"
   },
   "datasets": {
     "compatibility": {
-      "path": "C:\\Users\\shree\\OneDrive\\Desktop\\RecSys ML Book Writing\\RecSys book code\\Appendix Hybrid Search\\system_one_search_benchmark\\pilots\\compatibility_pilot_100.jsonl",
+      "path": "pilots/compatibility_pilot_100.jsonl",
       "rows": 100,
       "source_strata": {
         "generated_cross_sell": 20,
@@ -21,7 +21,7 @@
       "sha256": "99bae207a07656f23890e9397cff78ab072c4a2b79d7593c07c43f1edc97ddee"
     },
     "query_segmentation": {
-      "path": "C:\\Users\\shree\\OneDrive\\Desktop\\RecSys ML Book Writing\\RecSys book code\\Appendix Hybrid Search\\system_one_search_benchmark\\pilots\\query_segmentation_pilot_100.jsonl",
+      "path": "pilots/query_segmentation_pilot_100.jsonl",
       "rows": 100,
       "source_strata": {
         "accessory_for_product": 15,
@@ -35,7 +35,7 @@
       "sha256": "57eff8d23457e5f2a8a64891df5f609d165f246f30b554114bd1c3b68d891d1c"
     },
     "brand_category": {
-      "path": "C:\\Users\\shree\\OneDrive\\Desktop\\RecSys ML Book Writing\\RecSys book code\\Appendix Hybrid Search\\system_one_search_benchmark\\pilots\\brand_category_pilot_100.jsonl",
+      "path": "pilots/brand_category_pilot_100.jsonl",
       "rows": 100,
       "source_strata": {
         "ambiguous_or_unmapped": 20,

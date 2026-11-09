@@ -23,6 +23,7 @@ from build_pilots import (
     exact_brand_map,
     explicit_brand_matches,
     read_inputs,
+    relative_path,
 )
 
 
@@ -454,7 +455,7 @@ def build_all(output_dir: Path, seed: int = SEED) -> dict[str, Any]:
     for name, rows in datasets.items():
         path = output_dir / f"{name}_reference_2000.jsonl"
         summary["datasets"][name] = {
-            "path": str(path),
+            "path": relative_path(path),
             "rows": len(rows),
             "source_strata": strata(rows),
             "sha256": write_jsonl(path, rows),

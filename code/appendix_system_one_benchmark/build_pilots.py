@@ -1,10 +1,18 @@
-"""Build deterministic 100-item pilot manifests for three adjudicated tasks."""
+"""Build deterministic 100-item pilot manifests for three adjudicated tasks.
+
+External inputs are read from two folders: the Amazon ESCI parquet files from
+`--esci-dir` (else `APPE_ESCI_DIR`, else `data/esci`) and the enrichment outputs
+from `--enrichment-dir` (else `APPE_ENRICHMENT_DIR`, else `data/enrichment`).
+`pilot_summary.json` names each input by file name only, marked as not
+distributed, and records output paths relative to this folder.
+"""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import os
 import random
 import re
 from collections import Counter
@@ -15,19 +23,31 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parent
-APPENDIX_ROOT = ROOT.parent
-WORKSPACE_ROOT = ROOT.parents[2]
-ESCI_ROOT = WORKSPACE_ROOT / "Dataset" / "Amazon ESCI" / "shopping_queries_dataset"
-ENRICHMENT_ROOT = APPENDIX_ROOT / "esci_llm_enrichment"
+ESCI_DIR_ENV = "APPE_ESCI_DIR"
+ENRICHMENT_DIR_ENV = "APPE_ENRICHMENT_DIR"
+ESCI_DIR = Path(os.environ.get(ESCI_DIR_ENV) or ROOT / "data" / "esci")
+ENRICHMENT_DIR = Path(os.environ.get(ENRICHMENT_DIR_ENV) or ROOT / "data" / "enrichment")
 DEFAULT_OUTPUT_DIR = ROOT / "pilots"
 SEED = 42
+NOT_DISTRIBUTED = "(not distributed)"
 
-EXAMPLES_PATH = ESCI_ROOT / "shopping_queries_dataset_examples.parquet"
-PRODUCTS_PATH = ESCI_ROOT / "shopping_queries_dataset_products.parquet"
-AUGMENTED_PATH = ENRICHMENT_ROOT / "outputs" / "augmented_candidates.jsonl"
-TAXONOMY_PATH = (
-    ENRICHMENT_ROOT / "outputs" / "query_taxonomy_with_anchor_product_type.csv"
-)
+SOURCE_FILES = {
+    "examples": "shopping_queries_dataset_examples.parquet",
+    "products": "shopping_queries_dataset_products.parquet",
+    "augmented_candidates": "augmented_candidates.jsonl",
+    "query_taxonomy": "query_taxonomy_with_anchor_product_type.csv",
+}
+ESCI_SOURCES = ("examples", "products")
+
+
+def source_paths(esci_dir: Path = ESCI_DIR, enrichment_dir: Path = ENRICHMENT_DIR) -> dict[str, Path]:
+    return {
+        name: (esci_dir if name in ESCI_SOURCES else enrichment_dir) / file_name
+        for name, file_name in SOURCE_FILES.items()
+    }
+
+
+EXAMPLES_PATH, PRODUCTS_PATH, AUGMENTED_PATH, TAXONOMY_PATH = source_paths().values()
 
 NAVIGATION_PATTERN = re.compile(
     r"(?i)(?:\b(?:store|website|official|login|customer service|near me)\b|\.com)"
@@ -75,9 +95,13 @@ def stable_sample(
     return frame.loc[selected].copy()
 
 
-def read_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def read_inputs(
+    esci_dir: Path = ESCI_DIR,
+    enrichment_dir: Path = ENRICHMENT_DIR,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    paths = source_paths(esci_dir, enrichment_dir)
     examples = pd.read_parquet(
-        EXAMPLES_PATH,
+        paths["examples"],
         columns=[
             "query_id",
             "query",
@@ -93,7 +117,7 @@ def read_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFram
     ].copy()
 
     products = pd.read_parquet(
-        PRODUCTS_PATH,
+        paths["products"],
         columns=[
             "product_id",
             "product_title",
@@ -109,8 +133,8 @@ def read_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFram
         .drop_duplicates("product_id")
         .set_index("product_id", drop=False)
     )
-    augmented = pd.read_json(AUGMENTED_PATH, lines=True)
-    taxonomy = pd.read_csv(TAXONOMY_PATH)
+    augmented = pd.read_json(paths["augmented_candidates"], lines=True)
+    taxonomy = pd.read_csv(paths["query_taxonomy"])
     return examples, products, augmented, taxonomy
 
 
@@ -524,8 +548,21 @@ def source_strata(rows: list[dict[str, Any]]) -> dict[str, int]:
     )
 
 
-def build_all(output_dir: Path, seed: int = SEED) -> dict[str, Any]:
-    examples, products, augmented, taxonomy = read_inputs()
+def relative_path(path: Path, base: Path = ROOT) -> str:
+    """POSIX path relative to `base`, or the bare file name when `path` lies outside it."""
+    try:
+        return path.resolve().relative_to(base.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+def build_all(
+    output_dir: Path,
+    seed: int = SEED,
+    esci_dir: Path = ESCI_DIR,
+    enrichment_dir: Path = ENRICHMENT_DIR,
+) -> dict[str, Any]:
+    examples, products, augmented, taxonomy = read_inputs(esci_dir, enrichment_dir)
     compatibility = build_compatibility(
         examples, products, augmented, random.Random(seed + 1)
     )
@@ -541,25 +578,20 @@ def build_all(output_dir: Path, seed: int = SEED) -> dict[str, Any]:
     summary: dict[str, Any] = {
         "seed": seed,
         "rubric_version": "v1",
-        "source_files": {
-            "examples": str(EXAMPLES_PATH),
-            "products": str(PRODUCTS_PATH),
-            "augmented_candidates": str(AUGMENTED_PATH),
-            "query_taxonomy": str(TAXONOMY_PATH),
-        },
+        "source_files": {name: f"{file_name} {NOT_DISTRIBUTED}" for name, file_name in SOURCE_FILES.items()},
         "datasets": {},
     }
     for name, rows in datasets.items():
         path = output_dir / f"{name}_pilot_100.jsonl"
         summary["datasets"][name] = {
-            "path": str(path),
+            "path": relative_path(path),
             "rows": len(rows),
             "source_strata": source_strata(rows),
             "sha256": write_jsonl(path, rows),
         }
     summary_path = output_dir / "pilot_summary.json"
     summary_path.write_text(
-        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
     return summary
 
@@ -568,12 +600,24 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument(
+        "--esci-dir",
+        type=Path,
+        default=ESCI_DIR,
+        help=f"folder holding the two Amazon ESCI parquet files (default: ${ESCI_DIR_ENV}, else data/esci)",
+    )
+    parser.add_argument(
+        "--enrichment-dir",
+        type=Path,
+        default=ENRICHMENT_DIR,
+        help=f"folder holding the enrichment outputs (default: ${ENRICHMENT_DIR_ENV}, else data/enrichment)",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    summary = build_all(args.output_dir, args.seed)
+    summary = build_all(args.output_dir, args.seed, args.esci_dir, args.enrichment_dir)
     print(json.dumps(summary, indent=2))
 
 
