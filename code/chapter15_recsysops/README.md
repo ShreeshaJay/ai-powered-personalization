@@ -47,7 +47,7 @@ Mean-fill is the instructive case. The fill value is neither null nor zero and e
 pip install -r requirements.txt
 ```
 
-The Chapter 6 feature pipeline is vendored as `ch6_polars_pipeline_vendored.py`, a verbatim copy whose header records the source commit and SHA-256; a test fails if the copy drifts. To try another copy of Chapter 6, pass `--ch6_dir` with its `chapter6_ranking` folder.
+The Chapter 6 feature pipeline is vendored as `ch6_polars_pipeline_vendored.py`, a verbatim copy of `code/chapter6_ranking/utils/polars_pipeline.py` at commit `8e8e71ab0a9ad9da387446b89f8432a23ad2d7fd`, SHA-256 `5eeb0a86dab5094d6c6b6dcffd3f4db858abebb04c4ba9150179f1e64d33e877`; a test fails if the copy drifts. To try another copy of Chapter 6, pass `--ch6_dir` with its `chapter6_ranking` folder.
 
 ### 2. Smoke Run (No Dataset Needed)
 

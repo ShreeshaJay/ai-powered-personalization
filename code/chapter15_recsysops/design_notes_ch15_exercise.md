@@ -19,7 +19,7 @@ The library modules are `monitoring_signals.py` (estimators and thresholds), `co
 
 ## 3. Dependency on Chapter 6
 
-**Vendored copy (since 2026-11-09).** `ch6_polars_pipeline_vendored.py` is a verbatim copy of `code/chapter6_ranking/utils/polars_pipeline.py` at commit `074886c3ee51a79dd1848d437b467d9be75843ca` (2026-11-09), SHA-256 with LF endings `cf532b51f4f21f4289349daee0eabb6a623320b2ab4deeca88657d6690ce7a03`. Its header records both, and `tests/test_vendored_ch6.py` fails if the body no longer hashes to the recorded value. The exercise loads it by file path (no `sys.path` change, no torch import) unless `--ch6_dir` names another `chapter6_ranking` folder. Each run records the source commit, the recorded hash, the body hash, and whether they match in `run_manifest.json` under `provenance.chapter6`.
+**Vendored copy (since 2026-11-09).** `ch6_polars_pipeline_vendored.py` is a verbatim copy of `code/chapter6_ranking/utils/polars_pipeline.py` at commit `8e8e71ab0a9ad9da387446b89f8432a23ad2d7fd` (2026-11-09), SHA-256 with LF endings `5eeb0a86dab5094d6c6b6dcffd3f4db858abebb04c4ba9150179f1e64d33e877`. Its header records both, and `tests/test_vendored_ch6.py` fails if the body no longer hashes to the recorded value. The exercise loads it by file path (no `sys.path` change, no torch import) unless `--ch6_dir` names another `chapter6_ranking` folder. Each run records the source commit, the recorded hash, the body hash, and whether they match in `run_manifest.json` under `provenance.chapter6`.
 
 **What is used.** `PolarsPipeline` (with `PolarsFeatureEncoder` from the same file), `PolarsHistoricalFeatures`, `split_training_history`, and `POLARS_DTYPES`. The exercise does not use `load_yambda_polars`, `split_validation_window`, or any Chapter 6 training script.
 
@@ -146,7 +146,7 @@ These follow from the design, before any data is seen:
 - SplitMix64 matches a pure-Python implementation, and its first output for seed 0 is 0xE220A8397B1DCDAF. A 0.3 segment over 100,000 IDs has 30 percent ± 1 point of the IDs.
 - Point-in-time counts: three plays of one pair give 0, 1, 2 (where the Chapter 6 expression gives 2, 2, 2); ties across windows follow window order; the windowed count drops plays older than the lookback.
 - End to end on synthetic data: the Chapter 6 pipeline still produces the 23 expected columns; windows are ordered and disjoint; training rows' `user_avg_completion` equals the user's mean over the window before the training rows (which fails on the previous in-sample behaviour); the Chapter 6 calendar features equal `timestamp // 3600 % 24` and `timestamp // 86400 % 7`; served days use refreshed lookups with the fit-window encoders; under mean-fill the null and zero rates of both targets are green and KS and PSI fire; pipeline monitors never fire.
-- The vendored Chapter 6 file hashes to the SHA-256 in its header (LF endings), and the header names the source path and commit `074886c`.
+- The vendored Chapter 6 file hashes to the SHA-256 in its header (LF endings), and the header names the source path and commit `8e8e71a`.
 - `ranker.total_order` gives the same frame for any input row order, and plays in the training history window count towards training rows' `previous_listen_count`.
 
 ## 9. Run Log

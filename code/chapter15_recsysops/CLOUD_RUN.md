@@ -45,7 +45,7 @@ git rev-parse HEAD                      # record this commit
 cd code/chapter15_recsysops
 ```
 
-The exercise uses its vendored copy of the Chapter 6 pipeline, `ch6_polars_pipeline_vendored.py`, and records the copy's source commit and SHA-256, and whether it still matches them, in `run_manifest.json`.
+The exercise uses its vendored copy of the Chapter 6 pipeline, `ch6_polars_pipeline_vendored.py` (commit `8e8e71ab0a9ad9da387446b89f8432a23ad2d7fd`, SHA-256 `5eeb0a86dab5094d6c6b6dcffd3f4db858abebb04c4ba9150179f1e64d33e877`), and records the copy's source commit and SHA-256, and whether it still matches them, in `run_manifest.json`.
 
 ### 2. Environment
 
