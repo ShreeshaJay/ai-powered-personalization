@@ -1,7 +1,7 @@
 """
 Evaluate Zero-Shot Item Embeddings on Amazon KDD 2023 (E-Commerce)
 
-Section 10.1: Pre-trained Text Encoder Baselines — E-Commerce Domain
+Section 10.4: Pre-trained Text Encoder Baselines — E-Commerce Domain
 
 Evaluates embedding quality through two complementary lenses:
 1. Next-Item Retrieval  — Given the last viewed item, is the next engaged
@@ -346,7 +346,7 @@ def compare_models(
 ) -> Tuple[pd.DataFrame, List[Dict]]:
     """Compare multiple models (dataset loaded once, shared)."""
     logger.info("=" * 80)
-    logger.info("Amazon KDD Model Comparison (Section 10.1 — E-Commerce)")
+    logger.info("Amazon KDD Model Comparison (Section 10.4 — E-Commerce)")
     logger.info("=" * 80)
 
     all_results = []
@@ -382,7 +382,7 @@ def compare_models(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Evaluate zero-shot item embeddings on Amazon KDD 2023 (Section 10.1)"
+        description="Evaluate zero-shot item embeddings on Amazon KDD 2023 (Section 10.4)"
     )
     parser.add_argument("--model", type=str,
                         default="sentence-transformers/all-MiniLM-L6-v2")

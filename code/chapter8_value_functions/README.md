@@ -42,6 +42,8 @@ This chapter requires a multi-task model trained in Chapter 7 with the following
 - `mtl_model.pt` - Model weights
 - `mtl_config.json` - Model architecture config
 - `feature_processor.pkl` - Fitted feature encoders
+- `val_predictions.parquet` - Validation-set predictions, for tuning weights and calibration
+- `predictions.parquet` - Test-set predictions, for reporting the chosen configuration once
 
 ### From Yambda Dataset
 

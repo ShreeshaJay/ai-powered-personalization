@@ -51,7 +51,8 @@ class YambdaDataLoader:
     def __init__(
         self,
         data_dir: str,
-        gts_config: Optional[GTSConfig] = None
+        gts_config: Optional[GTSConfig] = None,
+        random_state: int = 42
     ):
         """
         Initialize the data loader.
@@ -59,9 +60,11 @@ class YambdaDataLoader:
         Args:
             data_dir: Path to the Yandex/flat directory containing parquet files
             gts_config: Global Temporal Split configuration (default: paper's protocol)
+            random_state: Seed for reproducible sampling when sample_frac is used
         """
         self.data_dir = Path(data_dir)
         self.gts_config = gts_config or GTSConfig()
+        self.random_state = random_state
         
         # Validate paths
         self._validate_paths()
@@ -198,7 +201,8 @@ class YambdaDataLoader:
         # Apply sampling if requested (for development/testing)
         if sample_frac and sample_frac < 1.0:
             n_samples = int(table.num_rows * sample_frac)
-            indices = np.random.choice(table.num_rows, n_samples, replace=False)
+            rng = np.random.default_rng(self.random_state)
+            indices = rng.choice(table.num_rows, n_samples, replace=False)
             indices = np.sort(indices)  # Maintain temporal order
             table = table.take(indices)
             logger.info(f"Sampled {n_samples:,} rows ({sample_frac*100:.1f}%)")

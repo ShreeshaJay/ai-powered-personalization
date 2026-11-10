@@ -239,6 +239,14 @@ class DeepFM(nn.Module):
                 nn.init.xavier_uniform_(param)
             elif 'weight' in name and 'bn' not in name:
                 nn.init.xavier_uniform_(param)
+        
+        # Re-zero the padding/unknown rows: xavier init above overwrote the
+        # zeros that nn.Embedding(padding_idx=0) set, and gradients for
+        # padding_idx are always zero, so they would stay random forever.
+        with torch.no_grad():
+            for table in list(self.embeddings.values()) + list(self.linear_embeddings.values()):
+                if table.padding_idx is not None:
+                    table.weight[table.padding_idx].fill_(0)
     
     def forward(
         self,

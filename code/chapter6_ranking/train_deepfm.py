@@ -376,7 +376,16 @@ def main():
     parser.add_argument('--output_dir', type=str, default='outputs',
                         help='Output directory for models and results')
     
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility')
+    
     args = parser.parse_args()
+    if args.history_days < 0:
+        parser.error('--history_days must be >= 0 (0: same length as the fit window)')
+    
+    # Seed for reproducibility (data shuffling, weight init)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
     
     # Parse MLP dimensions
     mlp_dims = [int(x) for x in args.mlp_dims.split(',')]

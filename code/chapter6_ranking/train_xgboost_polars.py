@@ -116,7 +116,10 @@ def parse_args():
         help='Name for this experiment (default: auto-generated)'
     )
     
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.history_days < 0:
+        parser.error('--history_days must be >= 0 (0: same length as the fit window)')
+    return args
 
 
 def compute_metrics(y_true, y_pred_proba, threshold=0.5):

@@ -12,6 +12,7 @@ from .polars_pipeline import (
     PolarsFeatureEncoder,
     PolarsHistoricalFeatures,
     split_training_history,
+    split_validation_window,
 )
 
 __all__ = [
@@ -20,5 +21,6 @@ __all__ = [
     'PolarsFeatureEncoder',
     'PolarsHistoricalFeatures',
     'split_training_history',
+    'split_validation_window',
 ]
 

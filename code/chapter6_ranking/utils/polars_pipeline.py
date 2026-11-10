@@ -315,6 +315,8 @@ def split_training_history(
         fit_lf; history is a DataFrame of listens strictly before every
         training row.
     """
+    if history_days is not None and history_days < 0:
+        raise ValueError(f"history_days must be >= 0, got {history_days}")
     seconds_per_day = 86400
     bounds = fit_lf.select([
         col('timestamp').min().alias('lo'),
@@ -334,8 +336,12 @@ def split_training_history(
     else:
         hist_start = data_start
         cut = max(fit_start, min(data_start + span, data_start + (fit_end - data_start) // 2))
-        logger.warning(f"Not enough data before the fit window for a full history "
-                       f"window; listens before timestamp {cut:,} are used as history only.")
+        if cut > fit_start:
+            logger.warning(f"Not enough data before the fit window for a full history "
+                           f"window; listens before timestamp {cut:,} are used as history only.")
+        else:
+            logger.warning(f"Not enough data before the fit window for a full history "
+                           f"window; the history starts at the first listen ({data_start:,}).")
 
     wanted = ['uid', 'item_id', 'timestamp', 'is_organic',
               'played_ratio_pct', 'track_length_seconds']
@@ -441,6 +447,11 @@ class PolarsFeatureEncoder:
         
         is_lazy = isinstance(lf, pl.LazyFrame)
         
+        # Joins may return rows in any order (polars 2.x does not keep the
+        # left order), so tag the input rows and sort back at the end: the
+        # output rows are in the same order as the input rows.
+        lf = lf.with_row_index('_encoder_row')
+        
         # Apply frequency encodings via join
         for col_name, freq_df in self.frequency_maps.items():
             if is_lazy:
@@ -467,7 +478,7 @@ class PolarsFeatureEncoder:
                 col(f'{col_name}_encoded').fill_null(-1)
             ])
         
-        return lf
+        return lf.sort('_encoder_row').drop('_encoder_row')
     
     def get_encoded_column_names(self) -> List[str]:
         """Get list of encoded column names."""
@@ -717,6 +728,11 @@ class PolarsHistoricalFeatures:
         
         is_lazy = isinstance(lf, pl.LazyFrame)
         
+        # Joins may return rows in any order (polars 2.x does not keep the
+        # left order), so tag the input rows: ties in previous_listen_count
+        # are broken by input order, and the output is sorted back to it.
+        lf = lf.with_row_index('_hist_row')
+        
         # Convert lookup tables to lazy if input is lazy
         user_lf = self.user_features.lazy() if is_lazy else self.user_features
         item_lf = self.item_features.lazy() if is_lazy else self.item_features
@@ -763,7 +779,7 @@ class PolarsHistoricalFeatures:
             # which silently leaks future interactions. int_range(pl.len())
             # is the order-sensitive, PIT-correct formulation.
             pl.int_range(pl.len())
-            .over(['uid', 'item_id'], order_by='timestamp')
+            .over(['uid', 'item_id'], order_by=['timestamp', '_hist_row'])
             .cast(pl.Int16)
             .alias('previous_listen_count'),
         ])
@@ -775,7 +791,7 @@ class PolarsHistoricalFeatures:
                 .alias('has_listened_before'),
         ])
         
-        return lf
+        return lf.sort('_hist_row').drop('_hist_row')
     
     def get_feature_names(self) -> List[str]:
         """Get list of historical feature names."""

@@ -1,17 +1,17 @@
 """
-Evaluate Item2Vec (Section 10.2) — Comparison on Amazon KDD
+Evaluate Item2Vec (Section 10.5) — Comparison on Amazon KDD
 
 Evaluates collaborative Item2Vec embeddings and compares against:
-  - Zero-shot text encoder (Section 10.1)
-  - [Optional] Contrastive fine-tuned encoder (Section 10.3, if available)
+  - Zero-shot text encoder (Section 10.4)
+  - [Optional] Contrastive fine-tuned encoder (Section 10.6, if available)
 
-After running Sections 10.1 and 10.2, this produces a 2-way comparison
-(zero-shot vs. Item2Vec). After completing Section 10.3 (fine-tuning),
+After running Sections 10.4 and 10.5, this produces a 2-way comparison
+(zero-shot vs. Item2Vec). After completing Section 10.6 (fine-tuning),
 re-run to get the full 3-way comparison.
 
 Key insight: Item2Vec learns purely from behavioral co-occurrence (no metadata).
 This reveals what behavioral signals capture vs. content signals, and how they
-complement each other (a theme Chapter 11 will explore).
+complement each other.
 
 Two evaluation modes:
   1. Full catalog: Each model evaluated on all items it covers
@@ -85,7 +85,7 @@ def load_item2vec_embeddings(
 def load_text_embeddings(
     model_tag: str,
 ) -> Tuple[np.ndarray, List[str]]:
-    """Load cached text embeddings (.npz) from Section 10.1 or 10.2."""
+    """Load cached text embeddings (.npz) from Section 10.4 or 10.5."""
     npz_path = EMBEDDINGS_DIR / f"{model_tag}.npz"
 
     if not npz_path.exists():
@@ -368,7 +368,7 @@ def evaluate_yandex_item2vec(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Section 10.2 — Evaluate Item2Vec and compare with text embeddings"
+        description="Section 10.5 — Evaluate Item2Vec and compare with text embeddings"
     )
     parser.add_argument("--dataset", choices=["amazon", "yandex", "both"],
                         default="amazon")
@@ -385,7 +385,7 @@ def main():
 
     if args.dataset in ("amazon", "both"):
         logger.info("=" * 80)
-        logger.info("Amazon KDD — Item2Vec Evaluation (Section 10.2)")
+        logger.info("Amazon KDD — Item2Vec Evaluation (Section 10.5)")
         logger.info("=" * 80)
 
         # Load dataset and ground truth
@@ -443,7 +443,7 @@ def main():
 
     if args.dataset in ("yandex", "both"):
         logger.info("=" * 80)
-        logger.info("Yandex Yambda — Item2Vec Evaluation (Section 10.2)")
+        logger.info("Yandex Yambda — Item2Vec Evaluation (Section 10.5)")
         logger.info("=" * 80)
 
         evaluate_yandex_item2vec(

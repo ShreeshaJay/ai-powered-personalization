@@ -1,11 +1,17 @@
-# Appendix Hybrid Search - Quick Start Commands
+# Appendix B: Hybrid Search - Quick Start Commands
 
-## Setup (run once per new PowerShell window)
+## Setup (once)
+
+From the repository root:
 
 ```powershell
-cd "C:\Users\shree\OneDrive\Desktop\RecSys ML Book Writing\RecSys book code\Appendix Hybrid Search"
-& "C:\Users\shree\OneDrive\Desktop\RecSys ML Book Writing\recsys_venv\Scripts\Activate.ps1"
+cd code\appendix_hybrid_search
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
+
+On macOS or Linux, activate with `source .venv/bin/activate`.
 
 ## Evaluation
 
@@ -14,12 +20,12 @@ cd "C:\Users\shree\OneDrive\Desktop\RecSys ML Book Writing\RecSys book code\Appe
 python hybrid_search.py --mode evaluate --eval_mode curated --max_queries 2000 --splade_models "prithivi,qdrant_esci,naver"
 ```
 
-### Curated Pool (Prithivi only — faster)
+### Curated Pool (Prithivi only, faster)
 ```powershell
 python hybrid_search.py --mode evaluate --eval_mode curated --max_queries 2000
 ```
 
-## LLM Labeling (Gemini 2.5 Flash Lite)
+## LLM Labeling (Gemini 2.5 Flash Lite; paid API, needs an API key)
 
 ### Run labeler (resumes automatically from last checkpoint)
 ```powershell

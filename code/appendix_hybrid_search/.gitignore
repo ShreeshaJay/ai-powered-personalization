@@ -2,12 +2,18 @@
 cache/
 *.npy
 *.npz
+*.index
 
 # Evaluation outputs (large plots and raw data excluded, key results kept)
 outputs/plots/
 !outputs/metrics/
 !outputs/metrics/*.json
 !outputs/metrics/*.csv
+
+# Large or paid-run outputs that the whitelist above would otherwise keep
+outputs/metrics/llm_labels.json
+outputs/metrics/llm_benchmark_*_details.csv
+*disagreement*.json
 
 # Python
 __pycache__/
@@ -19,7 +25,7 @@ __pycache__/
 # Virtual environments
 venv/
 .venv/
-recsys_venv/
+.venvs/
 
 # IDE
 .vscode/
@@ -39,3 +45,11 @@ desktop.ini
 *labeling*.json
 *disagreements*.json
 *disagreements*.txt
+
+# Colab upload artifact
+**/colab_bundle.zip
+**/open_model_results.zip
+
+# Secrets
+.env
+**/.env

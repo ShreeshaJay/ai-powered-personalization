@@ -1,7 +1,7 @@
 """
 Contrastive Fine-Tuning of Text Encoders for Item Embeddings
 
-Section 10.3: Fine-tune a pre-trained sentence encoder using behavioral
+Section 10.6: Fine-tune a pre-trained sentence encoder using behavioral
 signals (co-engagement / next-item pairs) so that items users interact
 with sequentially are pulled closer in embedding space.
 
@@ -54,6 +54,7 @@ from config import (
     EMBEDDINGS_DIR,
 )
 from data.amazon_kdd_dataset import AmazonKDDDataset
+from data.holdout import split_amazon_sessions, split_mind_users
 from data.mind_dataset import MINDDataset
 
 logging.basicConfig(
@@ -77,6 +78,8 @@ def build_amazon_training_pairs(
     Each pair: (text of last-viewed item, text of next-engaged item).
     The temporal ordering within sessions ensures no data leakage —
     the "next" item always occurs after the "query" item.
+    Pairs come only from the training sessions: a fraction
+    (config.eval_holdout_fraction) is held out for evaluate_finetuned.py.
 
     Returns:
         (train_pairs, val_pairs, item_texts)
@@ -100,8 +103,15 @@ def build_amazon_training_pairs(
         template=data_config.text_template,
     )
 
+    train_sessions, eval_sessions = split_amazon_sessions(
+        kdd_dataset.sessions_df, config.eval_holdout_fraction, config.random_seed,
+    )
+    logger.info(f"Sessions: {len(train_sessions)} for training, "
+                f"{len(eval_sessions)} held out for evaluation")
+
     next_item_map = kdd_dataset.get_next_item_pairs(
         min_prev_items=data_config.min_session_length - 1,
+        sessions_df=train_sessions,
     )
 
     all_pairs: List[Tuple[str, str]] = []
@@ -142,7 +152,9 @@ def build_mind_training_pairs(
     Build (anchor, positive) pairs from MIND co-click data.
 
     Each pair: (text of article A, text of article B) where A and B
-    were co-clicked by at least `min_support` users.
+    were co-clicked by at least `min_support` users. Pairs come only
+    from the training users: a fraction (config.eval_holdout_fraction)
+    is held out for evaluate_finetuned.py.
 
     Returns:
         (train_pairs, val_pairs, item_texts)
@@ -163,8 +175,15 @@ def build_mind_training_pairs(
         template=data_config.text_template,
     )
 
+    train_behaviors, eval_behaviors = split_mind_users(
+        mind_dataset.behaviors_df, config.eval_holdout_fraction, config.random_seed,
+    )
+    logger.info(f"Users: {train_behaviors['user_id'].nunique()} for training, "
+                f"{eval_behaviors['user_id'].nunique()} held out for evaluation")
+
     coclick_pairs = mind_dataset.get_coclick_pairs(
         min_support=config.mind_min_coclick_support,
+        behaviors_df=train_behaviors,
     )
 
     all_pairs: List[Tuple[str, str]] = []
@@ -287,6 +306,10 @@ def train(
         Path to the saved fine-tuned model
     """
     from tqdm import tqdm
+
+    # Seed torch as well as numpy: weight init order, dropout masks, and any
+    # CUDA kernels otherwise vary run-to-run even with the numpy RNG seeded.
+    torch.manual_seed(config.random_seed)
 
     # ---- Prepare training data ----
     if dataset_name in ("amazon", "amazon_kdd"):
@@ -442,6 +465,7 @@ def train(
         "loss_type": config.loss_type,
         "train_pairs": len(train_pairs),
         "val_pairs": len(val_pairs),
+        "eval_holdout_fraction": config.eval_holdout_fraction,
         "total_items": len(item_texts),
         "final_val_cosine_sim": round(final_val_sim, 4),
         "best_val_cosine_sim": round(best_val_sim, 4),
@@ -460,7 +484,7 @@ def train(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Section 10.3 — Contrastive fine-tuning of item text encoders"
+        description="Section 10.6 — Contrastive fine-tuning of item text encoders"
     )
     parser.add_argument(
         "--dataset", type=str, default="amazon",

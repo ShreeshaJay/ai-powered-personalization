@@ -1,5 +1,5 @@
 """
-Section 10.4: Multi-Modal Fusion — PCA baseline + CLIP-style contrastive alignment.
+Section 10.7: Multi-Modal Fusion — PCA baseline + CLIP-style contrastive alignment.
 
 Approach A (PCA): Concatenate audio + lyrics + genre features, apply PCA.
 Approach B (CLIP): Train projection heads to align audio ↔ lyrics in a shared
@@ -175,6 +175,10 @@ def train_clip(
     if cfg is None:
         cfg = DEFAULT_MULTIMODAL_CONFIG
 
+    # Seed torch as well as numpy: projection-head init, dropout masks, and
+    # DataLoader shuffling all draw from torch's global RNG.
+    torch.manual_seed(cfg.random_seed)
+
     device = torch.device(cfg.device if torch.cuda.is_available() else "cpu")
     logger.info(f"Training CLIP fusion on {device}")
 
@@ -343,7 +347,7 @@ def encode_clip(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Section 10.4: Multi-Modal Fusion (PCA + CLIP)"
+        description="Section 10.7: Multi-Modal Fusion (PCA + CLIP)"
     )
     parser.add_argument("--mode", choices=["pca", "clip", "both"], default="both")
     parser.add_argument("--epochs", type=int, default=None)

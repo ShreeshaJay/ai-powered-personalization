@@ -39,7 +39,7 @@ for dir_path in [CACHE_DIR, OUTPUTS_DIR, EMBEDDINGS_DIR, MODELS_DIR, METRICS_DIR
 
 
 # ============================================================================
-# Section 10.1: Pre-trained Text Encoder Baselines
+# Section 10.4: Pre-trained Text Encoder Baselines
 # ============================================================================
 
 @dataclass
@@ -192,7 +192,7 @@ class BiEncoderEvalConfig:
 
 
 # ============================================================================
-# Section 10.2: Item2Vec (Collaborative Embeddings from Sequences)
+# Section 10.5: Item2Vec (Collaborative Embeddings from Sequences)
 # ============================================================================
 
 @dataclass
@@ -241,7 +241,7 @@ class YandexConfig:
 
 
 # ============================================================================
-# Section 10.4: Multi-Modal Fusion (Music4all)
+# Section 10.7: Multi-Modal Fusion (Music4all)
 # ============================================================================
 
 @dataclass
@@ -310,15 +310,16 @@ class MultiModalFusionConfig:
 
 
 # ============================================================================
-# Appendix: Superlinked Multi-Modal Integration (MIND)
-# (Config kept here; script lives in appendix_superlinked/)
+# Superlinked (unused)
+# An earlier draft had a Superlinked appendix; it is not part of the book or
+# this repository, so no script reads this config.
 # ============================================================================
 
 @dataclass
 class SuperlinkedConfig:
     """Configuration for Superlinked multi-modal integration demo."""
 
-    # Text encoding model (same as 10.1 for fair comparison)
+    # Text encoding model (same as 10.4 for fair comparison)
     text_model: str = "all-MiniLM-L6-v2"
 
     # Weight presets for evaluation: name -> {space: weight}
@@ -343,7 +344,7 @@ class SuperlinkedConfig:
 
 
 # ============================================================================
-# Section 10.3: Contrastive Fine-Tuning
+# Section 10.6: Contrastive Fine-Tuning
 # ============================================================================
 
 @dataclass
@@ -364,13 +365,19 @@ class ContrastiveFineTuneConfig:
     # Loss function: MultipleNegativesRankingLoss (in-batch negatives)
     loss_type: str = "mnr"  # "mnr" or "triplet"
 
-    # Hard negatives (optional, improves quality)
+    # Hard negatives: NOTE: not implemented in finetune_contrastive.py.
+    # Training uses in-batch negatives only (MNR); these fields are reserved
+    # for the hard-negative mining extension discussed in the chapter text.
     use_hard_negatives: bool = True
     hard_neg_per_positive: int = 1
 
     # Data splitting — train on most pairs, hold out some for validation
     train_fraction: float = 0.9
     random_seed: int = 42
+
+    # Sessions (Amazon KDD) or users (MIND) held out for evaluate_finetuned.py:
+    # no training pair comes from them (see data/holdout.py).
+    eval_holdout_fraction: float = 0.2
 
     # Amazon KDD specific
     amazon_min_session_length: int = 3
@@ -392,21 +399,21 @@ class ContrastiveFineTuneConfig:
 # Global Defaults
 # ============================================================================
 
-# Default configurations for Section 10.1
+# Default configurations for Section 10.4
 DEFAULT_TEXT_ENCODER = TextEncoderConfig()
 DEFAULT_MIND_CONFIG = MINDConfig()
 DEFAULT_IJCAI_CONFIG = IJCAIConfig()
 DEFAULT_AMAZON_KDD_CONFIG = AmazonKDDConfig()
 DEFAULT_BIENCODER_EVAL = BiEncoderEvalConfig()
 
-# Default configurations for Section 10.2
+# Default configurations for Section 10.5
 DEFAULT_ITEM2VEC_CONFIG = Item2VecConfig()
 DEFAULT_YANDEX_CONFIG = YandexConfig()
 
-# Default configuration for Section 10.3
+# Default configuration for Section 10.6
 DEFAULT_CONTRASTIVE_CONFIG = ContrastiveFineTuneConfig()
 
-# Default configurations for Section 10.4
+# Default configurations for Section 10.7
 DEFAULT_MUSIC4ALL_CONFIG = Music4allConfig()
 DEFAULT_MULTIMODAL_CONFIG = MultiModalFusionConfig()
 
@@ -418,18 +425,18 @@ DEFAULT_SUPERLINKED_CONFIG = SuperlinkedConfig()
 # Utility Functions
 # ============================================================================
 
-def get_config(dataset: str = "mind", section: str = "10.1") -> Any:
+def get_config(dataset: str = "mind", section: str = "10.4") -> Any:
     """
     Get configuration for a specific dataset and chapter section.
     
     Args:
         dataset: Dataset name ("mind", "ijcai", "amazon", "amazon_kdd")
-        section: Chapter section ("10.1", "10.2", "10.3", etc.)
+        section: Chapter section ("10.4", "10.5", "10.6", etc.)
     
     Returns:
         Configuration dataclass instance
     """
-    if section == "10.1":
+    if section == "10.4":
         if dataset.lower() == "mind":
             return DEFAULT_MIND_CONFIG
         elif dataset.lower() == "ijcai":
@@ -437,19 +444,19 @@ def get_config(dataset: str = "mind", section: str = "10.1") -> Any:
         elif dataset.lower() in ("amazon", "amazon_kdd"):
             return DEFAULT_AMAZON_KDD_CONFIG
         else:
-            raise ValueError(f"Unknown dataset for section 10.1: {dataset}")
-    elif section == "10.2":
+            raise ValueError(f"Unknown dataset for section 10.4: {dataset}")
+    elif section == "10.5":
         if dataset.lower() in ("amazon", "amazon_kdd"):
             return DEFAULT_ITEM2VEC_CONFIG, DEFAULT_AMAZON_KDD_CONFIG
         elif dataset.lower() in ("yandex", "yambda"):
             return DEFAULT_ITEM2VEC_CONFIG, DEFAULT_YANDEX_CONFIG
         else:
-            raise ValueError(f"Unknown dataset for section 10.2: {dataset}")
-    elif section == "10.3":
+            raise ValueError(f"Unknown dataset for section 10.5: {dataset}")
+    elif section == "10.6":
         return DEFAULT_CONTRASTIVE_CONFIG
-    elif section == "10.4":
+    elif section == "10.7":
         return DEFAULT_MUSIC4ALL_CONFIG, DEFAULT_MULTIMODAL_CONFIG
-    elif section in ("10.5", "superlinked", "appendix_superlinked"):
+    elif section in ("superlinked", "appendix_superlinked"):
         return DEFAULT_SUPERLINKED_CONFIG, DEFAULT_MIND_CONFIG
     else:
         raise ValueError(f"Section {section} not yet implemented")
@@ -473,7 +480,7 @@ if __name__ == "__main__":
     print("Chapter 10 Configuration Test")
     print("="*80)
     
-    print("\n[Section 10.1] Text Encoder Configuration:")
+    print("\n[Section 10.4] Text Encoder Configuration:")
     print_config(DEFAULT_TEXT_ENCODER)
     
     print("\n[MIND Dataset] Configuration:")
@@ -488,13 +495,13 @@ if __name__ == "__main__":
     print("\n[Amazon KDD Dataset] Configuration:")
     print_config(DEFAULT_AMAZON_KDD_CONFIG)
 
-    print("\n[Section 10.2] Item2Vec Configuration:")
+    print("\n[Section 10.5] Item2Vec Configuration:")
     print_config(DEFAULT_ITEM2VEC_CONFIG)
 
     print("\n[Yandex Dataset] Configuration:")
     print_config(DEFAULT_YANDEX_CONFIG)
 
-    print("\n[Section 10.3] Contrastive Fine-Tuning Configuration:")
+    print("\n[Section 10.6] Contrastive Fine-Tuning Configuration:")
     print_config(DEFAULT_CONTRASTIVE_CONFIG)
 
     # Check if paths exist
@@ -505,11 +512,11 @@ if __name__ == "__main__":
     print(f"Yandex data exists: {YANDEX_DATA_PATH.exists()}")
     print(f"Music4all data exists: {MUSIC4ALL_DATA_PATH.exists()}")
 
-    print("\n[Section 10.4] Music4all Configuration:")
+    print("\n[Section 10.7] Music4all Configuration:")
     print_config(DEFAULT_MUSIC4ALL_CONFIG)
 
-    print("\n[Section 10.4] Multi-Modal Fusion Configuration:")
+    print("\n[Section 10.7] Multi-Modal Fusion Configuration:")
     print_config(DEFAULT_MULTIMODAL_CONFIG)
 
-    print("\n[Appendix] Superlinked Configuration:")
+    print("\n[Unused] Superlinked config (no appendix in this repository):")
     print_config(DEFAULT_SUPERLINKED_CONFIG)

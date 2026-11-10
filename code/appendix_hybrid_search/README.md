@@ -1,4 +1,4 @@
-# Appendix: Hybrid Search with Vector Databases
+# Appendix B: Hybrid Search with Vector Databases
 
 This appendix compares **three retrieval paradigms** — lexical (BM25), learned sparse (SPLADE), and dense semantic (SBERT + FAISS) — on the Amazon ESCI Shopping Queries Dataset (1.2M US products, ~97K queries). It then demonstrates how to combine them via **hybrid fusion** (Reciprocal Rank Fusion, weighted score fusion) and **BM25 re-ranking** of neural candidates.
 
@@ -135,42 +135,30 @@ These metrics are conservative (penalize unlabeled retrievals) but show relative
 
 A placeholder for future LLM-based evaluation. The idea: use an LLM (Claude, GPT) to label the top-K products retrieved by each method, providing denser coverage than ESCI's ~16 labels per query.
 
-**Status:** We ran a pilot labeling experiment with Claude Sonnet 4 on 2,500 query-product pairs, then benchmarked cheaper models:
-- Claude Sonnet achieved **71.5% agreement** with ESCI human labels on overlapping pairs
-- Manual review of disagreements showed Claude was **more accurate** than human labels in many cases (e.g., human labeled charger cables as "Exact" for "vivoactive 3" query — Claude correctly labeled "Complement")
-- **Gemini 2.5 Flash Lite** achieved comparable agreement at 8x lower cost ($0.10/$0.40 per 1M tokens vs Haiku 3.5's $0.80/$4.00)
-- Full-scale labeling at naive scale is cost-prohibitive ($27M+ for 75K queries × 1.2M products), but tractable with sampling: **~$40 for 10K queries × top-100/method (~2.4M pairs)**
-
-Production labeling uses `llm_labeler.py` with retrieval-diversity sampling (Option C) and concurrent Gemini API calls. See **LLM Label Expansion** section below.
+**Status:** Not part of the reported evaluation. The only committed output is `outputs/metrics/llm_benchmark_results.json`, a comparison of two models on 2,499 query-product pairs against reference labels from another LLM (Claude Sonnet 4), not against ESCI's human labels. See **LLM Label Expansion** below.
 
 ---
 
-## Results: Curated Pool Evaluation (2,000 queries)
+## Results: Curated Pool Evaluation (2,000 queries; under revision)
 
-Using Qdrant-compatible gains (E=1.0, S=0.7, C=0.5, I=0.0), curated pool of ~36K labeled products:
+> **These numbers are under revision and cannot be reproduced as committed.** Appendix B will report results from a corrected run. Known problems in the run behind `outputs/metrics/curated_pool_results.json`: result lists were truncated after filtering, precision used the returned list length as its denominator, queries with empty result lists were dropped, the RRF fusion used only the first SPLADE variant (Prithivi), there are no confidence intervals, and the code version that produced the file is not recorded.
 
-| Method | NDCG@10 | MRR@10 | Recall(E)@50 |
-|--------|:-------:|:------:|:------------:|
-| BM25 | 0.648 | 0.831 | 0.630 |
-| Dense (SBERT) | 0.651 | 0.840 | 0.631 |
-| SPLADE (Qdrant ESCI) | 0.698 | 0.862 | 0.695 |
-| SPLADE (Prithivi) | 0.726 | 0.876 | 0.732 |
-| **SPLADE (Naver)** | **0.736** | **0.888** | **0.744** |
-| BM25 Rerank (Dense) | 0.667 | 0.855 | 0.631 |
-| BM25 Rerank (SPLADE Prithivi) | 0.703 | 0.861 | 0.732 |
-| **Hybrid (RRF)** | **0.731** | **0.887** | **0.800** |
+The committed file contains these values for 2,000 test queries, with Qdrant-compatible gains (E=1.0, S=0.7, C=0.5, I=0.0):
 
-### Key Findings
+| Method | NDCG@10 | MRR@10 | P@10 |
+|--------|:-------:|:------:|:----:|
+| BM25 | 0.648 | 0.831 | 0.641 |
+| Dense (SBERT) | 0.651 | 0.840 | 0.638 |
+| SPLADE (Qdrant ESCI) | 0.698 | 0.862 | 0.681 |
+| SPLADE (Prithivi) | 0.726 | 0.876 | 0.708 |
+| SPLADE (Naver) | 0.736 | 0.888 | 0.717 |
+| BM25 Rerank (Dense) | 0.667 | 0.855 | 0.654 |
+| BM25 Rerank (SPLADE Prithivi) | 0.703 | 0.861 | 0.693 |
+| Hybrid (RRF, Prithivi as the SPLADE leg) | 0.731 | 0.887 | 0.702 |
 
-1. **SPLADE dominates standalone methods.** All 3 SPLADE variants substantially outperform both BM25 and Dense, with Naver (MS-MARCO trained) being the best standalone method.
-2. **Qdrant ESCI underperforms** the other SPLADE variants despite being fine-tuned on this dataset — possibly because the fine-tuning data was too small or the training strategy wasn't optimal.
-3. **Hybrid RRF wins on Recall@50** (0.800) by combining complementary signals, even though Naver SPLADE edges it on NDCG@10. This confirms that hybrid fusion recovers relevant products that no single method finds alone.
-4. **BM25 ≈ Dense under curated pool bias.** Both achieve similar NDCG (~0.65). This is partly due to pool selection bias — ESCI labels come from Amazon's production (lexical) search system, so the labeled pool is biased toward products that keyword-matching finds.
-5. **BM25 re-ranking improves precision** over raw BM25 but can't recover products outside the neural candidate set (ceiling = neural method's Recall).
+No recall values are committed, so no recall claim is made. Treat the ordering as provisional until the corrected run.
 
-> **Exercise:** The Hybrid RRF result uses Prithivi as its SPLADE component. Try swapping in Naver SPLADE and observe the NDCG improvement.
-
-> **Caveat:** These results reflect the curated pool evaluation with known pool selection bias (see Evaluation Design). The LLM-augmented evaluation (Part D) aims to provide less biased metrics by expanding label coverage to products found by all methods.
+> **Exercise:** The Hybrid RRF row uses Prithivi as its SPLADE component. Swap in Naver SPLADE and compare.
 
 ---
 
@@ -254,7 +242,7 @@ python splade_search.py --mode evaluate --max_queries 5000 --device cuda
 ## Code Structure
 
 ```
-Appendix Hybrid Search/
+appendix_hybrid_search/
 ├── config.py            # All configs: data, BM25, SPLADE, Dense, Hybrid, Eval
 ├── data_loader.py       # Amazon ESCI dataset loader (products + judgments)
 ├── bm25_search.py       # BM25 engine (bm25s library)
@@ -337,7 +325,7 @@ RRF is score-agnostic — it only uses rank positions, making it robust to the v
 
 ### Why curated pool evaluation?
 
-With only ~16 labels per query against 1.2M products, full-catalog NDCG is dominated by the "unlabeled" category. The curated pool (~10-30K products with near-complete label coverage) makes NDCG, MRR, and Precision meaningful. This is exactly the approach used by [Qdrant's SPLADE evaluation](https://qdrant.tech/articles/sparse-embeddings-ecommerce-part-1/) and by the BEIR benchmark.
+With only ~16 labels per query against 1.2M products, full-catalog NDCG is dominated by the "unlabeled" category. The curated pool (~10-30K products with near-complete label coverage) makes NDCG, MRR, and Precision meaningful. [Qdrant's SPLADE evaluation](https://qdrant.tech/articles/sparse-embeddings-ecommerce-part-1/) uses a similar curated pool.
 
 ---
 
@@ -345,41 +333,37 @@ With only ~16 labels per query against 1.2M products, full-catalog NDCG is domin
 
 - **Chapter 5 (Retrieval):** Introduced dense bi-encoder retrieval. This appendix adds lexical and learned sparse retrieval, then fuses all three.
 - **Chapter 10 (Item Embeddings):** Used `all-MiniLM-L6-v2` for zero-shot encoding. The dense search here reuses the same model and encoding pattern.
-- **Chapter 10.4 (Multi-Modal Fusion):** Established the principle that heterogeneous embeddings should be kept separate, L2-normalized, and weighted at query time — the same principle underlying hybrid search fusion.
-- **Appendix: RexBERT:** Domain-specialized SBERT for e-commerce. Could be swapped in for the dense encoder here.
+- **Chapter 10, Section 10.7 (Multi-Modal Fusion):** Keeps per-modality embeddings separate, L2-normalized, and weighted at query time. Weighted score fusion here follows the same idea; RRF fuses ranks instead.
+- **Appendix A (RexBERT):** A domain-specialized e-commerce encoder. A version fine-tuned for retrieval could replace the dense encoder here.
 
 ---
 
 ## LLM Label Expansion
 
-The ESCI dataset's labels come from Amazon's production search funnel, creating **pool selection bias** — only products surfaced by Amazon's (primarily lexical) system get labeled. This inflates metrics for keyword-matching methods (BM25, SPLADE) relative to Dense retrieval.
+The ESCI dataset's labels come from Amazon's production search funnel, creating **pool selection bias** — only products surfaced by Amazon's search system get labeled. This may favour keyword-matching methods (BM25, SPLADE) over dense retrieval; the size of the effect has not been measured here.
 
-To mitigate this, we scale up labeling with **Gemini 2.5 Flash Lite** (~$0.10/$0.40 per 1M tokens).
+`llm_labeler.py` can expand label coverage with an LLM (Gemini 2.5 Flash Lite by default). It calls a paid API and is not needed for the rest of the appendix.
 
-### Model selection
+### Model benchmark (committed output)
 
-We benchmarked 3 cheaper models against Claude Sonnet 4 golden labels on 2,500 query-product pairs:
+`outputs/metrics/llm_benchmark_results.json` (2026-03-17) compares two models on 2,499 query-product pairs. The reference labels were Claude Sonnet 4's, not ESCI's human labels, so agreement measures consistency with that model, not accuracy:
 
-| Model | Agreement with Sonnet | Cost per 1M input tokens | Relative cost |
-|-------|:--------------------:|:------------------------:|:-------------:|
-| Gemini 2.5 Flash Lite | ~75% | $0.10 | 1x (cheapest) |
-| GPT-4o-mini | ~73% | $0.15 | 1.5x |
-| Haiku 3.5 | ~72% | $0.80 | 8x |
-
-**Gemini 2.5 Flash Lite** was selected for production labeling: best agreement at lowest cost.
+| Model | Agreement with the reference labels | Valid responses |
+|-------|:-----------------------------------:|:---------------:|
+| Gemini 2.5 Flash Lite | 71.1% | 2,497 of 2,499 |
+| GPT-4o-mini | 68.0% | 2,499 of 2,499 |
 
 ### Query sampling (Option C: Retrieval-Diversity)
 Rather than labeling random queries, we **oversample queries where methods disagree** — where BM25, SPLADE, and Dense return different top-50 results (measured by pairwise Jaccard distance). This targets the queries where expanded labels matter most for distinguishing method quality.
 
-- 10,000 queries selected from 22,458 test queries
-- Stratified by disagreement tercile: high-disagreement queries oversampled
-- Union of top-100 products per method → ~2.4M unique (query, product) pairs
+- Queries are stratified by disagreement tercile, with high-disagreement queries oversampled
+- The pairs to label are the union of each method's top-K products per query (`--top_k`, default 100)
 
 ### Incremental labeling pipeline
 The pipeline (`llm_labeler.py`) labels the **union of top-K** products from all methods per query, with:
 - **Resume support**: labels stored in a persistent JSON keyed by `(query_id, product_id)` — safe to interrupt and restart without re-labeling existing pairs
-- **Phased**: start with top-100/method (~2.4M pairs, ~$40), extend to top-500 later without re-labeling
-- **Concurrent**: 100 async API calls for ~35 pairs/sec throughput (~19 hours for 2.4M pairs)
+- **Phased**: start with top-100 per method, extend to a larger `--top_k` later without re-labeling
+- **Concurrent**: async API calls (`--concurrency`, default 10)
 - **Incremental**: future runs with higher `--top_k` or `--max_queries` automatically skip already-labeled pairs, labeling only the new ones
 
 ### Recall caveat

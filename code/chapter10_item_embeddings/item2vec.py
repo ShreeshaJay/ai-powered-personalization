@@ -1,5 +1,5 @@
 """
-Section 10.2: Item2Vec — Collaborative Embeddings from Sequences
+Section 10.5: Item2Vec — Collaborative Embeddings from Sequences
 
 Learns item embeddings purely from behavioral co-occurrence using Word2Vec
 (Skip-gram with negative sampling). No item metadata is used.

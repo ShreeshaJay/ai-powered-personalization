@@ -172,8 +172,12 @@ def build_user_sessions(
             (pl.col('product_sku_hash').is_not_null()) &
             (pl.col('product_action').is_in(ground_truth_actions))
         )
-        .sort(['session_id_hash', 'server_timestamp_epoch_ms'])
-        .group_by('session_id_hash')
+        # Tie-break equal timestamps by input order. Polars 2.x does not
+        # keep that order for equal sort keys, which changes which
+        # consecutive duplicates are removed.
+        .with_row_index('_evt')
+        .sort(['session_id_hash', 'server_timestamp_epoch_ms', '_evt'])
+        .group_by('session_id_hash', maintain_order=True)
         .agg([
             pl.col('product_sku_hash').alias('items'),
             pl.col('server_timestamp_epoch_ms').max().alias('max_timestamp')
@@ -192,13 +196,23 @@ def build_user_sessions(
             if not unique_items or item != unique_items[-1]:
                 unique_items.append(item)
         
-        if len(unique_items) >= min_session_length:
-            user_sessions.append({
-                'session_id': row['session_id_hash'],
-                'history_items': unique_items[:-1],  # N-1 items
-                'ground_truth_item': unique_items[-1],  # Nth item
-                'max_timestamp': row['max_timestamp']  # For time-based split
-            })
+        if len(unique_items) < min_session_length:
+            continue
+
+        history_items = unique_items[:-1]
+        ground_truth_item = unique_items[-1]
+        # With exclude_history=True at retrieval time, a ground-truth item that
+        # already appears earlier in the session is unreachable. Drop those
+        # sessions so metrics are not deflated by impossible labels.
+        if ground_truth_item in history_items:
+            continue
+
+        user_sessions.append({
+            'session_id': row['session_id_hash'],
+            'history_items': history_items,
+            'ground_truth_item': ground_truth_item,
+            'max_timestamp': row['max_timestamp']  # For time-based split
+        })
     
     print(f"  Valid sessions: {len(user_sessions):,}")
     
@@ -681,6 +695,12 @@ class TwoTowerModel(nn.Module):
         
         # Encode positive items
         pos_item_emb = self.encode_items(positive_embs)  # (batch, output_dim)
+
+        # L2-normalize so training matches FAISS IndexFlatIP cosine retrieval
+        # at inference. Without this, the loss is magnitude-sensitive while
+        # search uses cosine similarity, which is a train/serve skew.
+        user_emb = F.normalize(user_emb, p=2, dim=-1)
+        pos_item_emb = F.normalize(pos_item_emb, p=2, dim=-1)
         
         # Compute similarities with in-batch negatives
         # All positive items serve as negatives for other users
@@ -693,6 +713,7 @@ class TwoTowerModel(nn.Module):
         if negative_embs is not None:
             neg_item_emb = self.encode_items(negative_embs.view(-1, negative_embs.shape[-1]))
             neg_item_emb = neg_item_emb.view(batch_size, -1, neg_item_emb.shape[-1])
+            neg_item_emb = F.normalize(neg_item_emb, p=2, dim=-1)
             
             # (batch, num_neg)
             neg_logits = torch.bmm(user_emb.unsqueeze(1), neg_item_emb.transpose(1, 2)).squeeze(1)
@@ -815,7 +836,9 @@ def train_model(
             
             if val_hr > best_hr:
                 best_hr = val_hr
-                best_model_state = model.state_dict().copy()
+                # Clone each tensor: state_dict().copy() is shallow, so its
+                # tensors would keep training and "best" would be the last epoch.
+                best_model_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
         else:
             print(f"  Epoch {epoch+1}: Loss={train_metrics['loss']:.4f}")
     
@@ -1296,7 +1319,7 @@ def main():
         print(f"  User Tower: Transformer Encoder ({NUM_TRANSFORMER_LAYERS} layers, {NUM_TRANSFORMER_HEADS} heads)")
         print("              with learnable [CLS] token for aggregation")
     print("  Item Tower: MLP projection")
-    print("  Training: In-batch contrastive loss")
+    print("  Training: In-batch contrastive loss (L2-normalized cosine)")
     
     # 1. Load data
     catalog_df = load_product_catalog(DATA_PATH)

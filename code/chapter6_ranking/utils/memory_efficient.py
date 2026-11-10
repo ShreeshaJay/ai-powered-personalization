@@ -721,6 +721,7 @@ def process_in_chunks(
     Returns:
         Concatenated DataFrame if output_path is None, else None
     """
+    import pyarrow as pa
     import pyarrow.parquet as pq
     
     parquet_file = pq.ParquetFile(parquet_path)
@@ -730,29 +731,32 @@ def process_in_chunks(
     logger.info(f"Processing {total_rows:,} rows in {n_chunks} chunks...")
     
     results = []
+    writer = None
     
-    for i, batch in enumerate(parquet_file.iter_batches(batch_size=chunk_size)):
-        chunk_df = batch.to_pandas()
-        
-        # Transform chunk
-        transformed, feature_cols = pipeline.transform(chunk_df)
-        
-        if output_path:
-            # Append to parquet
-            mode = 'w' if i == 0 else 'a'
-            transformed[feature_cols].to_parquet(
-                output_path,
-                engine='pyarrow',
-                append=(i > 0)
-            )
-        else:
-            results.append(transformed[feature_cols])
-        
-        logger.info(f"  Processed chunk {i+1}/{n_chunks}")
-        
-        # Force garbage collection
-        del chunk_df, transformed
-        gc.collect()
+    try:
+        for i, batch in enumerate(parquet_file.iter_batches(batch_size=chunk_size)):
+            chunk_df = batch.to_pandas()
+            
+            # Transform chunk
+            transformed, feature_cols = pipeline.transform(chunk_df)
+            
+            if output_path:
+                # Stream chunks into a single parquet file
+                table = pa.Table.from_pandas(transformed[feature_cols], preserve_index=False)
+                if writer is None:
+                    writer = pq.ParquetWriter(output_path, table.schema)
+                writer.write_table(table)
+            else:
+                results.append(transformed[feature_cols])
+            
+            logger.info(f"  Processed chunk {i+1}/{n_chunks}")
+            
+            # Force garbage collection
+            del chunk_df, transformed
+            gc.collect()
+    finally:
+        if writer is not None:
+            writer.close()
     
     if output_path:
         logger.info(f"Results saved to {output_path}")

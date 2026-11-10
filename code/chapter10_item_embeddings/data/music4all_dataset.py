@@ -1,5 +1,5 @@
 """
-Music4all-Onion dataset loader for Section 10.4: Multi-Modal Fusion.
+Music4all-Onion dataset loader for Section 10.7: Multi-Modal Fusion.
 
 Loads pre-extracted features from three modalities (audio, lyrics, genre)
 and user interaction data for co-listen evaluation.

@@ -127,7 +127,10 @@ def parse_args():
         help='Name for this experiment (default: auto-generated)'
     )
     
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.history_days < 0:
+        parser.error('--history_days must be >= 0 (0: same length as the fit window)')
+    return args
 
 
 def create_query_groups(df: pl.DataFrame, group_col: str = 'uid') -> np.ndarray:
@@ -203,10 +206,14 @@ def filter_and_prepare_groups(
     
     # Filter DataFrame to valid users (semi-join avoids the deprecated
     # is_in(Series) behavior in Polars >= 1.30)
+    # The row index keeps each user's rows in input order: neither the
+    # semi-join nor a plain sort guarantees it on polars 2.x, and the order
+    # decides which rows max_group_size keeps.
+    df = df.with_row_index('_input_row')
     df = df.join(valid_users_df.select(group_col), on=group_col, how='semi')
     
     # Sort by user_id (required for XGBRanker group assignment)
-    df = df.sort(group_col)
+    df = df.sort([group_col, '_input_row']).drop('_input_row')
     
     # Truncate large groups if needed
     if max_group_size < float('inf'):

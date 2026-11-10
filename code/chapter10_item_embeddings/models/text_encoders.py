@@ -4,8 +4,8 @@ Text Encoders for Item Embeddings
 Wraps sentence-transformers (SBERT) and other pre-trained text encoders
 for generating item embeddings from text metadata.
 
-Section 10.1: Zero-shot encoding with pre-trained models
-Section 10.3: Fine-tuning with task-specific objectives
+Section 10.4: Zero-shot encoding with pre-trained models
+Section 10.6: Fine-tuning with task-specific objectives
 """
 
 import torch
@@ -24,7 +24,7 @@ class TextEncoder:
     Wrapper for text encoding models (primarily sentence-transformers).
     
     Provides a unified interface for:
-    - Zero-shot encoding (Section 10.1)
+    - Zero-shot encoding (Section 10.4)
     - Batch encoding with progress tracking
     - Caching for efficiency
     - Multiple model backends
@@ -206,7 +206,7 @@ class RexBERTEncoder:
     REXBERT_MODELS = {
         "micro": "thebajajra/RexBERT-micro",   # 17M params
         "mini": "thebajajra/RexBERT-mini",      # 68M params
-        "base": "thebajajra/RexBERT-base",      # 100M params
+        "base": "thebajajra/RexBERT-base",      # 150M params
         "large": "thebajajra/RexBERT-large",    # 400M params
     }
     

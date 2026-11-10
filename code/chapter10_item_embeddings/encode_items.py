@@ -1,7 +1,7 @@
 """
 Generate Item Embeddings using Pre-trained Text Encoders
 
-Section 10.1: Zero-shot encoding with SBERT and other pre-trained models
+Section 10.4: Zero-shot encoding with SBERT and other pre-trained models
 
 This script:
 1. Loads item metadata (text or structured) from datasets
@@ -278,7 +278,7 @@ def compare_models(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate item embeddings using pre-trained text encoders (Section 10.1)"
+        description="Generate item embeddings using pre-trained text encoders (Section 10.4)"
     )
     
     parser.add_argument(

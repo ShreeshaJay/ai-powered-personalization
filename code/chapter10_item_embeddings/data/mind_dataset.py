@@ -2,7 +2,7 @@
 MIND (Microsoft News) Dataset Loader for Item Embeddings
 
 Loads news articles with rich text metadata: title, abstract, category, subcategory,
-and entity annotations. Used for Section 10.1 (text encoder baselines) and 10.2 
+and entity annotations. Used for Section 10.4 (text encoder baselines) and 10.5 
 (fine-tuning).
 
 Dataset Schema:
@@ -171,28 +171,37 @@ class MINDDataset:
         
         return self.behaviors_df
     
-    def get_coclick_pairs(self, min_support: int = 2) -> List[Tuple[str, str]]:
+    def get_coclick_pairs(
+        self,
+        min_support: int = 2,
+        behaviors_df: Optional[pd.DataFrame] = None,
+    ) -> List[Tuple[str, str]]:
         """
         Extract co-clicked article pairs from user histories.
         
-        NOTE: This method is NOT used in Section 10.1 (zero-shot baselines).
-        It is pre-built for Section 10.3 (contrastive fine-tuning), where
+        NOTE: This method is NOT used in Section 10.4 (zero-shot baselines).
+        It is pre-built for Section 10.6 (contrastive fine-tuning), where
         co-clicked articles form positive training pairs.
         
         Args:
             min_support: Minimum number of co-occurrences to include pair
+            behaviors_df: Impressions to use (default: all loaded ones).
+                Pass one side of data.holdout.split_mind_users to keep
+                training and evaluation users apart.
         
         Returns:
             List of (news_id_1, news_id_2) tuples
         """
-        if self.behaviors_df is None:
-            self.load_behaviors()
+        if behaviors_df is None:
+            if self.behaviors_df is None:
+                self.load_behaviors()
+            behaviors_df = self.behaviors_df
         
         logger.info("Extracting co-clicked article pairs...")
         
         coclick_counts = defaultdict(int)
         
-        for history in self.behaviors_df["history_list"]:
+        for history in behaviors_df["history_list"]:
             if len(history) < 2:
                 continue
             

@@ -2,7 +2,7 @@
 Alibaba IJCAI-18 CVR Dataset Loader for Item Embeddings
 
 Loads sponsored search conversion data with structured item metadata.
-Used for Section 10.1 to demonstrate text serialization from structured fields
+Used for Section 10.4 to demonstrate text serialization from structured fields
 and bi-encoder evaluation (query intent vs. item).
 
 Dataset Schema:

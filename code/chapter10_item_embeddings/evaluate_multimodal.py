@@ -1,5 +1,5 @@
 """
-Section 10.4: Evaluate multi-modal fusion embeddings via co-listen retrieval.
+Section 10.7: Evaluate multi-modal fusion embeddings via co-listen retrieval.
 
 Compares single-modality (audio, lyrics, genre), PCA-fused, and CLIP-fused
 embeddings. For each query track, retrieves nearest neighbors in embedding
@@ -193,7 +193,7 @@ def print_results_table(all_results: Dict[str, Dict[str, float]]):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Section 10.4: Evaluate multi-modal fusion embeddings"
+        description="Section 10.7: Evaluate multi-modal fusion embeddings"
     )
     parser.add_argument("--max-queries", type=int, default=5000)
     parser.add_argument("--max-users", type=int, default=10000)

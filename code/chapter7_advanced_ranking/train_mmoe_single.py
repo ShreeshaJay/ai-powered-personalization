@@ -552,8 +552,16 @@ def main():
     parser.add_argument('--weight_decay', type=float, default=1e-5)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--patience', type=int, default=3)
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility')
     
     args = parser.parse_args()
+    if args.history_days < 0:
+        parser.error('--history_days must be >= 0 (0: same length as the fit window)')
+    
+    # Seed for reproducibility (data shuffling, weight init)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
     
     # Parse dimensions
     expert_dims = [int(x) for x in args.expert_dims.split(',')]

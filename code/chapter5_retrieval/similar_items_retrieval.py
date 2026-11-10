@@ -190,44 +190,47 @@ def parse_embedding_string(embedding_str: str) -> np.ndarray:
         return None
 
 
-def parse_embeddings_batch(embedding_series: pl.Series) -> np.ndarray:
+def parse_embeddings_batch(embedding_series: pl.Series):
     """
     Parse embeddings in batch - much faster than row-by-row.
-    
-    Returns a 2D numpy array of shape (n_items, embedding_dim).
+
+    Returns:
+        (matrix, embedding_dim, valid_mask) where valid_mask[i] is True iff
+        row i parsed successfully. Invalid rows are NOT kept as permanent
+        zero vectors in the FAISS index; callers must filter by valid_mask
+        (matching supervised_two_tower.load_product_catalog).
     """
     embeddings = []
+    valid_mask = []
     embedding_dim = None
-    
+
     for emb_str in embedding_series.to_list():
         if emb_str is None:
-            if embedding_dim is not None:
-                embeddings.append(np.zeros(embedding_dim, dtype=np.float32))
+            embeddings.append(None)
+            valid_mask.append(False)
+            continue
+        try:
+            if isinstance(emb_str, str) and emb_str.startswith('['):
+                emb = np.array(json.loads(emb_str), dtype=np.float32)
             else:
-                embeddings.append(None)
-        else:
-            try:
-                if emb_str.startswith('['):
-                    emb = np.array(json.loads(emb_str), dtype=np.float32)
-                else:
-                    emb = np.array([float(x) for x in emb_str.split()], dtype=np.float32)
-                
-                if embedding_dim is None:
-                    embedding_dim = len(emb)
-                embeddings.append(emb)
-            except:
-                if embedding_dim is not None:
-                    embeddings.append(np.zeros(embedding_dim, dtype=np.float32))
-                else:
-                    embeddings.append(None)
-    
-    # Fill in any None values now that we know the dimension
-    if embedding_dim is not None:
-        embeddings = [e if e is not None else np.zeros(embedding_dim, dtype=np.float32) 
-                      for e in embeddings]
-        return np.vstack(embeddings), embedding_dim
-    
-    return None, None
+                emb = np.array([float(x) for x in str(emb_str).split()], dtype=np.float32)
+            if embedding_dim is None:
+                embedding_dim = len(emb)
+            embeddings.append(emb)
+            valid_mask.append(True)
+        except Exception:
+            embeddings.append(None)
+            valid_mask.append(False)
+
+    if embedding_dim is None or not any(valid_mask):
+        return None, None, np.array([], dtype=bool)
+
+    # Temporary zeros so vstack works; callers must drop via valid_mask.
+    filled = [
+        e if e is not None else np.zeros(embedding_dim, dtype=np.float32)
+        for e in embeddings
+    ]
+    return np.vstack(filled), embedding_dim, np.array(valid_mask, dtype=bool)
 
 
 # =============================================================================
@@ -293,10 +296,13 @@ def build_session_ground_truth(
         )
         # Step 2: Only select columns we need (reduces memory)
         .select(['session_id_hash', 'product_sku_hash', 'server_timestamp_epoch_ms'])
-        # Step 3: Sort by session and time
-        .sort(['session_id_hash', 'server_timestamp_epoch_ms'])
+        # Step 3: Sort by session and time. The row index breaks timestamp
+        # ties in input order: Polars 2.x does not keep that order for
+        # equal sort keys, which changes consecutive-duplicate removal.
+        .with_row_index('_evt')
+        .sort(['session_id_hash', 'server_timestamp_epoch_ms', '_evt'])
         # Step 4: Group by session and collect products as list
-        .group_by('session_id_hash')
+        .group_by('session_id_hash', maintain_order=True)
         .agg([
             pl.col('product_sku_hash').alias('products'),
             pl.len().alias('session_length')
@@ -330,7 +336,12 @@ def build_session_ground_truth(
         
         if len(unique_products) >= min_session_length:
             hero_item = unique_products[0]
-            subsequent_items = unique_products[1:]
+            # Exclude the hero itself: with exclude_query=True at retrieval
+            # time, a GT set that still contains the query is unreachable and
+            # deflates Recall. Non-consecutive revisits of the hero are common.
+            subsequent_items = [p for p in unique_products[1:] if p != hero_item]
+            if not subsequent_items:
+                continue
             
             # If hero item already exists, merge ground truth sets
             if hero_item in ground_truth:
@@ -479,38 +490,51 @@ class ItemEmbeddingModel:
         
         # Get SKUs as list
         skus = catalog_df['product_sku_hash'].to_list()
-        
+        n = len(skus)
+        keep = np.ones(n, dtype=bool)
+
         # Parse embeddings in batch - much faster than row-by-row
         desc_matrix = None
         img_matrix = None
         
         if self.use_description:
             print("  Parsing description embeddings (batch)...")
-            desc_series = catalog_df['description_vector']
-            desc_matrix, self.desc_dim = parse_embeddings_batch(desc_series)
-            
+            desc_matrix, self.desc_dim, desc_valid = parse_embeddings_batch(
+                catalog_df['description_vector']
+            )
             if desc_matrix is not None:
                 print(f"    Description embedding dimension: {self.desc_dim}")
-                print(f"    Description matrix shape: {desc_matrix.shape}")
+                print(f"    Valid description rows: {int(desc_valid.sum()):,} / {n:,}")
+                keep &= desc_valid
             else:
                 print("    WARNING: No valid description embeddings found")
                 self.use_description = False
         
         if self.use_image:
             print("  Parsing image embeddings (batch)...")
-            img_series = catalog_df['image_vector']
-            img_matrix, self.img_dim = parse_embeddings_batch(img_series)
-            
+            img_matrix, self.img_dim, img_valid = parse_embeddings_batch(
+                catalog_df['image_vector']
+            )
             if img_matrix is not None:
                 print(f"    Image embedding dimension: {self.img_dim}")
-                print(f"    Image matrix shape: {img_matrix.shape}")
+                print(f"    Valid image rows: {int(img_valid.sum()):,} / {n:,}")
+                keep &= img_valid
             else:
                 print("    WARNING: No valid image embeddings found")
                 self.use_image = False
         
         if not self.use_description and not self.use_image:
             raise ValueError("No valid embeddings found in catalog")
-        
+        if not keep.any():
+            raise ValueError("No catalog rows have valid embeddings for the selected modalities")
+
+        # Drop rows with missing embeddings so zero vectors never enter FAISS
+        skus = [sku for sku, ok in zip(skus, keep) if ok]
+        if self.use_description:
+            desc_matrix = desc_matrix[keep]
+        if self.use_image:
+            img_matrix = img_matrix[keep]
+
         # Calculate total embedding dimension
         self.embedding_dim = (self.desc_dim or 0) + (self.img_dim or 0)
         print(f"  Combined embedding dimension: {self.embedding_dim}")

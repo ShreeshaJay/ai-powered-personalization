@@ -4,37 +4,31 @@ This chapter builds **reusable item embedding models** that can be used as featu
 
 ## Chapter Structure
 
-### Section 10.1: Pre-trained Text Encoder Baselines ✅
+### Section 10.4: Pre-trained Text Encoder Baselines ✅
 - **MIND (News):** Zero-shot encoding with SBERT (MiniLM, mpnet). Evaluated via category retrieval, co-click retrieval, qualitative NN.
 - **Amazon KDD 2023 (E-Commerce):** Zero-shot encoding with SBERT + RexBERT (domain-specialized). Evaluated via session co-engagement, brand coherence, qualitative NN.
 - **Homework (IJCAI):** Demonstrates why zero-shot fails on hashed/anonymized metadata.
 
-### Section 10.2: Item2Vec — Collaborative Embeddings from Sequences ✅
+### Section 10.5: Item2Vec — Collaborative Embeddings from Sequences ✅
 - Word2Vec (Skip-gram) on user sessions — learns purely from behavioral co-occurrence
 - **Amazon KDD (primary):** Compare behavioral vs. content-based embeddings
 - **Yandex Yambda (secondary):** Music listening sessions, compare vs. audio CNN embeddings
 
-### Section 10.3: Contrastive Fine-Tuning ✅
+### Section 10.6: Contrastive Fine-Tuning ✅
 - Fine-tune SBERT with MultipleNegativesRankingLoss on behavioral pairs
 - **Amazon KDD (primary):** next-item pairs from 1.18M sessions
 - **MIND (secondary):** co-click pairs from user reading histories
-- 3-way comparison: zero-shot (10.1) vs. Item2Vec (10.2) vs. fine-tuned (10.3)
+- 3-way comparison: zero-shot (10.4) vs. Item2Vec (10.5) vs. fine-tuned (10.6)
 
-### Section 10.4: Multi-Modal Content Fusion ✅
+### Section 10.7: Multi-Modal Content Fusion ✅
 - **Music4all:** Fuse audio (i-vectors), lyrics (Word2Vec), genre (TF-IDF) into unified embeddings
 - PCA baseline (concatenate + reduce) vs. CLIP-style contrastive alignment (audio ↔ lyrics)
 - Evaluated via co-listen retrieval against 109K tracks
 - Key finding: Genre alone outperforms all fusion methods — more modalities ≠ better
 
-### Appendix: Superlinked Multi-Modal Integration
-- Moved to `appendix_superlinked/` — Superlinked is a startup library; core concepts are durable but API may change
-- Demonstrates weighted concatenation of text + categorical spaces with query-time weight tuning
-- Under the hood, Superlinked performs the same weighted concatenation you could do with numpy
-- See `appendix_superlinked/Appendix_Superlinked_Design_Notes.md` for details
-
 ---
 
-## Section 10.1: Pre-trained Text Encoder Baselines
+## Section 10.4: Pre-trained Text Encoder Baselines
 
 ### Quick Start
 
@@ -80,7 +74,7 @@ python evaluate_biencoder.py --compare_models --sample_size 10000
 
 ---
 
-## Section 10.2: Item2Vec — Collaborative Embeddings
+## Section 10.5: Item2Vec — Collaborative Embeddings
 
 ### Quick Start
 
@@ -109,7 +103,7 @@ python item2vec.py --dataset yandex
 #### 4. Evaluate: Zero-Shot vs Item2Vec on Amazon KDD
 
 ```bash
-# Compare zero-shot (10.1) vs Item2Vec (10.2)
+# Compare zero-shot (10.4) vs Item2Vec (10.5)
 python evaluate_item2vec.py
 
 # Item2Vec alone
@@ -131,7 +125,7 @@ target item.
 - Covers only items that appear frequently enough in sessions
 - `min_count` derived from the 5th percentile of the item frequency distribution
 - Captures browsing/purchasing patterns that text similarity misses
-- Complementary to content-based embeddings (explored in Chapter 11)
+- Complementary to content-based embeddings
 
 **Evaluation reports two comparison modes:**
 1. **Full catalog:** Each model evaluated on its own item set (text models
@@ -141,7 +135,7 @@ target item.
 
 ---
 
-## Section 10.3: Contrastive Fine-Tuning
+## Section 10.6: Contrastive Fine-Tuning
 
 ### Quick Start
 
@@ -188,14 +182,20 @@ yielding B*(B-1) contrastive pairs per batch for free.
 - Amazon KDD: (last viewed item, next engaged item) from session data
 - MIND: (article A, article B) co-clicked by the same user
 
-**Why this matters:** Section 10.1 showed that RexBERT (pre-trained on
-2.3T e-commerce tokens) underperforms general-purpose SBERT because it
-lacks a contrastive training objective. Section 10.3 demonstrates what
+**Evaluation hold-out:** `finetune_contrastive.py` builds training pairs
+from 80% of the sessions (Amazon KDD) or users (MIND) only, and
+`evaluate_finetuned.py` builds its ground truth from the other 20%
+(`eval_holdout_fraction` in `config.py`, split in `data/holdout.py`).
+
+**Why this matters:** Section 10.4 showed that RexBERT (pre-trained on
+about 2.3 trillion tokens, about 350 billion of them e-commerce text)
+underperforms general-purpose SBERT because it
+lacks a contrastive training objective. Section 10.6 demonstrates what
 happens when you add that objective using task-specific behavioral data.
 
 ---
 
-## Section 10.4: Multi-Modal Content Fusion
+## Section 10.7: Multi-Modal Content Fusion
 
 ### Quick Start
 
@@ -234,7 +234,7 @@ python evaluate_multimodal.py --max-queries 10000
 
 **CLIP-Style Alignment (Approach B):** Train projection heads to align audio and lyrics features in a shared 128-dim space using InfoNCE contrastive loss. For each track, (audio_i, lyrics_i) is a positive pair; other tracks in the batch are negatives.
 
-**Key insight:** Multi-modal fusion is not a magic bullet. If one modality dominates (genre → co-listen), naive fusion dilutes it. The general principle — applicable to any retrieval system including **hybrid search** (dense + sparse) — is: keep per-modality vectors separate, L2-normalize each, and weight at query time. PCA destroys this flexibility; weighted concatenation preserves it. See Design Notes for a detailed treatment connecting this to production hybrid search systems (Vespa, Weaviate, Pinecone, etc.).
+**Key insight:** Multi-modal fusion is not a magic bullet. If one modality dominates (genre → co-listen), naive fusion dilutes it. A more flexible alternative is to keep per-modality vectors separate, L2-normalize each, and weight their similarities at query time (equivalently, a dot product over weighted, concatenated sub-vectors). PCA removes this flexibility. Hybrid search engines often combine dense and sparse retrieval differently, by fusing separately ranked result lists (for example, reciprocal rank fusion); see the Design Notes.
 
 ---
 
@@ -296,13 +296,13 @@ Category: clothing > women > dresses | Properties: cotton, summer, casual | Bran
 
 ### 1. Zero-Shot vs. Fine-Tuned Embeddings
 
-**Zero-shot (Section 10.1):**
+**Zero-shot (Section 10.4):**
 - Use pre-trained encoder directly on item text
 - No training required
 - Fast to deploy
 - Limited domain adaptation
 
-**Fine-tuned (Section 10.3):**
+**Fine-tuned (Section 10.6):**
 - Adapt encoder to domain-specific data
 - Better performance on retrieval
 - Requires training data and compute
@@ -337,6 +337,7 @@ chapter10_item_embeddings/
 ├── data/
 │   ├── mind_dataset.py          # MIND news loader
 │   ├── amazon_kdd_dataset.py    # Amazon KDD 2023 loader
+│   ├── holdout.py               # Session/user hold-out for fine-tuning evaluation
 │   ├── yandex_dataset.py        # Yandex Yambda music loader
 │   ├── music4all_dataset.py     # Music4all-Onion multi-modal loader
 │   └── ijcai_cvr_dataset.py     # IJCAI CVR loader
@@ -345,15 +346,15 @@ chapter10_item_embeddings/
 ├── utils/
 │   ├── metrics.py               # Precision@K, Recall@K, NDCG@K, MRR
 │   └── faiss_index.py           # FAISS index for fast search
-├── evaluate_mind.py             # ★ 10.1 evaluation — News (SBERT only)
-├── evaluate_amazon.py           # ★ 10.1 evaluation — E-Commerce (SBERT + RexBERT)
-├── item2vec.py                  # ★ 10.2 training — Word2Vec on sessions
-├── evaluate_item2vec.py         # ★ 10.2 evaluation — behavioral vs content comparison
-├── finetune_contrastive.py      # ★ 10.3 training — Contrastive fine-tuning
-├── evaluate_finetuned.py        # ★ 10.3 evaluation — Zero-shot vs fine-tuned
+├── evaluate_mind.py             # ★ 10.4 evaluation — News (SBERT only)
+├── evaluate_amazon.py           # ★ 10.4 evaluation — E-Commerce (SBERT + RexBERT)
+├── item2vec.py                  # ★ 10.5 training — Word2Vec on sessions
+├── evaluate_item2vec.py         # ★ 10.5 evaluation — behavioral vs content comparison
+├── finetune_contrastive.py      # ★ 10.6 training — Contrastive fine-tuning
+├── evaluate_finetuned.py        # ★ 10.6 evaluation — Zero-shot vs fine-tuned
 ├── encode_items.py              # Generate and save item embeddings
-├── multimodal_fusion.py         # ★ 10.4 training — PCA + CLIP fusion
-├── evaluate_multimodal.py       # ★ 10.4 evaluation — co-listen retrieval
+├── multimodal_fusion.py         # ★ 10.7 training — PCA + CLIP fusion
+├── evaluate_multimodal.py       # ★ 10.7 evaluation — co-listen retrieval
 ├── evaluate_biencoder.py        # Homework: IJCAI bi-encoder evaluation
 ├── outputs/
 │   ├── embeddings/              # Saved embeddings (.npz)
@@ -416,7 +417,7 @@ Measures how quickly the first relevant item appears.
 
 ---
 
-## Results (Section 10.1)
+## Results (Section 10.4)
 
 ### MIND Evaluation (News Domain — 51K articles)
 
@@ -447,7 +448,7 @@ Respects temporal ordering within sessions (20K queries).
 
 **Key findings:**
 - MiniLM and mpnet are essentially tied despite 2x dimension difference
-- RexBERT (e-commerce domain MLM) underperforms purpose-built sentence encoders by ~3 points MRR — motivates fine-tuning in Section 10.3
+- RexBERT (e-commerce domain MLM) underperforms purpose-built sentence encoders by ~3 points MRR — motivates fine-tuning in Section 10.6
 - P@1 of ~22% across a 500K catalog with zero training is a strong baseline
 
 ### IJCAI Evaluation (Homework)
@@ -457,7 +458,7 @@ hashed 19-digit integers. Sub-word tokenization destroys the identity of these
 numbers, making all items appear equally (dis)similar. See `evaluate_biencoder.py`
 for details and diagnostic output.
 
-## Results (Section 10.2)
+## Results (Section 10.5)
 
 ### Amazon KDD: Zero-Shot vs Item2Vec
 
@@ -480,9 +481,15 @@ for details and diagnostic output.
 **Expected findings (to verify):**
 - Item2Vec should excel on the *common subset* (frequent items with rich behavioral signal)
 - Text models should dominate on *full catalog* (they cover all items, including long-tail)
-- The complementary nature of content vs. behavior motivates fusion in Chapter 11
+- The complementary nature of content vs. behavior motivates the fusion in Section 10.7. Chapter 11 does not cover learned fusion weights.
 
-## Results (Section 10.3)
+## Results (Section 10.6)
+
+> **Measured before the evaluation hold-out.** These fine-tuned numbers
+> come from the earlier protocol, in which `evaluate_finetuned.py` built its
+> ground truth from the same sessions the training pairs came from. They
+> overstate the fine-tuned model's gain. The scripts now hold out sessions
+> (Amazon KDD) or users (MIND); these tables will be replaced after a re-run.
 
 ### Amazon KDD: Zero-Shot vs Fine-Tuned (20K queries, 500K products)
 
@@ -504,7 +511,7 @@ for details and diagnostic output.
 3. Each item appears in only ~1-2 training pairs on average — more interaction data would help
 4. Real production systems typically see larger gains because they fine-tune on orders of magnitude more data
 
-### 3-Way Comparison (after completing Section 10.3)
+### 3-Way Comparison (after completing Section 10.6)
 
 > Re-run `python evaluate_item2vec.py` to include fine-tuned embeddings
 
@@ -523,7 +530,7 @@ for details and diagnostic output.
 | zero-shot (all-MiniLM-L6-v2) | 0.769 | 0.850 | 0.0067 | 0.025 |
 | fine-tuned (MNR on co-clicks) | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 
-## Results (Section 10.4)
+## Results (Section 10.7)
 
 ### Music4all: Co-Listen Retrieval (5K queries, 109K tracks)
 
@@ -540,8 +547,8 @@ for details and diagnostic output.
 - PCA fusion *hurts* vs. genre alone (MRR 0.318 vs 0.358) — weaker modalities dilute the strongest one
 - CLIP alignment learns real audio↔lyrics correspondences (loss well below random), but those correspondences don't predict co-listening
 - Lyrics have near-zero predictive power for co-listen — users choose music by genre and sound, not lyrical themes
-- **Lesson:** Always evaluate single modalities before fusing. Task-aware fusion (Chapter 11) is needed to weight modalities appropriately
-- **Broader principle:** Multi-modal fusion, hybrid search (dense + sparse), and any combination of heterogeneous embeddings all reduce to the same operation: weighted concatenation of normalized sub-vectors. Keep them separate for query-time flexibility.
+- **Lesson:** Always evaluate single modalities before fusing. Learned, task-aware weights are a further step; Chapter 11 does not cover them.
+- **Broader principle:** A weighted sum of per-modality cosine similarities equals one dot product over weighted, L2-normalized, concatenated sub-vectors, so keeping the sub-vectors separate keeps the weights adjustable at query time. Rank-based fusion (for example, reciprocal rank fusion, common in hybrid search) is a different operation.
 
 ---
 
@@ -571,11 +578,10 @@ python utils/faiss_index.py
 
 ## Next Steps
 
-1. ✅ **Section 10.1:** Pre-trained text encoder baselines (content only)
-2. ✅ **Section 10.2:** Item2Vec on Amazon KDD sessions + Yandex music (behavior only)
-3. ✅ **Section 10.3:** Contrastive fine-tuning (content + behavior)
-4. ✅ **Section 10.4:** Multi-modal content fusion on Music4all (PCA + CLIP)
-5. **Appendix:** Superlinked integration (see `appendix_superlinked/`)
+1. ✅ **Section 10.4:** Pre-trained text encoder baselines (content only)
+2. ✅ **Section 10.5:** Item2Vec on Amazon KDD sessions + Yandex music (behavior only)
+3. ✅ **Section 10.6:** Contrastive fine-tuning (content + behavior)
+4. ✅ **Section 10.7:** Multi-modal content fusion on Music4all (PCA + CLIP)
 
 ---
 

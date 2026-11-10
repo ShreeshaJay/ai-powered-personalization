@@ -226,6 +226,7 @@ class AmazonKDDDataset:
     def get_next_item_pairs(
         self,
         min_prev_items: int = 1,
+        sessions_df: Optional[pd.DataFrame] = None,
     ) -> Dict[str, set]:
         """
         Build next-item ground truth that respects temporal ordering.
@@ -237,6 +238,9 @@ class AmazonKDDDataset:
 
         Args:
             min_prev_items: Skip sessions with fewer prior items
+            sessions_df: Sessions to use (default: all loaded sessions).
+                Pass one side of data.holdout.split_amazon_sessions to
+                keep training and evaluation sessions apart.
 
         Returns:
             Dict mapping query_product_id -> set of valid next_product_ids
@@ -250,7 +254,10 @@ class AmazonKDDDataset:
         next_item_map: Dict[str, set] = defaultdict(set)
         total_pairs = 0
 
-        for _, row in self.sessions_df.iterrows():
+        if sessions_df is None:
+            sessions_df = self.sessions_df
+
+        for _, row in sessions_df.iterrows():
             prev_items = row["prev_items_list"]
             next_item = row.get("next_item")
 

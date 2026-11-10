@@ -7,7 +7,7 @@ Implements standard retrieval and ranking metrics for bi-encoder evaluation:
 - NDCG@K
 - MRR (Mean Reciprocal Rank)
 
-Used for Section 10.1 bi-encoder evaluation.
+Used for Section 10.4 bi-encoder evaluation.
 """
 
 import numpy as np

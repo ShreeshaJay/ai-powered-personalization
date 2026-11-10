@@ -308,8 +308,16 @@ def main():
     # Output arguments
     parser.add_argument('--output_dir', type=str, default='outputs',
                         help='Output directory for models and results')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility')
     
     args = parser.parse_args()
+    if args.history_days < 0:
+        parser.error('--history_days must be >= 0 (0: same length as the fit window)')
+    
+    # Seed for reproducibility (data shuffling, weight init)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
     
     mlp_dims = [int(x) for x in args.mlp_dims.split(',')]
     
@@ -451,6 +459,9 @@ def main():
         optimizer, mode='max', factor=0.5, patience=2
     )
     
+    # Early stopping, LR scheduling, and checkpoint selection are all driven
+    # by the temporal VALIDATION split. The test set is touched only once,
+    # after training, for the final report.
     best_auc = 0.0
     best_epoch = 0
     patience_counter = 0
@@ -540,6 +551,7 @@ def main():
             'dropout': args.dropout,
             'lr': args.lr,
             'batch_size': args.batch_size,
+            'seed': args.seed,
         },
         'val_split_ratio': args.val_split_ratio,
         'history_days': args.history_days,

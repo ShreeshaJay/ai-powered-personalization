@@ -15,7 +15,7 @@ Students are encouraged to:
   3. Compare against the MIND evaluation (evaluate_mind.py) where real
      text yields dramatically better results
 
-For the primary Section 10.1 evaluation, see: evaluate_mind.py
+For the primary Section 10.4 evaluation, see: evaluate_mind.py
 
 Usage:
     python evaluate_biencoder.py --compare_models --sample_size 10000
@@ -457,7 +457,7 @@ def compare_models_on_ijcai(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Bi-encoder evaluation for item embeddings (Section 10.1)"
+        description="Bi-encoder evaluation for item embeddings (Section 10.4)"
     )
     
     parser.add_argument(

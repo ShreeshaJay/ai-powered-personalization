@@ -246,8 +246,16 @@ def main():
     parser.add_argument('--patience', type=int, default=3)
     
     parser.add_argument('--output_dir', type=str, default='outputs')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility')
     
     args = parser.parse_args()
+    if args.history_days < 0:
+        parser.error('--history_days must be >= 0 (0: same length as the fit window)')
+    
+    # Seed for reproducibility (data shuffling, weight init)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
     
     bottom_mlp_dims = [int(x) for x in args.bottom_mlp_dims.split(',')]
     top_mlp_dims = [int(x) for x in args.top_mlp_dims.split(',')]
@@ -354,6 +362,9 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2)
     
+    # Early stopping, LR scheduling, and checkpoint selection are all driven
+    # by the temporal VALIDATION split. The test set is touched only once,
+    # after training, for the final report.
     best_auc = 0.0
     best_epoch = 0
     patience_counter = 0
@@ -414,6 +425,7 @@ def main():
         'experiment': exp_name,
         'train_days': train_days,
         'val_split_ratio': args.val_split_ratio,
+        'seed': args.seed,
         'history_days': args.history_days,
         'best_epoch': best_epoch,
         'train_metrics': train_metrics,

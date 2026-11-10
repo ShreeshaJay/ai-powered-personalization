@@ -92,39 +92,43 @@ def load_browsing_sessions_lazy(data_path: Path, browsing_file: str) -> pl.LazyF
     return lf
 
 
-def parse_embeddings_batch(embedding_series: pl.Series) -> Tuple[np.ndarray, int]:
-    """Parse embeddings in batch - returns 2D numpy array."""
+def parse_embeddings_batch(embedding_series: pl.Series):
+    """
+    Parse embeddings in batch.
+
+    Returns (matrix, embedding_dim, valid_mask). Callers must drop rows
+    where valid_mask is False; zero vectors must not enter the FAISS index.
+    """
     embeddings = []
+    valid_mask = []
     embedding_dim = None
     
     for emb_str in embedding_series.to_list():
         if emb_str is None:
-            if embedding_dim is not None:
-                embeddings.append(np.zeros(embedding_dim, dtype=np.float32))
+            embeddings.append(None)
+            valid_mask.append(False)
+            continue
+        try:
+            if isinstance(emb_str, str) and emb_str.startswith('['):
+                emb = np.array(json.loads(emb_str), dtype=np.float32)
             else:
-                embeddings.append(None)
-        else:
-            try:
-                if emb_str.startswith('['):
-                    emb = np.array(json.loads(emb_str), dtype=np.float32)
-                else:
-                    emb = np.array([float(x) for x in emb_str.split()], dtype=np.float32)
-                
-                if embedding_dim is None:
-                    embedding_dim = len(emb)
-                embeddings.append(emb)
-            except:
-                if embedding_dim is not None:
-                    embeddings.append(np.zeros(embedding_dim, dtype=np.float32))
-                else:
-                    embeddings.append(None)
-    
-    if embedding_dim is not None:
-        embeddings = [e if e is not None else np.zeros(embedding_dim, dtype=np.float32) 
-                      for e in embeddings]
-        return np.vstack(embeddings), embedding_dim
-    
-    return None, None
+                emb = np.array([float(x) for x in str(emb_str).split()], dtype=np.float32)
+            if embedding_dim is None:
+                embedding_dim = len(emb)
+            embeddings.append(emb)
+            valid_mask.append(True)
+        except Exception:
+            embeddings.append(None)
+            valid_mask.append(False)
+
+    if embedding_dim is None or not any(valid_mask):
+        return None, None, np.array([], dtype=bool)
+
+    filled = [
+        e if e is not None else np.zeros(embedding_dim, dtype=np.float32)
+        for e in embeddings
+    ]
+    return np.vstack(filled), embedding_dim, np.array(valid_mask, dtype=bool)
 
 
 # =============================================================================
@@ -170,8 +174,12 @@ def build_user_sessions(
             (pl.col('product_action').is_in(ground_truth_actions))
         )
         .select(['session_id_hash', 'product_sku_hash', 'server_timestamp_epoch_ms'])
-        .sort(['session_id_hash', 'server_timestamp_epoch_ms'])
-        .group_by('session_id_hash')
+        # Tie-break equal timestamps by input order. Polars 2.x does not
+        # keep that order for equal sort keys, which changes which
+        # consecutive duplicates are removed.
+        .with_row_index('_evt')
+        .sort(['session_id_hash', 'server_timestamp_epoch_ms', '_evt'])
+        .group_by('session_id_hash', maintain_order=True)
         .agg([
             pl.col('product_sku_hash').alias('products'),
             pl.len().alias('session_length'),
@@ -198,13 +206,23 @@ def build_user_sessions(
             if not unique_products or p != unique_products[-1]:
                 unique_products.append(p)
         
-        if len(unique_products) >= min_session_length:
-            user_sessions.append({
-                'session_id': row['session_id_hash'],
-                'history_items': unique_products[:-1],  # All but last
-                'ground_truth_item': unique_products[-1],  # Last item
-                'max_timestamp': row['max_timestamp']  # For time-based split
-            })
+        if len(unique_products) < min_session_length:
+            continue
+
+        history_items = unique_products[:-1]
+        ground_truth_item = unique_products[-1]
+        # With exclude_history=True at retrieval time, a ground-truth item that
+        # already appears earlier in the session is unreachable. Drop those
+        # sessions so metrics are not deflated by impossible labels.
+        if ground_truth_item in history_items:
+            continue
+
+        user_sessions.append({
+            'session_id': row['session_id_hash'],
+            'history_items': history_items,
+            'ground_truth_item': ground_truth_item,
+            'max_timestamp': row['max_timestamp'],  # For time-based split
+        })
     
     print(f"  Valid evaluation sessions: {len(user_sessions):,}")
     
@@ -243,13 +261,18 @@ class ItemEmbeddingIndex:
         # Parse description embeddings
         print("  Parsing description embeddings...")
         desc_series = catalog_df['description_vector']
-        self.embeddings, self.embedding_dim = parse_embeddings_batch(desc_series)
+        embeddings, self.embedding_dim, valid_mask = parse_embeddings_batch(desc_series)
         
-        if self.embeddings is None:
+        if embeddings is None or not valid_mask.any():
             raise ValueError("No valid embeddings found")
+
+        # Drop missing-embedding rows (do not index zero vectors)
+        skus = [sku for sku, ok in zip(skus, valid_mask) if ok]
+        self.embeddings = embeddings[valid_mask]
         
         print(f"  Embedding dimension: {self.embedding_dim}")
         print(f"  Embeddings shape: {self.embeddings.shape}")
+        print(f"  Dropped invalid rows: {int((~valid_mask).sum()):,}")
         
         # Normalize for cosine similarity
         print("  Normalizing embeddings (L2)...")

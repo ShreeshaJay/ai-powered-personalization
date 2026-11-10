@@ -86,11 +86,15 @@ class YandexDataset:
         logger.info(f"  After min_listens >= {self.min_listens_per_user}: {len(df):,} "
                      f"({len(valid_users):,} users)")
 
-        if self.max_listens_per_user:
-            df = df.groupby("uid").head(self.max_listens_per_user)
-            logger.info(f"  After capping at {self.max_listens_per_user}/user: {len(df):,}")
-
+        # Sort chronologically per user BEFORE capping, so the cap keeps each
+        # user's earliest N listens. Capping first would keep whatever N rows
+        # happen to come first in the parquet file order instead.
         df = df.sort_values(["uid", "timestamp"]).reset_index(drop=True)
+
+        if self.max_listens_per_user:
+            df = df.groupby("uid", sort=False).head(self.max_listens_per_user)
+            df = df.reset_index(drop=True)
+            logger.info(f"  After capping at {self.max_listens_per_user}/user: {len(df):,}")
 
         # Convert item_id to string for consistency with other datasets
         df["item_id"] = df["item_id"].astype(str)

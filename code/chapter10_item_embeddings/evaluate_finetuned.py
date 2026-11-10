@@ -1,14 +1,20 @@
 """
 Evaluate Fine-Tuned vs Zero-Shot Item Embeddings
 
-Section 10.3: Side-by-side comparison of contrastive-finetuned encoders
-against the zero-shot baselines from Section 10.1.
+Section 10.6: Side-by-side comparison of contrastive-finetuned encoders
+against the zero-shot baselines from Section 10.4.
 
 Runs the same evaluation suite on both the original pre-trained model and
 the fine-tuned checkpoint, producing a direct comparison table.
 
 For Amazon KDD:  next-item retrieval (same as evaluate_amazon.py)
 For MIND:        category retrieval + co-click retrieval (same as evaluate_mind.py)
+
+Evaluation uses only the sessions (Amazon KDD) or users (MIND) that
+finetune_contrastive.py holds out (data/holdout.py), so the fine-tuned
+model is never scored on pairs from sessions or users it trained on. A
+checkpoint trained before this hold-out existed has seen every session
+and must be retrained first.
 
 Usage:
     # Compare on Amazon KDD
@@ -42,6 +48,7 @@ from config import (
     EMBEDDINGS_DIR,
 )
 from data.amazon_kdd_dataset import AmazonKDDDataset
+from data.holdout import split_amazon_sessions, split_mind_users
 from data.mind_dataset import MINDDataset
 from models import create_encoder, TextEncoder
 from utils import evaluate_ranking_batch
@@ -81,9 +88,14 @@ def encode_items(
 
     if not force_recompute and emb_file.exists():
         data = np.load(emb_file, allow_pickle=True)
-        if data["embeddings"].shape[0] == expected:
+        # Caches written by evaluate_mind.py store IDs under "news_ids";
+        # evaluate_amazon.py and this script use "item_ids". Accept either so
+        # the zero-shot caches from Section 10.4 can be reused here.
+        ids_key = "item_ids" if "item_ids" in data.files else (
+            "news_ids" if "news_ids" in data.files else None)
+        if ids_key is not None and data["embeddings"].shape[0] == expected:
             logger.info(f"Loaded cached embeddings: {emb_file} ({expected} items)")
-            return data["embeddings"], list(data["item_ids"])
+            return data["embeddings"], list(data[ids_key])
         logger.warning(f"Stale cache ({data['embeddings'].shape[0]} != {expected}). Re-encoding.")
 
     logger.info(f"Encoding {expected} items with {model_path_or_name}")
@@ -296,7 +308,18 @@ def compare_amazon(
     dataset.load_products()
     product_ids = set(dataset.products_df["id"])
     dataset.load_sessions(product_ids=product_ids)
-    next_item_map = dataset.get_next_item_pairs(min_prev_items=config.min_session_length - 1)
+    # Ground truth from the held-out sessions only: the fine-tuned model
+    # never trained on them (finetune_contrastive.py uses the other side).
+    _, eval_sessions = split_amazon_sessions(
+        dataset.sessions_df,
+        DEFAULT_CONTRASTIVE_CONFIG.eval_holdout_fraction,
+        DEFAULT_CONTRASTIVE_CONFIG.random_seed,
+    )
+    logger.info(f"Evaluating on {len(eval_sessions)} held-out sessions")
+    next_item_map = dataset.get_next_item_pairs(
+        min_prev_items=config.min_session_length - 1,
+        sessions_df=eval_sessions,
+    )
 
     item_texts = dataset.get_item_texts(
         use_title=config.use_title,
@@ -361,10 +384,17 @@ def compare_mind(
         template=config.text_template,
     )
 
-    # Build co-click ground truth
+    # Co-click ground truth from the held-out users only: the fine-tuned
+    # model never trained on them (finetune_contrastive.py uses the others).
+    _, eval_behaviors = split_mind_users(
+        behaviors_df,
+        DEFAULT_CONTRASTIVE_CONFIG.eval_holdout_fraction,
+        DEFAULT_CONTRASTIVE_CONFIG.random_seed,
+    )
+    logger.info(f"Evaluating on {eval_behaviors['user_id'].nunique()} held-out users")
     valid_ids = set(item_texts.keys())
     coclick_map = defaultdict(set)
-    for history in behaviors_df["history_list"]:
+    for history in eval_behaviors["history_list"]:
         valid_h = [nid for nid in history if nid in valid_ids]
         if len(valid_h) < 3:
             continue
@@ -415,7 +445,7 @@ def compare_mind(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Section 10.3 — Compare zero-shot vs fine-tuned embeddings"
+        description="Section 10.6 — Compare zero-shot vs fine-tuned embeddings"
     )
     parser.add_argument(
         "--dataset", type=str, default="amazon",

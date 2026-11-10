@@ -4,7 +4,7 @@ FAISS Index Wrapper for Fast Similarity Search
 Provides utilities for building and querying FAISS indices for efficient
 nearest neighbor search over item embeddings.
 
-Used in Section 10.1 for bi-encoder evaluation.
+Used in Section 10.4 for bi-encoder evaluation.
 """
 
 import numpy as np

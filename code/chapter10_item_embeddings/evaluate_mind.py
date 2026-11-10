@@ -1,7 +1,7 @@
 """
 Evaluate Zero-Shot Item Embeddings on MIND News Dataset
 
-Section 10.1: Pre-trained Text Encoder Baselines
+Section 10.4: Pre-trained Text Encoder Baselines
 
 Evaluates embedding quality through three complementary lenses:
   1. Category Retrieval  — Do nearest neighbors share the same topic?
@@ -347,7 +347,7 @@ def run_full_evaluation(
     show_qualitative: bool = True
 ) -> Dict[str, Any]:
     """
-    Run the complete Section 10.1 evaluation for a single model on MIND.
+    Run the complete Section 10.4 evaluation for a single model on MIND.
 
     Returns:
         Dictionary containing all metrics and metadata
@@ -471,7 +471,7 @@ def compare_models(
         DataFrame with side-by-side comparison
     """
     logger.info("=" * 80)
-    logger.info("MIND Model Comparison (Section 10.1)")
+    logger.info("MIND Model Comparison (Section 10.4)")
     logger.info("=" * 80)
 
     all_results = []
@@ -511,7 +511,7 @@ def compare_models(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Evaluate zero-shot item embeddings on MIND (Section 10.1)"
+        description="Evaluate zero-shot item embeddings on MIND (Section 10.4)"
     )
     parser.add_argument(
         "--model", type=str,
