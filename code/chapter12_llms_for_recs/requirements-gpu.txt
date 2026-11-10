@@ -1,0 +1,4 @@
+# Extra package for CUDA runs that pass --quantize-4bit (see CLOUD_RUN.md).
+# Not installed or tested on the CPU development machine; Linux + CUDA only.
+-r requirements.txt
+bitsandbytes==0.50.2

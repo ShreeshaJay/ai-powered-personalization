@@ -1,0 +1,6 @@
+# HSTU companion code. Tested with Python 3.11 on CPU.
+numpy==2.4.6
+polars==2.1.0
+torch==2.15.0
+tqdm==4.70.1
+pytest==9.2.0

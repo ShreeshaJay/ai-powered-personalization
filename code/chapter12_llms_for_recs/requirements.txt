@@ -1,0 +1,22 @@
+# Chapter 12: Generative AI for Recommender Systems
+# Tested with Python 3.11 on CPU. Install with: pip install -r requirements.txt
+# On a CUDA machine also install requirements-gpu.txt (4-bit loading).
+
+numpy==2.4.6
+polars==2.1.0
+scikit-learn==1.9.1
+tqdm==4.70.1
+
+torch==2.15.0
+transformers==5.22.2
+sentence-transformers==6.2.0
+peft==0.21.2
+accelerate==1.15.0
+
+# Optional: exact inner-product search; utils/faiss_index.py falls back to numpy without it
+faiss-cpu==1.15.1
+
+# Optional: t-SNE plot in evaluate_semantic_ids.py --tsne
+matplotlib==3.11.2
+
+pytest==9.2.0
