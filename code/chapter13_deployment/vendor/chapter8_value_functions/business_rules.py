@@ -88,8 +88,13 @@ class ArtistPacer:
         Returns:
             Paced list of item_ids
         """
-        max_per_artist = max_per_artist or self.config.max_per_artist
-        max_per_album = max_per_album or self.config.max_per_album
+        # Use explicit None checks so a legitimate override of 0
+        # (e.g. "exclude any item with a known album") is not silently
+        # replaced by the config default, as `x or default` would do.
+        if max_per_artist is None:
+            max_per_artist = self.config.max_per_artist
+        if max_per_album is None:
+            max_per_album = self.config.max_per_album
         
         artist_counts: Dict[int, int] = {}
         album_counts: Dict[int, int] = {}
@@ -142,13 +147,14 @@ class ArtistPacer:
         original_artists = set()
         for item_id in original_list[:self.config.max_per_artist * 5]:
             artist_id = self.artist_mapping.get(item_id)
-            if artist_id:
+            # `is not None` rather than truthiness: artist_id 0 is a valid ID.
+            if artist_id is not None:
                 original_artists.add(artist_id)
         
         paced_artists = set()
         for item_id in paced_list[:len(original_list)]:
             artist_id = self.artist_mapping.get(item_id)
-            if artist_id:
+            if artist_id is not None:
                 paced_artists.add(artist_id)
         
         return {

@@ -1,14 +1,14 @@
 {
   "source_repository": "https://github.com/ShreeshaJay/ai-powered-personalization",
-  "source_commit": "074886c3ee51a79dd1848d437b467d9be75843ca",
-  "vendored_at_utc": "2026-11-09T19:22:14Z",
+  "source_commit": "8e8e71ab0a9ad9da387446b89f8432a23ad2d7fd",
+  "vendored_at_utc": "2026-11-10T00:25:12Z",
   "note": "Byte-identical copies of committed files. Do not edit; re-run scripts/vendor_published_code.py instead.",
   "files": [
     {
       "vendored_path": "chapter5_retrieval/supervised_two_tower.py",
       "source_path": "code/chapter5_retrieval/supervised_two_tower.py",
-      "sha256": "023823c62eeb25e99de960b1426d56e55935b71a8fd8378a6a5cdc5e9fb0c009",
-      "bytes": 50530
+      "sha256": "90564cfe0ee9de9a523c39382708cf75d4b37de79a27eff26d49d106da4ec3a8",
+      "bytes": 51752
     },
     {
       "vendored_path": "chapter6_ranking/models/__init__.py",
@@ -19,8 +19,8 @@
     {
       "vendored_path": "chapter6_ranking/models/deepfm.py",
       "source_path": "code/chapter6_ranking/models/deepfm.py",
-      "sha256": "b7967564a661f6d8ce1f7be963a9e87f0cbef06d5579353affcb498b8fbfca8d",
-      "bytes": 17088
+      "sha256": "2904761b44a9ec7378680241b477a49fc090317419082f396ce39d6b402a2e0a",
+      "bytes": 17557
     },
     {
       "vendored_path": "chapter6_ranking/models/feature_encoder.py",
@@ -37,14 +37,14 @@
     {
       "vendored_path": "chapter6_ranking/models/historical_features.py",
       "source_path": "code/chapter6_ranking/models/historical_features.py",
-      "sha256": "5220770a2c03ba3d710f61034bf3d97d303a56fce9acef7b685fa17509f71715",
-      "bytes": 18956
+      "sha256": "77f6340906b53f98a63e33fbeb77f26476ae3239a2186b29298619a4cf3f99de",
+      "bytes": 19097
     },
     {
       "vendored_path": "chapter6_ranking/models/xgboost_ranker.py",
       "source_path": "code/chapter6_ranking/models/xgboost_ranker.py",
-      "sha256": "a0e572281a3d198365632c7a61340e032335ea2370f48e56153cbea18fa07d1d",
-      "bytes": 13709
+      "sha256": "74940386be475a2eba96eff1bc402c4d4a8d291cc58b8454bd556603b21323d3",
+      "bytes": 14022
     },
     {
       "vendored_path": "chapter7_advanced_ranking/models/__init__.py",
@@ -55,38 +55,38 @@
     {
       "vendored_path": "chapter7_advanced_ranking/models/dcn.py",
       "source_path": "code/chapter7_advanced_ranking/models/dcn.py",
-      "sha256": "eadfc8bc4bcd5d462865c1410e9fb512a4880580232958cf59f3e3e182be9399",
-      "bytes": 20091
+      "sha256": "ec7f6918f6653607c7a20a4550aa2cdd4264aa677d5cff788d1f7f3b371c88d1",
+      "bytes": 20525
     },
     {
       "vendored_path": "chapter7_advanced_ranking/models/dlrm.py",
       "source_path": "code/chapter7_advanced_ranking/models/dlrm.py",
-      "sha256": "c501feb2da35b6f75aa9dfd843be159337b20d4665d4780eea49c92a2580b257",
-      "bytes": 18301
+      "sha256": "c84da11c9be476fd0602ae37cdc8e2f4c3b3531ae8a47c1fb990bf2f4688b115",
+      "bytes": 18735
     },
     {
       "vendored_path": "chapter7_advanced_ranking/models/mmoe.py",
       "source_path": "code/chapter7_advanced_ranking/models/mmoe.py",
-      "sha256": "37a77b651ff1991c871a5572ab088665b8173f38199dd45a9916e289c588d7a4",
-      "bytes": 28310
+      "sha256": "b597081a2101183e7f5c1dbcdf20787d31850a1dd1dd8c6ea403cda0a0f16279",
+      "bytes": 28744
     },
     {
       "vendored_path": "chapter7_advanced_ranking/utils/__init__.py",
       "source_path": "code/chapter7_advanced_ranking/utils/__init__.py",
-      "sha256": "4fb0a841d16ec98c0030f14c8221830ba3c79cb6287c0594f73cb801cc946ddd",
-      "bytes": 488
+      "sha256": "8b029bfd9e0bb9fa5eb8a86b521d8c0da7a9173a1bc99a58f0907a0fa4a3dc4b",
+      "bytes": 548
     },
     {
       "vendored_path": "chapter7_advanced_ranking/utils/polars_pipeline.py",
       "source_path": "code/chapter7_advanced_ranking/utils/polars_pipeline.py",
-      "sha256": "b9ab5c0d9c24cbd0082c416a1216d61435f319f6993a1db10cff7c5b7f429190",
-      "bytes": 32142
+      "sha256": "a3ef3df7be52818ff5a9362a22d6bfe3b223f87033203d34bfaff275aaa24ff0",
+      "bytes": 33145
     },
     {
       "vendored_path": "chapter7_advanced_ranking/train_mmoe.py",
       "source_path": "code/chapter7_advanced_ranking/train_mmoe.py",
-      "sha256": "a96ab84d43021e6aaf7c68c6f9cf647b23720ae497dfc55ab07447468d133dd1",
-      "bytes": 57800
+      "sha256": "cbae015659fb0b328a0dea8efc0413afafcbe2162a4641aa481a6a91ceedab9e",
+      "bytes": 58803
     },
     {
       "vendored_path": "chapter8_value_functions/__init__.py",
@@ -97,8 +97,8 @@
     {
       "vendored_path": "chapter8_value_functions/business_rules.py",
       "source_path": "code/chapter8_value_functions/business_rules.py",
-      "sha256": "f4ae6d31b80d234661bbd9d3e2f3c6d2083593e4e610957510ce921c34006c16",
-      "bytes": 12813
+      "sha256": "bb33d9f415f539fa3d7b01df5f6cae76ffe80175e1aceee323933523a478ce49",
+      "bytes": 13164
     },
     {
       "vendored_path": "chapter8_value_functions/mmr_diversity.py",

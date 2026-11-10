@@ -204,6 +204,10 @@ class XGBoostRanker:
         if processed_eval_set:
             fit_params['eval_set'] = processed_eval_set
             fit_params['verbose'] = verbose
+            # XGBoost >= 2.0 takes early_stopping_rounds as a model parameter,
+            # and requires an eval_set for it to apply.
+            if self.early_stopping_rounds:
+                self.model.set_params(early_stopping_rounds=self.early_stopping_rounds)
         
         self.model.fit(X_train, y_train, **fit_params)
         
@@ -216,7 +220,8 @@ class XGBoostRanker:
             'trained_at': datetime.now().isoformat()
         }
         
-        logger.info(f"Training complete. Best iteration: {self.model.best_iteration if hasattr(self.model, 'best_iteration') else 'N/A'}")
+        best_iteration = getattr(self.model, 'best_iteration', None)
+        logger.info(f"Training complete. Best iteration: {best_iteration if best_iteration is not None else 'N/A'}")
         
         return self
     

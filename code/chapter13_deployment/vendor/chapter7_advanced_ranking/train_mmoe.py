@@ -131,6 +131,13 @@ def _add_time_windowed_labels(
     Returns:
         LazyFrame with label column added
     """
+    # Tag each listen with its input position. The join and group_by below
+    # then work on listens rather than on column values: two listens that
+    # are identical in every column stay two rows, and sorting by the tag
+    # returns the rows in input order (joins and group_by do not keep row
+    # order on polars 2.x).
+    listens_idx = listens_lf.with_row_index('_listen_row')
+
     # Rename event timestamp to avoid collision
     events_with_ts = events_lf.select([
         col('uid'),
@@ -139,7 +146,7 @@ def _add_time_windowed_labels(
     ])
     
     # Join on (uid, item_id) - this creates multiple rows if user has multiple events for same item
-    joined = listens_lf.join(
+    joined = listens_idx.join(
         events_with_ts,
         on=['uid', 'item_id'],
         how='left'
@@ -155,18 +162,19 @@ def _add_time_windowed_labels(
     )
     if label_end_ts is not None:
         in_window = in_window & (col('event_ts') < label_end_ts)
-    result = joined.with_columns([
+    flags = joined.with_columns([
         # Check if event is within window (and event exists, i.e., not null)
         pl.when(in_window).then(1).otherwise(0).alias('_event_in_window')
-    ]).group_by(
-        # Group by all original columns to collapse multiple event matches
-        [c for c in listens_lf.collect_schema().names()]
-    ).agg([
+    ]).group_by('_listen_row').agg([
         # If any event was in window, mark as positive
         pl.max('_event_in_window').alias(label_name)
-    ]).with_columns([
-        col(label_name).fill_null(0).cast(pl.Int8)
     ])
+    result = (
+        listens_idx.join(flags, on='_listen_row', how='left')
+        .with_columns([col(label_name).fill_null(0).cast(pl.Int8)])
+        .sort('_listen_row')
+        .drop('_listen_row')
+    )
     
     return result
 
@@ -1059,8 +1067,16 @@ def main():
     parser.add_argument('--patience', type=int, default=3)
     
     parser.add_argument('--output_dir', type=str, default='outputs')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility')
     
     args = parser.parse_args()
+    if args.history_days < 0:
+        parser.error('--history_days must be >= 0 (0: same length as the fit window)')
+    
+    # Seed for reproducibility (data shuffling, weight init)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
     
     expert_dims = [int(x) for x in args.expert_dims.split(',')]
     tower_dims = [int(x) for x in args.tower_dims.split(',')]
@@ -1194,6 +1210,9 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2)
     
+    # Early stopping, LR scheduling, and checkpoint selection are all driven
+    # by the temporal VALIDATION split (completion AUC). The test set is
+    # touched only once, after training, for the final report.
     best_auc = 0.0
     best_epoch = 0
     patience_counter = 0
@@ -1278,6 +1297,7 @@ def main():
         'experiment': exp_name,
         'train_days': train_days,
         'val_split_ratio': args.val_split_ratio,
+        'seed': args.seed,
         'history_days': args.history_days,
         'best_epoch': best_epoch,
         'train_metrics': train_metrics,

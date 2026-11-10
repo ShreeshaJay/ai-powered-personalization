@@ -273,6 +273,14 @@ class DLRM(nn.Module):
                 nn.init.xavier_uniform_(param)
             elif 'weight' in name and 'bn' not in name:
                 nn.init.xavier_uniform_(param)
+        
+        # Re-zero padding rows: xavier_uniform_ overwrites the zeros that
+        # nn.Embedding(padding_idx=0) created. Gradients at padding_idx are
+        # always zero, so a non-zero padding row would never be corrected
+        # and unknown/padding inputs would inject random noise.
+        with torch.no_grad():
+            for table in self.embeddings.values():
+                table.weight[table.padding_idx].zero_()
     
     def forward(
         self,

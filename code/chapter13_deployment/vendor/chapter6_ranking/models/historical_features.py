@@ -3,8 +3,10 @@ Chapter 6: Historical Feature Engineering
 ==========================================
 Compute aggregated historical features for users, items, and user-item pairs.
 
-IMPORTANT: To prevent data leakage, these features are computed from the
-TRAINING SET ONLY and then applied to train/val/test sets.
+IMPORTANT: Aggregates are computed from the same column as the label, so
+each row's features must come from events before that row's window. Fit on
+an earlier history window for training rows, and on the training window (or
+an earlier window) for validation and test rows.
 
 Point-in-Time (PIT) Correctness Note:
 -------------------------------------
