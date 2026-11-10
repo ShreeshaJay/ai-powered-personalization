@@ -1,0 +1,65 @@
+# Mutable search space, adapted from the Chapter 6 autoresearch configuration.
+# Paths and the test-set objective are gone. The harness scores validation AUC.
+# Early stopping still watches the train-tail eval set inside the trainer.
+
+objective:
+  metric: auc_roc
+  split: validation
+  direction: maximize
+
+parameters:
+  learning_rate:
+    type: loguniform
+    low: 0.005
+    high: 0.3
+  subsample:
+    type: uniform
+    low: 0.5
+    high: 1.0
+  colsample_bytree:
+    type: uniform
+    low: 0.5
+    high: 1.0
+  min_child_weight:
+    type: choice
+    values:
+      - 1
+      - 3
+      - 5
+      - 10
+  scale_pos_weight:
+    type: choice
+    values:
+      - 1.0
+      - 2.0
+      - 5.0
+      - 10.0
+  eval_metric:
+    type: choice
+    values:
+      - auc
+      - aucpr
+  max_depth:
+    type: choice
+    values:
+      - 3
+      - 4
+      - 5
+      - 6
+      - 8
+      - 10
+  n_estimators:
+    type: choice
+    values:
+      - 50
+      - 100
+      - 200
+      - 300
+      - 500
+  early_stopping_rounds:
+    type: choice
+    values:
+      - 5
+      - 10
+      - 20
+      - 50

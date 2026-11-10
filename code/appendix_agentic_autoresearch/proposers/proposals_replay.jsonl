@@ -1,0 +1,4 @@
+{"record_type": "provenance", "source": "synthetic", "statement": "Hand-written proposals for the replay interface. Not model output. No LLM was called."}
+{"learning_rate": 0.05, "subsample": 0.9, "colsample_bytree": 0.7, "min_child_weight": 3, "scale_pos_weight": 1.0, "eval_metric": "auc", "max_depth": 4, "n_estimators": 100, "early_stopping_rounds": 10}
+{"learning_rate": 0.1, "subsample": 0.8, "colsample_bytree": 0.8, "min_child_weight": 1, "scale_pos_weight": 2.0, "eval_metric": "aucpr", "max_depth": 3, "n_estimators": 200, "early_stopping_rounds": 5}
+{"learning_rate": 0.2, "subsample": 0.6, "colsample_bytree": 0.6, "min_child_weight": 5, "scale_pos_weight": 1.0, "eval_metric": "auc", "max_depth": 6, "n_estimators": 50, "early_stopping_rounds": 20}
