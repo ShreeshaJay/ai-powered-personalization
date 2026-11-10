@@ -62,7 +62,7 @@ While this is not a code-oriented book, there is just enough code within each ch
 - **Appendix A: RexBERT, from E-Commerce Language Model to Sentence Encoder**
 - **Appendix B: Hybrid Search with Vector Databases**
 - **Appendix C: Agentic Autoresearch for Recommender Systems**
-- **Appendix D: Structured-Output Scoring Benchmark**
+- **Appendix D: Benchmarking Structured-Output Scorers**
 
 Corrections to published chapters are listed in [ERRATA.md](ERRATA.md).
 
