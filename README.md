@@ -83,6 +83,7 @@ Corrections to published chapters are listed in [ERRATA.md](ERRATA.md).
 | `code/chapter14_latency/` | Chapter 14 — Latency optimization (tail-latency measurement, critical-path attribution, ANN operating points, ONNX and quantized inference with parity checks) |
 | `code/chapter15_recsysops/` | Chapter 15 - Monitoring and retraining (silent-degradation exercise on Yambda: feature corruption, data-quality and model-quality monitors, alert statuses against a reference day) |
 | `code/chapter16_experimentation/` | Chapter 16 — Experimentation and bandits (CUPED, sequential testing, interleaving, bandits, off-policy evaluation) |
+| `code/appendix_agentic_autoresearch/` | Sealed search on the Chapter 6 ranker (no model calls; synthetic run and Figure C.2) |
 | `code/appendix_system_one_benchmark/` | Structured-output scoring benchmark (majority, Laya, Jev, Kev-0.8B, Kev-4B, JevLite) |
 | Chapter-specific `README.md` files | Setup instructions, dataset notes, and expected outputs per chapter |
 
