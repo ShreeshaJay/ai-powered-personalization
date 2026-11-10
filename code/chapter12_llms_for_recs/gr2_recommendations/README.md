@@ -1,5 +1,7 @@
 # GR2 Recommendations Methodology
 
+These notes come from an unfinished side project on LLM listwise re-ranking for Amazon Reviews 2023 Beauty and are not companion code for Chapter 12. They are kept for reference only; the experiment was not completed and reports no results.
+
 This folder contains the reader-facing methodology draft for a GR2-inspired recommendation reranking exercise for Chapter 12, **LLMs for Recommenders**.
 
 The experiment studies a multi-stage recommendation funnel on Amazon Reviews 2023 `Beauty_and_Personal_Care`:

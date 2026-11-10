@@ -78,7 +78,7 @@ Corrections to published chapters are listed in [ERRATA.md](ERRATA.md).
 | `code/chapter9_adtech/` | Chapter 9 — Adtech (ESMM, federated Split NN, calibration) |
 | `code/chapter10_item_embeddings/` | Chapter 10 — Item embeddings (SBERT, Item2Vec, contrastive fine-tuning, multimodal fusion) |
 | `code/chapter11_user_embeddings/` | Chapter 11 — User embeddings (aggregation, SASRec/GRU4Rec, LightGCN) |
-| `code/chapter12_llms_for_recs/`, `code/appendix_hybrid_search/` | LLM-recommendation methodology notes and hybrid-search appendix code |
+| `code/chapter12_llms_for_recs/`, `code/appendix_hybrid_search/` | Chapter 12 companion code (Semantic IDs, HSTU, LLM features, text ranking) and hybrid-search appendix code |
 | `code/chapter13_deployment/` | Chapter 13 - Online deployment (five services for the Chapter 5 to 8 models, stage contracts, deadlines, circuit breakers, degradation ladder, local stack and Cloud Run deploy) |
 | `code/chapter14_latency/` | Chapter 14 — Latency optimization (tail-latency measurement, critical-path attribution, ANN operating points, ONNX and quantized inference with parity checks) |
 | `code/chapter15_recsysops/` | Chapter 15 - Monitoring and retraining (silent-degradation exercise on Yambda: feature corruption, data-quality and model-quality monitors, alert statuses against a reference day) |
