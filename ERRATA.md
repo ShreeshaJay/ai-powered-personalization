@@ -1,6 +1,6 @@
 # Errata
 
-Errata, 2026-11-09. Applies to chapters published before this date; corrected in the republished Chapters 4, 5, 6, 7, 8, 10 and 16.
+Errata, 2026-11-10. Applies to chapters published before this date; corrected in the republished Chapters 4, 5, 6, 7, 8, 10, 14 and 16.
 
 ## Chapter 4: Scalable Data Pipelines and Feature Management
 
@@ -14,6 +14,7 @@ Errata, 2026-11-09. Applies to chapters published before this date; corrected in
 
 - **Section 6.2.2, XGBRanker example.** The `fit` call now monitors the validation set (`eval_set=[(X_val, y_val)], eval_group=[val_groups]`) rather than the test set, matching the pointwise example in Section 6.2.1 and the companion code. Evaluating on the test set during training lets test data influence model selection.
 - **Section 6.3.1, historical aggregate features.** The text and code snippet were corrected. Aggregates such as a user's average completion rate are computed from the same column as the label. Fitting them on the training rows and then applying them to those same rows puts each row's own label into its features. Training rows now take statistics from an earlier history window, and validation and test rows take statistics from the training window. The companion code applies the same rule: no row's aggregates come from its own window or a later one (see the Chapter 6 design notes).
+- **Section 6.4.3.** The note on the Yambda tutorial's split is now ordinary text rather than an author's note: the tutorial uses the Global Temporal Split (GTS) protocol from the Yambda paper, with 300 days of training data, a 30-minute gap to prevent leakage, and 1 day of test data.
 
 ## Chapter 7: Second-Stage Ranking and Multi-Task Learning
 
@@ -30,9 +31,13 @@ Errata, 2026-11-09. Applies to chapters published before this date; corrected in
 - **Sections 10.1, 10.2 and 10.6, cross-references.** Several section numbers were off by one and now match the headings: zero-shot encoders (including text serialization) are Section 10.4, Item2Vec is Section 10.5, contrastive fine-tuning is Section 10.6, and multi-modal fusion (including the Music4all-Onion dataset) is Section 10.7.
 - **Sections 10.4 and 10.6, MIND co-click pairs.** Co-click pairs are built from each user's click history, not from single browsing sessions. The co-click evaluation and the contrastive training pairs both use the whole history.
 - **Section 10.6.** Co-click pairs teach the model to place articles read by the same person near each other, not that such articles share a topic.
-- **Section 10.3.** The comparison of compact dense embeddings with sparse, inverted-index representations is in the Appendix on Hybrid Search with Vector Databases (forthcoming).
+- **Section 10.3.** Dense embeddings are now contrasted with bag-of-words and learned sparse models, whose vocabulary-sized sparse vectors are served from an inverted index. That comparison is in the Appendix on Hybrid Search with Vector Databases (forthcoming).
 - **Section 10.7.** The pointer to a discussion of task-aware fusion now refers to the Appendix on Hybrid Search with Vector Databases (forthcoming). Chapter 11 does not contain that discussion.
 - Minor wording and punctuation corrections in Sections 10.1, 10.2, 10.3, 10.4 and 10.6.
+
+## Chapter 14: Latency Optimization
+
+- **Section 14.9.3.** The opening paragraph now states that Chapter 13's orchestrator already skips a stage when too little budget remains for it. This section treats that skip as the ladder's first level, adds triggers based on load, and measures what each level costs in quality.
 
 ## Chapter 16: Experimentation and Bandits
 
