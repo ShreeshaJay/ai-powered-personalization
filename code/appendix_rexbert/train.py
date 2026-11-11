@@ -18,6 +18,15 @@ from config import MNR_SCALE, Profile, WARMUP_RATIO, WEIGHT_DECAY, set_seed
 logger = logging.getLogger("appendix_rexbert.train")
 
 
+def _as_float_tensor(embeddings) -> torch.Tensor:
+    """Host float32 copy of encoder output, which may be a CUDA or bf16 tensor that NumPy cannot read."""
+    if torch.is_tensor(embeddings):
+        return embeddings.detach().to(device="cpu", dtype=torch.float32)
+    if isinstance(embeddings, (list, tuple)) and embeddings and torch.is_tensor(embeddings[0]):
+        return torch.stack([row.detach().to(device="cpu", dtype=torch.float32) for row in embeddings])
+    return torch.as_tensor(np.asarray(embeddings), dtype=torch.float32)
+
+
 def build_training_arguments(
     output_dir: str,
     *,
@@ -77,8 +86,8 @@ def build_selection_evaluator(
                 corpus_model = model
             query_embeddings = self.embed_inputs(model, self.queries, encode_fn_name="query")
             doc_embeddings = self.embed_inputs(corpus_model, self.corpus, encode_fn_name="document")
-            query_tensor = torch.as_tensor(np.asarray(query_embeddings), dtype=torch.float32)
-            doc_tensor = torch.as_tensor(np.asarray(doc_embeddings), dtype=torch.float32)
+            query_tensor = _as_float_tensor(query_embeddings)
+            doc_tensor = _as_float_tensor(doc_embeddings)
             name = sorted(self.score_functions)[0]
             score_fn = self.score_functions[name]
             id_to_col = {corpus_id: index for index, corpus_id in enumerate(self.corpus_ids)}
