@@ -1,0 +1,21 @@
+# Torch is intentionally not pinned here.
+# The Colab L4 image already has torch 2.14.1+cu130. An exact pin of 2.14.1
+# does not match a local CUDA build string and would replace that wheel.
+# sentence-transformers requires torch>=2.2, which both the Colab build and
+# the Windows CPU wheel satisfy.
+# On Windows, install the CPU wheel first:
+#   pip install torch==2.14.1
+# then install this file. On Colab, install this file only.
+transformers==5.22.2
+sentence-transformers[train]==6.2.0
+accelerate==1.15.0
+faiss-cpu==1.15.1
+numpy==2.5.4
+pandas==3.1.1
+matplotlib==3.11.2
+datasets==5.2.0
+huggingface-hub==2.4.0
+scikit-learn==1.9.1
+scipy==1.18.1
+tokenizers==0.23.3
+pytest==9.2.0

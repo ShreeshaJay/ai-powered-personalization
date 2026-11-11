@@ -1,0 +1,9 @@
+*
+!metrics/
+!metrics/**
+!.gitignore
+metrics/**/*.npz
+metrics/**/*.npy
+metrics/cpu_small/
+metrics/demo/
+metrics/model_check.json
