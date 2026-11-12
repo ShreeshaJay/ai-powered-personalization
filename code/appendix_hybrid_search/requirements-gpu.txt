@@ -1,0 +1,21 @@
+# GPU note for the full-catalog run.
+#
+# Do not pip install torch on a Colab runtime that already has a CUDA build.
+# The runtime this appendix targets ships torch 2.14.1+cu130. Replacing it
+# with a PyPI wheel drops CUDA and the encoding run will not use the L4.
+#
+# sentence-transformers 6.3.0 requires torch>=2.2. An already-installed
+# 2.14.1+cu130 satisfies that range. Install the other libraries with:
+#
+#   pip install -r requirements.txt --upgrade-strategy only-if-needed
+#
+# A laptop without torch can install a CPU wheel from the PyTorch CPU index
+# before requirements.txt. That CPU wheel is only for the teaching slice.
+# It is not the Colab setup.
+#
+# Encoding checkpoints every 50,000 products. L4 batch sizes, set in
+# analysis_plan.yaml:
+#   SPLADE BERT checkpoints (Naver, Prithivi): 32
+#   SPLADE DistilBERT checkpoint (ESCI): 64
+#   dense all-MiniLM-L6-v2: 256
+#   cross-encoder rerank pairs: 64

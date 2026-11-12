@@ -1,342 +1,296 @@
-"""
-Data loader for Amazon ESCI (Shopping Queries Dataset).
+"""US ESCI judgments and the shared product-text template.
 
-Loads the US-English subset of the ESCI dataset, providing:
-  - Product catalog with serialized text representations
-  - Query-product relevance judgments with ESCI labels (E, S, C, I)
-  - Per-query candidate structures for evaluation
-
-Follows the dataset loader pattern from Chapter 10 (AmazonKDDDataset).
+The catalog is the set of product ids that appear in US rows with
+``large_version == 1``. ESCI Task 1 used ``small_version == 1``; this
+appendix does not. Empty template fields are omitted so a missing bullet
+does not leave a dangling separator.
 """
+
+from __future__ import annotations
+
+import hashlib
+from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any
-import logging
 
-from config import ESCIDataConfig, ESCI_GAINS, DEFAULT_DATA_CONFIG
+from config import (
+    EXAMPLES_FILE,
+    LINEAR_GAINS,
+    OFFICIAL_GAINS,
+    PRODUCTS_FILE,
+    TEXT_RULE,
+    TEXT_TEMPLATE,
+    sha256_text,
+)
 
-logger = logging.getLogger(__name__)
+_LABEL_TO_SHORT = {
+    "E": "E",
+    "S": "S",
+    "C": "C",
+    "I": "I",
+    "Exact": "E",
+    "Substitute": "S",
+    "Complement": "C",
+    "Irrelevant": "I",
+    "exact": "E",
+    "substitute": "S",
+    "complement": "C",
+    "irrelevant": "I",
+}
 
 
-class ESCIDataset:
-    """Amazon ESCI Shopping Queries Dataset loader.
+def normalize_ws(value: object) -> str:
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return ""
+    return " ".join(str(value).split())
 
-    The ESCI dataset contains real Amazon shopper queries matched with
-    products and annotated with 4-level relevance labels:
-      E (Exact)      - Product is relevant and satisfies the query
-      S (Substitute) - Product is somewhat relevant, close but not exact
-      C (Complement) - Complementary product (e.g., case for a phone query)
-      I (Irrelevant)  - Not relevant to the query
 
-    This loader filters to US-English locale and provides two views:
-      1. Full product catalog for indexing (1.2M products)
-      2. Per-query candidate sets for evaluation (~16 labeled products per query)
+def normalize_query(value: object) -> str:
+    return normalize_ws(value)
+
+
+def render_product_text(title: object, bullet: object, brand: object) -> str:
+    parts: list[str] = []
+    title_text = normalize_ws(title)
+    bullet_text = normalize_ws(bullet)
+    brand_text = normalize_ws(brand)
+    if title_text:
+        parts.append(title_text)
+    if bullet_text:
+        parts.append(bullet_text)
+    if brand_text:
+        parts.append(f"Brand: {brand_text}")
+    return ". ".join(parts)
+
+
+def _field_token(value: object) -> str:
+    """Missing catalog values are the token used in ``tasksource/esci`` product_text."""
+    if value is None:
+        return "None"
+    try:
+        missing = pd.isna(value)
+    except (TypeError, ValueError):
+        missing = False
+    if missing is True:
+        return "None"
+    return str(value)
+
+
+def render_qdrant_text(
+    title: object,
+    brand: object,
+    color: object,
+    description: object,
+    bullet_point: object,
+) -> str:
+    """Document text for the ESCI SPLADE checkpoint.
+
+    This is the ``product_text`` column of ``tasksource/esci``: title, brand,
+    color, description, then bullet point, joined by newlines. A missing
+    field is the token ``None``. Characters inside a field are kept.
     """
-
-    def __init__(self, config: ESCIDataConfig = DEFAULT_DATA_CONFIG):
-        self.config = config
-        self.products_df: Optional[pd.DataFrame] = None
-        self.examples_df: Optional[pd.DataFrame] = None
-        self._product_texts: Optional[Dict[str, str]] = None
-        self._product_id_list: Optional[List[str]] = None
-
-    def load_products(self) -> pd.DataFrame:
-        """Load US product catalog from parquet."""
-        logger.info("Loading product catalog...")
-        products_path = self.config.data_dir / self.config.products_file
-
-        self.products_df = pd.read_parquet(products_path)
-        self.products_df = self.products_df[
-            self.products_df["product_locale"] == self.config.locale
-        ].copy()
-
-        text_cols = ["product_title", "product_bullet_point",
-                     "product_description", "product_brand", "product_color"]
-        for col in text_cols:
-            self.products_df[col] = self.products_df[col].fillna("")
-
-        if self.config.max_products > 0 and len(self.products_df) > self.config.max_products:
-            if self.examples_df is None:
-                self.load_examples()
-            required_ids = set(self.examples_df["product_id"].unique())
-            other_products = self.products_df[
-                ~self.products_df["product_id"].isin(required_ids)
-            ]
-            sampled_other = other_products.sample(
-                n=min(self.config.max_products - len(required_ids), len(other_products)),
-                random_state=self.config.random_seed
-            )
-            required_products = self.products_df[
-                self.products_df["product_id"].isin(required_ids)
-            ]
-            self.products_df = pd.concat([required_products, sampled_other], ignore_index=True)
-
-        self.products_df = self.products_df.drop(columns=["product_locale"])
-        self._product_texts = None
-        self._product_id_list = None
-
-        logger.info(f"  Products loaded: {len(self.products_df):,}")
-        return self.products_df
-
-    def load_examples(self) -> pd.DataFrame:
-        """Load query-product relevance judgments from parquet."""
-        logger.info("Loading query-product judgments...")
-        examples_path = self.config.data_dir / self.config.examples_file
-
-        self.examples_df = pd.read_parquet(examples_path)
-        self.examples_df = self.examples_df[
-            (self.examples_df["product_locale"] == self.config.locale) &
-            (self.examples_df["split"] == self.config.split)
-        ].copy()
-
-        self.examples_df = self.examples_df[
-            ["query_id", "query", "product_id", "esci_label"]
-        ].reset_index(drop=True)
-
-        logger.info(f"  Judgments loaded: {len(self.examples_df):,}")
-        logger.info(f"  Unique queries: {self.examples_df['query_id'].nunique():,}")
-        logger.info(f"  Unique products: {self.examples_df['product_id'].nunique():,}")
-        return self.examples_df
-
-    def get_product_texts(self) -> Dict[str, str]:
-        """Generate text representation for each product using config template."""
-        if self._product_texts is not None:
-            return self._product_texts
-
-        if self.products_df is None:
-            self.load_products()
-
-        logger.info("Serializing product texts...")
-        product_texts = {}
-        for _, row in self.products_df.iterrows():
-            text = self.config.text_template.format(
-                title=row["product_title"],
-                bullet_point=row["product_bullet_point"],
-                brand=row["product_brand"],
-                color=row["product_color"],
-                description=row["product_description"],
-            )
-            text = " ".join(text.split())
-            product_texts[row["product_id"]] = text
-
-        self._product_texts = product_texts
-        logger.info(f"  Product texts serialized: {len(product_texts):,}")
-
-        sample_id = list(product_texts.keys())[0]
-        sample_text = product_texts[sample_id][:200]
-        logger.info(f"  Sample [{sample_id}]: {sample_text}...")
-        return product_texts
-
-    def get_product_texts_list(self) -> Tuple[List[str], List[str]]:
-        """Return parallel lists of (product_ids, texts) for batch encoding."""
-        product_texts = self.get_product_texts()
-        if self._product_id_list is None:
-            self._product_id_list = sorted(product_texts.keys())
-        product_ids = self._product_id_list
-        texts = [product_texts[pid] for pid in product_ids]
-        return product_ids, texts
-
-    def get_query_candidates(self, max_queries: int = 0) -> Dict[int, Dict[str, Any]]:
-        """Build per-query candidate structures for score-based evaluation.
-
-        Returns dict: query_id -> {query_text, candidate_ids, labels, gains}
-        """
-        if self.examples_df is None:
-            self.load_examples()
-
-        query_groups = self.examples_df.groupby("query_id")
-        all_query_ids = list(query_groups.groups.keys())
-
-        if max_queries > 0 and len(all_query_ids) > max_queries:
-            rng = np.random.RandomState(self.config.random_seed)
-            selected_ids = rng.choice(all_query_ids, size=max_queries, replace=False)
-        else:
-            selected_ids = all_query_ids
-
-        query_candidates = {}
-        for qid in selected_ids:
-            group = query_groups.get_group(qid)
-            query_text = group["query"].iloc[0]
-            candidate_ids = group["product_id"].tolist()
-            labels = group["esci_label"].tolist()
-            gains = np.array([ESCI_GAINS.get(l, 0) for l in labels], dtype=np.float32)
-            query_candidates[qid] = {
-                "query_text": query_text,
-                "candidate_ids": candidate_ids,
-                "labels": labels,
-                "gains": gains,
-            }
-
-        logger.info(f"  Query candidates built: {len(query_candidates):,} queries")
-        avg_candidates = np.mean([len(v["candidate_ids"]) for v in query_candidates.values()])
-        logger.info(f"  Avg candidates per query: {avg_candidates:.1f}")
-        return query_candidates
-
-    def get_evaluation_queries(self, max_queries: int = 0) -> Dict[int, Dict[str, Any]]:
-        """Build per-query ground truth for full-catalog retrieval evaluation.
-
-        Returns dict: query_id -> {query_text, exact_ids, exact_substitute_ids, all_labeled_ids}
-        """
-        if self.examples_df is None:
-            self.load_examples()
-
-        query_groups = self.examples_df.groupby("query_id")
-        all_query_ids = list(query_groups.groups.keys())
-
-        if max_queries > 0 and len(all_query_ids) > max_queries:
-            rng = np.random.RandomState(self.config.random_seed)
-            selected_ids = rng.choice(all_query_ids, size=max_queries, replace=False)
-        else:
-            selected_ids = all_query_ids
-
-        eval_queries = {}
-        for qid in selected_ids:
-            group = query_groups.get_group(qid)
-            query_text = group["query"].iloc[0]
-            exact_ids = set(group[group["esci_label"] == "E"]["product_id"])
-            substitute_ids = set(group[group["esci_label"] == "S"]["product_id"])
-            all_labeled = dict(zip(group["product_id"], group["esci_label"]))
-            eval_queries[qid] = {
-                "query_text": query_text,
-                "exact_ids": exact_ids,
-                "exact_substitute_ids": exact_ids | substitute_ids,
-                "all_labeled_ids": all_labeled,
-            }
-
-        logger.info(f"  Evaluation queries built: {len(eval_queries):,}")
-        avg_exact = np.mean([len(v["exact_ids"]) for v in eval_queries.values()])
-        logger.info(f"  Avg Exact products per query: {avg_exact:.1f}")
-        return eval_queries
-
-    def get_curated_pool_data(
-        self,
-        max_queries: int = 2000,
-        split: str = "test",
-    ) -> Tuple[Dict[int, Dict[str, Any]], set]:
-        """Build a curated evaluation pool (Qdrant-style).
-
-        Instead of evaluating against the full 1.2M catalog, this creates a
-        small pool of products that have ESCI labels for the selected queries.
-        This makes label coverage much higher, enabling meaningful NDCG/MRR.
-
-        Args:
-            max_queries: Number of test queries to include
-            split: Dataset split to use ("test" recommended for evaluation)
-
-        Returns:
-            Tuple of:
-              - query_data: {query_id: {query_text, labeled_products: {pid: label}}}
-              - pool_product_ids: set of all product IDs in the curated pool
-        """
-        logger.info(f"Building curated pool from split='{split}'...")
-
-        # Load examples for the specified split
-        examples_path = self.config.data_dir / self.config.examples_file
-        all_examples = pd.read_parquet(examples_path)
-        pool_examples = all_examples[
-            (all_examples["product_locale"] == self.config.locale) &
-            (all_examples["split"] == split)
-        ][["query_id", "query", "product_id", "esci_label"]].copy()
-
-        logger.info(f"  Split='{split}' judgments: {len(pool_examples):,}")
-
-        # Select queries
-        query_groups = pool_examples.groupby("query_id")
-        all_query_ids = list(query_groups.groups.keys())
-
-        if max_queries > 0 and len(all_query_ids) > max_queries:
-            rng = np.random.RandomState(self.config.random_seed)
-            selected_ids = rng.choice(all_query_ids, size=max_queries, replace=False)
-        else:
-            selected_ids = all_query_ids
-
-        # Build per-query structures and collect pool products
-        query_data = {}
-        pool_product_ids = set()
-        for qid in selected_ids:
-            group = query_groups.get_group(qid)
-            query_text = group["query"].iloc[0]
-            labeled_products = dict(zip(group["product_id"], group["esci_label"]))
-            query_data[qid] = {
-                "query_text": query_text,
-                "labeled_products": labeled_products,
-            }
-            pool_product_ids.update(labeled_products.keys())
-
-        logger.info(f"  Curated pool: {len(query_data):,} queries, "
-                    f"{len(pool_product_ids):,} unique products")
-
-        avg_labeled = np.mean([len(v["labeled_products"]) for v in query_data.values()])
-        logger.info(f"  Avg labeled products per query: {avg_labeled:.1f}")
-
-        return query_data, pool_product_ids
-
-    def get_product_id_to_index(self) -> Dict[str, int]:
-        """Return mapping from product_id to index in the sorted product list."""
-        product_ids, _ = self.get_product_texts_list()
-        return {pid: idx for idx, pid in enumerate(product_ids)}
-
-    def print_stats(self) -> None:
-        """Print dataset statistics."""
-        if self.products_df is None:
-            self.load_products()
-        if self.examples_df is None:
-            self.load_examples()
-
-        print(f"\n{'='*60}")
-        print(f"  Amazon ESCI Dataset Statistics (locale={self.config.locale})")
-        print(f"{'='*60}")
-        print(f"  Products: {len(self.products_df):,}")
-        print(f"  Judgments: {len(self.examples_df):,}")
-        print(f"  Unique queries: {self.examples_df['query_id'].nunique():,}")
-
-        print(f"\n  Label distribution:")
-        label_counts = self.examples_df["esci_label"].value_counts()
-        for label in ["E", "S", "C", "I"]:
-            count = label_counts.get(label, 0)
-            pct = 100 * count / len(self.examples_df)
-            print(f"    {label} (gain={ESCI_GAINS[label]}): {count:>10,}  ({pct:5.1f}%)")
-
-        qlen = self.examples_df.groupby("query_id")["query"].first().str.split().str.len()
-        print(f"\n  Query word count: mean={qlen.mean():.1f}, "
-              f"median={qlen.median():.0f}, "
-              f"p5={qlen.quantile(0.05):.0f}, "
-              f"p95={qlen.quantile(0.95):.0f}")
-
-        ppq = self.examples_df.groupby("query_id").size()
-        print(f"  Products per query: mean={ppq.mean():.1f}, "
-              f"median={ppq.median():.0f}, "
-              f"p95={ppq.quantile(0.95):.0f}")
-
-        print(f"\n  Product metadata coverage:")
-        for col in ["product_title", "product_bullet_point",
-                     "product_description", "product_brand", "product_color"]:
-            non_empty = (self.products_df[col].str.len() > 0).sum()
-            pct = 100 * non_empty / len(self.products_df)
-            print(f"    {col}: {pct:.1f}%")
-
-
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    return "\n".join(
+        _field_token(value) for value in (title, brand, color, description, bullet_point)
     )
 
-    dataset = ESCIDataset()
-    dataset.load_products()
-    dataset.load_examples()
-    dataset.print_stats()
 
-    qc = dataset.get_query_candidates(max_queries=100)
-    print(f"\nSample query candidates: {len(qc)} queries")
-    sample_qid = list(qc.keys())[0]
-    sample = qc[sample_qid]
-    print(f"  Query: \"{sample['query_text']}\"")
-    print(f"  Candidates: {len(sample['candidate_ids'])}")
-    print(f"  Labels: {sample['labels']}")
+def template_hash() -> str:
+    spec = f"{TEXT_TEMPLATE}\n{TEXT_RULE}\n"
+    return sha256_text(spec)
 
-    product_ids, texts = dataset.get_product_texts_list()
-    print(f"\nProduct texts: {len(product_ids)} products")
-    print(f"  Sample text: {texts[0][:150]}...")
+
+def short_label(value: object) -> str:
+    text = str(value).strip()
+    if text not in _LABEL_TO_SHORT:
+        raise ValueError(f"Unrecognized ESCI label {value!r}.")
+    return _LABEL_TO_SHORT[text]
+
+
+@dataclass
+class QueryJudgments:
+    query_id: str
+    query_text: str
+    split: str
+    labels: dict[str, str]
+    product_order: list[str]
+
+    def gains(self, table: dict[str, float]) -> dict[str, float]:
+        return {product_id: float(table[label]) for product_id, label in self.labels.items()}
+
+    def exact_ids(self) -> set[str]:
+        return {product_id for product_id, label in self.labels.items() if label == "E"}
+
+    def exact_or_substitute_ids(self) -> set[str]:
+        return {product_id for product_id, label in self.labels.items() if label in {"E", "S"}}
+
+
+@dataclass
+class Catalog:
+    product_ids: list[str]
+    texts: dict[str, str]
+    qdrant_texts: dict[str, str]
+    frame: pd.DataFrame
+    missing_product_rows: int
+    template_sha256: str
+    catalog_sha256: str
+    text_sha256: str
+
+    def texts_in_order(self, product_ids: list[str] | None = None) -> tuple[list[str], list[str]]:
+        ids = self.product_ids if product_ids is None else product_ids
+        return ids, [self.texts[product_id] for product_id in ids]
+
+
+@dataclass
+class ESCIData:
+    data_dir: Path
+    examples: pd.DataFrame
+    catalog: Catalog
+    queries: dict[str, QueryJudgments] = field(default_factory=dict)
+
+    def by_split(self, split: str) -> dict[str, QueryJudgments]:
+        return {
+            query_id: item
+            for query_id, item in self.queries.items()
+            if item.split == split
+        }
+
+
+def _require_columns(frame: pd.DataFrame, columns: list[str], name: str) -> None:
+    missing = [column for column in columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"{name} is missing columns: {missing}")
+
+
+def _hash_lines(lines) -> str:
+    """SHA-256 of the lines joined by newlines, with a trailing newline when non-empty."""
+    digest = hashlib.sha256()
+    count = 0
+    for line in lines:
+        if count:
+            digest.update(b"\n")
+        digest.update(str(line).encode("utf-8"))
+        count += 1
+    if count:
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def load_esci(data_dir: Path) -> ESCIData:
+    data_dir = Path(data_dir)
+    examples_path = data_dir / EXAMPLES_FILE
+    products_path = data_dir / PRODUCTS_FILE
+    if not examples_path.exists() or not products_path.exists():
+        raise FileNotFoundError(
+            f"Expected {EXAMPLES_FILE} and {PRODUCTS_FILE} in {data_dir}."
+        )
+    examples = pd.read_parquet(examples_path)
+    products = pd.read_parquet(products_path)
+    _require_columns(
+        examples,
+        ["query_id", "query", "product_id", "product_locale", "esci_label", "large_version", "split"],
+        examples_path.name,
+    )
+    _require_columns(
+        products,
+        [
+            "product_id",
+            "product_title",
+            "product_description",
+            "product_bullet_point",
+            "product_brand",
+            "product_color",
+            "product_locale",
+        ],
+        products_path.name,
+    )
+    us = examples[
+        (examples["product_locale"].astype(str).str.lower() == "us")
+        & (examples["large_version"] == 1)
+    ].copy()
+    us["query_id"] = us["query_id"].astype(str)
+    us["product_id"] = us["product_id"].astype(str)
+    us["esci_label"] = us["esci_label"].map(short_label)
+    us["query"] = us["query"].map(normalize_query)
+    us["split"] = us["split"].astype(str)
+    test_query_ids = set(us.loc[us["split"] == "test", "query_id"])
+    in_both_splits = test_query_ids & set(us.loc[us["split"] == "train", "query_id"])
+    if in_both_splits:
+        us = us[~((us["query_id"].isin(in_both_splits)) & (us["split"] == "train"))].copy()
+
+    product_us = products[products["product_locale"].astype(str).str.lower() == "us"].copy()
+    product_us["product_id"] = product_us["product_id"].astype(str)
+    product_us = product_us.drop_duplicates("product_id", keep="first")
+    product_lookup = product_us.set_index("product_id", drop=False)
+
+    catalog_ids = sorted(us["product_id"].unique().tolist())
+    texts: dict[str, str] = {}
+    qdrant_texts: dict[str, str] = {}
+    missing = 0
+    for product_id in catalog_ids:
+        if product_id not in product_lookup.index:
+            missing += 1
+            texts[product_id] = ""
+            qdrant_texts[product_id] = ""
+            continue
+        row = product_lookup.loc[product_id]
+        texts[product_id] = render_product_text(
+            row["product_title"], row["product_bullet_point"], row["product_brand"]
+        )
+        qdrant_texts[product_id] = render_qdrant_text(
+            row["product_title"],
+            row["product_brand"],
+            row["product_color"],
+            row["product_description"],
+            row["product_bullet_point"],
+        )
+
+    queries: dict[str, QueryJudgments] = {}
+    for query_id, group in us.groupby("query_id", sort=False):
+        splits = group["split"].unique().tolist()
+        if len(splits) != 1:
+            raise ValueError(f"Query {query_id} appears in multiple splits: {splits}.")
+        texts_q = group["query"].unique().tolist()
+        if len(texts_q) != 1:
+            raise ValueError(f"Query {query_id} has more than one query string.")
+        labels: dict[str, str] = {}
+        order: list[str] = []
+        for product_id, label in zip(group["product_id"].tolist(), group["esci_label"].tolist()):
+            if product_id in labels and labels[product_id] != label:
+                raise ValueError(f"Query {query_id} product {product_id} has conflicting labels.")
+            if product_id not in labels:
+                labels[product_id] = label
+                order.append(product_id)
+        queries[str(query_id)] = QueryJudgments(
+            query_id=str(query_id),
+            query_text=texts_q[0],
+            split=splits[0],
+            labels=labels,
+            product_order=order,
+        )
+
+    train_ids = {qid for qid, item in queries.items() if item.split == "train"}
+    test_ids = {qid for qid, item in queries.items() if item.split == "test"}
+    if train_ids & test_ids:
+        raise ValueError("Train and test query ids overlap.")
+
+    catalog = Catalog(
+        product_ids=catalog_ids,
+        texts=texts,
+        qdrant_texts=qdrant_texts,
+        frame=product_us,
+        missing_product_rows=missing,
+        template_sha256=template_hash(),
+        catalog_sha256=_hash_lines(catalog_ids),
+        text_sha256=_hash_lines(f"{pid}\t{texts[pid]}" for pid in catalog_ids),
+    )
+    return ESCIData(data_dir=data_dir, examples=us.reset_index(drop=True), catalog=catalog, queries=queries)
+
+
+def gain_table(name: str) -> dict[str, float]:
+    if name == "official":
+        return dict(OFFICIAL_GAINS)
+    if name == "linear":
+        return dict(LINEAR_GAINS)
+    raise ValueError(f"Unknown gain table {name!r}.")

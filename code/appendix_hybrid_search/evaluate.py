@@ -1,731 +1,424 @@
-"""
-Evaluation framework for hybrid search comparison.
+"""Protocols P1, P2 and P3, plus paired bootstrap and Holm correction.
 
-Provides two evaluation types:
-  A. Full-catalog retrieval metrics (Recall@K, label distribution)
-  B. Score-based analysis (re-ranking NDCG, boxplots, separability AUC)
-
-Also generates comparison plots: score distribution boxplots per ESCI label,
-and stacked bar charts for label distribution in top-K.
+Evaluation reads run files or in-memory rankings. It does not retrieve.
+An empty run scores zero on a defined metric and is counted. A query whose
+judgments are all Irrelevant is excluded from nDCG only.
 """
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import Iterable
 
 import numpy as np
-import pandas as pd
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any, Callable
-from collections import defaultdict
-import json
-import logging
 
-from sklearn.metrics import roc_auc_score
+from config import OFFICIAL_GAINS, require_plan_hash
+from data_loader import QueryJudgments
+from fusion import HitList, Run, read_run
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-from config import (
-    ESCI_GAINS, ESCI_GAINS_QDRANT, ESCI_LABELS_ORDERED, ESCI_COLORS,
-    ESCI_LABEL_NAMES, EvalConfig, DEFAULT_EVAL_CONFIG, METRICS_DIR, PLOTS_DIR,
-)
-
-logger = logging.getLogger(__name__)
+MetricMap = dict[str, float | None]
 
 
-# =============================================================================
-# Full-Catalog Retrieval Metrics
-# =============================================================================
-
-def compute_recall_at_k(
-    retrieved_ids: List[str],
-    relevant_ids: set,
-    k: int
-) -> float:
-    """Recall@K: fraction of relevant items found in top-K retrieved results."""
-    if len(relevant_ids) == 0:
+def dcg(gains: list[float] | np.ndarray, k: int | None = None) -> float:
+    values = np.asarray(list(gains), dtype=np.float64)
+    if k is not None:
+        values = values[:k]
+    if values.size == 0:
         return 0.0
-    top_k = set(retrieved_ids[:k])
-    found = top_k & relevant_ids
-    return len(found) / len(relevant_ids)
+    discounts = 1.0 / np.log2(np.arange(2, values.size + 2))
+    return float(np.dot(values, discounts))
 
 
-def compute_label_distribution_topk(
-    retrieved_ids: List[str],
-    id_to_label: Dict[str, str],
-    k: int
-) -> Dict[str, float]:
-    """Compute ESCI label distribution among top-K retrieved results.
-
-    Returns dict with keys E, S, C, I, unlabeled as fractions summing to 1.0.
-    """
-    top_k = retrieved_ids[:k]
-    if len(top_k) == 0:
-        return {label: 0.0 for label in ESCI_LABELS_ORDERED + ["unlabeled"]}
-
-    counts = defaultdict(int)
-    for pid in top_k:
-        label = id_to_label.get(pid, "unlabeled")
-        counts[label] += 1
-
-    total = len(top_k)
-    dist = {}
-    for label in ESCI_LABELS_ORDERED:
-        dist[label] = counts[label] / total
-    dist["unlabeled"] = counts["unlabeled"] / total
-    return dist
+def ndcg_from_gains(ranked_gains: list[float], all_gains: list[float], k: int | None = None) -> float | None:
+    ideal = dcg(sorted(all_gains, reverse=True), k)
+    if ideal == 0.0:
+        return None
+    return dcg(ranked_gains, k) / ideal
 
 
-def evaluate_retrieval(
-    retrieved_per_query: Dict[Any, List[str]],
-    eval_queries: Dict[Any, Dict[str, Any]],
-    k_values: List[int] = [10, 20, 50]
-) -> Dict[str, Any]:
-    """Aggregate full-catalog retrieval metrics across all queries.
+def ndcg_for_ids(ranked_ids: list[str], gain_map: dict[str, float], k: int | None = None) -> float | None:
+    ranked_gains = [float(gain_map.get(product_id, 0.0)) for product_id in ranked_ids]
+    return ndcg_from_gains(ranked_gains, list(gain_map.values()), k)
 
-    Args:
-        retrieved_per_query: {query_id: [product_ids in ranked order]}
-        eval_queries: from ESCIDataset.get_evaluation_queries()
-        k_values: K values for Recall@K
 
-    Returns:
-        Dict with aggregated recall and label distribution metrics.
-    """
-    recall_exact = {k: [] for k in k_values}
-    recall_exact_sub = {k: [] for k in k_values}
-    label_dists = {k: [] for k in k_values}
+def recall_at(retrieved: list[str], relevant: set[str], k: int) -> float | None:
+    if not relevant:
+        return None
+    found = sum(1 for product_id in retrieved[:k] if product_id in relevant)
+    return found / len(relevant)
 
-    for qid, retrieved_ids in retrieved_per_query.items():
-        if qid not in eval_queries:
+
+def judged_at(retrieved: list[str], judged: set[str], k: int = 10) -> float:
+    if k <= 0:
+        raise ValueError("k must be positive")
+    return sum(1 for product_id in retrieved[:k] if product_id in judged) / float(k)
+
+
+def condensed_ndcg(retrieved: list[str], gain_map: dict[str, float], k: int = 10) -> float | None:
+    """Drop unjudged products, then compute nDCG at k. The ideal uses every judgment."""
+    condensed = [product_id for product_id in retrieved if product_id in gain_map]
+    return ndcg_for_ids(condensed, gain_map, k)
+
+
+def _defined(gain_map: dict[str, float]) -> bool:
+    return any(gain > 0.0 for gain in gain_map.values())
+
+
+def p1_order(hits: HitList, judged_ids: list[str]) -> list[str]:
+    """Place unscored judged products after every scored one."""
+    judged = set(judged_ids)
+    seen: set[str] = set()
+    present: list[str] = []
+    for product_id, _score in hits:
+        if product_id in judged and product_id not in seen:
+            present.append(product_id)
+            seen.add(product_id)
+    missing = sorted(product_id for product_id in judged_ids if product_id not in seen)
+    return present + missing
+
+
+def score_p1(run: Run, queries: dict[str, QueryJudgments], gains: dict[str, float]) -> dict[str, dict]:
+    per_query: dict[str, dict] = {}
+    for query_id, item in queries.items():
+        gain_map = item.gains(gains)
+        hits = run.get(query_id, [])
+        defined = _defined(gain_map)
+        if not hits:
+            per_query[query_id] = {
+                "ndcg": 0.0 if defined else None,
+                "ndcg_at_10": 0.0 if defined else None,
+                "empty": True,
+            }
             continue
-
-        qdata = eval_queries[qid]
-
-        for k in k_values:
-            # Recall@K for Exact products
-            r_e = compute_recall_at_k(retrieved_ids, qdata["exact_ids"], k)
-            recall_exact[k].append(r_e)
-
-            # Recall@K for Exact + Substitute products
-            r_es = compute_recall_at_k(retrieved_ids, qdata["exact_substitute_ids"], k)
-            recall_exact_sub[k].append(r_es)
-
-            # Label distribution
-            dist = compute_label_distribution_topk(
-                retrieved_ids, qdata["all_labeled_ids"], k
-            )
-            label_dists[k].append(dist)
-
-    results = {"num_queries": len(recall_exact[k_values[0]])}
-
-    for k in k_values:
-        results[f"recall_exact@{k}"] = float(np.mean(recall_exact[k]))
-        results[f"recall_exact_sub@{k}"] = float(np.mean(recall_exact_sub[k]))
-
-        # Average label distribution
-        avg_dist = {}
-        for label in ESCI_LABELS_ORDERED + ["unlabeled"]:
-            avg_dist[label] = float(np.mean([d[label] for d in label_dists[k]]))
-        results[f"label_dist@{k}"] = avg_dist
-
-    return results
+        order = p1_order(hits, item.product_order)
+        per_query[query_id] = {
+            "ndcg": ndcg_for_ids(order, gain_map, None),
+            "ndcg_at_10": ndcg_for_ids(order, gain_map, 10),
+            "empty": False,
+        }
+    return per_query
 
 
-# =============================================================================
-# Curated Pool Evaluation (Qdrant-style)
-# =============================================================================
+def score_p2(run: Run, queries: dict[str, QueryJudgments], gains: dict[str, float]) -> dict[str, dict]:
+    per_query: dict[str, dict] = {}
+    for query_id, item in queries.items():
+        retrieved = [product_id for product_id, _score in run.get(query_id, [])]
+        gain_map = item.gains(gains)
+        judged = set(item.labels)
+        per_query[query_id] = {
+            "recall_at_100_exact": recall_at(retrieved, item.exact_ids(), 100),
+            "recall_at_1000_exact": recall_at(retrieved, item.exact_ids(), 1000),
+            "recall_at_100_exact_substitute": recall_at(retrieved, item.exact_or_substitute_ids(), 100),
+            "recall_at_1000_exact_substitute": recall_at(retrieved, item.exact_or_substitute_ids(), 1000),
+            "condensed_ndcg_at_10": condensed_ndcg(retrieved, gain_map, 10),
+            "judged_at_10": judged_at(retrieved, judged, 10),
+            "empty": len(retrieved) == 0,
+        }
+    return per_query
 
-CURATED_POOL_CAVEAT = (
-    "NOTE: Curated pool evaluation treats unlabeled products as Irrelevant "
-    "(gain=0.0). This assumption is standard (used by Qdrant's SPLADE "
-    "evaluation) but may underestimate methods that retrieve truly relevant "
-    "but unlabeled products."
-)
 
-
-def evaluate_curated_pool(
-    retrieved_per_query: Dict[Any, List[str]],
-    query_data: Dict[Any, Dict[str, Any]],
-    k_values: List[int] = [10, 20, 50],
-    gains: Optional[Dict[str, float]] = None,
-) -> Dict[str, Any]:
-    """Evaluate retrieval on a curated pool with dense label coverage.
-
-    Unlike full-catalog evaluation, this assumes unlabeled products are
-    Irrelevant (I=0.0). The curated pool is small enough that most retrieved
-    products have ESCI labels, making this assumption reasonable.
-
-    Args:
-        retrieved_per_query: {query_id: [product_ids in ranked order]}
-        query_data: {query_id: {query_text, labeled_products: {pid: label}}}
-        k_values: K values for NDCG@K, MRR@K, Precision@K
-        gains: Relevance gains per label (default: Qdrant-compatible E=1.0, S=0.7, C=0.5, I=0.0)
-
-    Returns:
-        Dict with NDCG, MRR, Precision, Recall metrics and the caveat note.
-    """
-    if gains is None:
-        gains = dict(ESCI_GAINS_QDRANT)
-
-    ndcg_scores = {k: [] for k in k_values}
-    mrr_scores = {k: [] for k in k_values}
-    precision_scores = {k: [] for k in k_values}
-    recall_e_scores = {k: [] for k in k_values}
-    recall_es_scores = {k: [] for k in k_values}
-
-    n_evaluated = 0
-    for qid, retrieved_ids in retrieved_per_query.items():
-        if qid not in query_data:
-            continue
-
-        labeled_products = query_data[qid]["labeled_products"]
-        exact_ids = {pid for pid, lbl in labeled_products.items() if lbl == "E"}
-        es_ids = {pid for pid, lbl in labeled_products.items() if lbl in ("E", "S")}
-
-        # Build gain array for retrieved products
-        # Unlabeled products get I=0.0 (the key assumption)
-        retrieved_gains = np.array([
-            gains.get(labeled_products.get(pid, "I"), 0.0)
-            for pid in retrieved_ids
-        ], dtype=np.float64)
-
-        # Also need ideal gains (all labeled products sorted by gain)
-        all_gains = sorted(
-            [gains.get(lbl, 0.0) for lbl in labeled_products.values()],
-            reverse=True,
-        )
-        all_gains = np.array(all_gains, dtype=np.float64)
-
-        for k in k_values:
-            # NDCG@K
-            k_actual = min(k, len(retrieved_gains))
-            if k_actual == 0:
-                continue
-
-            positions = np.arange(1, k_actual + 1)
-            discounts = np.log2(positions + 1)
-            dcg = np.sum(retrieved_gains[:k_actual] / discounts)
-
-            ideal_k = min(k, len(all_gains))
-            ideal_positions = np.arange(1, ideal_k + 1)
-            ideal_discounts = np.log2(ideal_positions + 1)
-            idcg = np.sum(all_gains[:ideal_k] / ideal_discounts)
-
-            ndcg = float(dcg / idcg) if idcg > 0 else 0.0
-            ndcg_scores[k].append(ndcg)
-
-            # MRR@K (first item with gain > 0)
-            mrr = 0.0
-            for i in range(k_actual):
-                if retrieved_gains[i] > 0:
-                    mrr = 1.0 / (i + 1)
-                    break
-            mrr_scores[k].append(mrr)
-
-            # Precision@K (fraction of top-K with gain > 0)
-            prec = float(np.sum(retrieved_gains[:k_actual] > 0) / k_actual)
-            precision_scores[k].append(prec)
-
-            # Recall@K
-            top_k_ids = set(retrieved_ids[:k])
-            r_e = len(top_k_ids & exact_ids) / len(exact_ids) if exact_ids else 0.0
-            r_es = len(top_k_ids & es_ids) / len(es_ids) if es_ids else 0.0
-            recall_e_scores[k].append(r_e)
-            recall_es_scores[k].append(r_es)
-
-        n_evaluated += 1
-
-    results = {
-        "num_queries": n_evaluated,
-        "gains_used": gains,
-        "caveat": CURATED_POOL_CAVEAT,
+def macro(per_query: dict[str, dict], metric: str) -> dict:
+    values = [row[metric] for row in per_query.values() if row[metric] is not None]
+    return {
+        "metric": metric,
+        "mean": float(np.mean(values)) if values else None,
+        "n_queries": len(per_query),
+        "n_scored": len(values),
+        "n_excluded": sum(1 for row in per_query.values() if row[metric] is None),
+        "n_empty": sum(1 for row in per_query.values() if row.get("empty")),
     }
 
-    for k in k_values:
-        results[f"ndcg@{k}"] = float(np.mean(ndcg_scores[k])) if ndcg_scores[k] else 0.0
-        results[f"mrr@{k}"] = float(np.mean(mrr_scores[k])) if mrr_scores[k] else 0.0
-        results[f"precision@{k}"] = float(np.mean(precision_scores[k])) if precision_scores[k] else 0.0
-        results[f"recall_exact@{k}"] = float(np.mean(recall_e_scores[k])) if recall_e_scores[k] else 0.0
-        results[f"recall_exact_sub@{k}"] = float(np.mean(recall_es_scores[k])) if recall_es_scores[k] else 0.0
 
-    return results
-
-
-def print_curated_pool_results(
-    method_results: Dict[str, Dict[str, Any]],
-    k_values: List[int] = [10, 20, 50],
-) -> None:
-    """Pretty-print curated pool evaluation results for all methods."""
-    print(f"\n{'='*90}")
-    print(f"  CURATED POOL EVALUATION (Qdrant-style)")
-    print(f"{'='*90}")
-
-    # Print caveat
-    first_result = next(iter(method_results.values()))
-    if "caveat" in first_result:
-        print(f"\n  {first_result['caveat']}")
-
-    # Header
-    metrics = [f"ndcg@{k}" for k in k_values] + [f"mrr@{k_values[0]}"]
-    header = f"\n  {'Method':<25s}"
-    for m in metrics:
-        header += f" {m:>10s}"
-    header += f" {'queries':>8s}"
-    print(header)
-    print(f"  {'-'*85}")
-
-    for method_name, result in method_results.items():
-        row = f"  {method_name:<25s}"
-        for m in metrics:
-            row += f" {result.get(m, 0):>10.4f}"
-        row += f" {result['num_queries']:>8d}"
-        print(row)
+def aligned_diff(left: dict[str, dict], right: dict[str, dict], metric: str) -> tuple[list[str], np.ndarray]:
+    ids = sorted(set(left) & set(right))
+    kept: list[str] = []
+    diffs: list[float] = []
+    for query_id in ids:
+        a = left[query_id][metric]
+        b = right[query_id][metric]
+        if a is None or b is None:
+            continue
+        kept.append(query_id)
+        diffs.append(float(a) - float(b))
+    return kept, np.asarray(diffs, dtype=np.float64)
 
 
-# =============================================================================
-# Score-Based Analysis Metrics
-# =============================================================================
-
-def ndcg_at_k_graded(gains: np.ndarray, k: int) -> float:
-    """NDCG@K with graded relevance (ESCI gains: E=3, S=2, C=1, I=0).
-
-    DCG@K  = sum_{i=1}^{K} gain_i / log2(i + 1)
-    IDCG@K = same formula but gains sorted descending (ideal ranking)
-    NDCG@K = DCG@K / IDCG@K
-    """
-    k = min(k, len(gains))
-    if k == 0:
-        return 0.0
-
-    # DCG
-    positions = np.arange(1, k + 1)
-    discounts = np.log2(positions + 1)
-    dcg = np.sum(gains[:k] / discounts)
-
-    # IDCG (ideal: gains sorted descending)
-    ideal_gains = np.sort(gains)[::-1]
-    idcg = np.sum(ideal_gains[:k] / discounts)
-
-    if idcg == 0:
-        return 0.0
-    return float(dcg / idcg)
+def paired_bootstrap(diff: np.ndarray, n_resamples: int, seed: int) -> dict:
+    if diff.size == 0:
+        return {"mean": None, "low": None, "high": None, "p": None, "n": 0}
+    generator = np.random.default_rng(seed)
+    draws = generator.integers(0, diff.size, size=(n_resamples, diff.size))
+    means = diff[draws].mean(axis=1)
+    low, high = np.percentile(means, [2.5, 97.5])
+    p_le = float(np.mean(means <= 0.0))
+    p_ge = float(np.mean(means >= 0.0))
+    return {
+        "mean": float(diff.mean()),
+        "low": float(low),
+        "high": float(high),
+        "p": float(min(1.0, 2.0 * min(p_le, p_ge))),
+        "n": int(diff.size),
+    }
 
 
-def mrr_at_k(gains: np.ndarray, k: int, min_gain: float = 1.0) -> float:
-    """MRR@K: reciprocal rank of first item with gain >= min_gain."""
-    k = min(k, len(gains))
-    for i in range(k):
-        if gains[i] >= min_gain:
-            return 1.0 / (i + 1)
-    return 0.0
-
-
-def precision_at_k(gains: np.ndarray, k: int, min_gain: float = 1.0) -> float:
-    """Precision@K: fraction of top-K with gain >= min_gain."""
-    k = min(k, len(gains))
-    if k == 0:
-        return 0.0
-    return float(np.sum(gains[:k] >= min_gain) / k)
-
-
-def compute_separability_auc(
-    scores: np.ndarray,
-    labels: np.ndarray,
-    positive_labels: List[str] = None,
-    negative_labels: List[str] = None,
-) -> float:
-    """ROC AUC for separating relevant (E+S+C) from irrelevant (I) using raw scores.
-
-    A higher AUC means the method's scores better distinguish relevant from
-    irrelevant items, i.e., a simple threshold could filter out junk.
-    """
-    if positive_labels is None:
-        positive_labels = ["E", "S", "C"]
-    if negative_labels is None:
-        negative_labels = ["I"]
-
-    # Create binary labels: 1 = relevant, 0 = irrelevant
-    binary = np.zeros(len(labels), dtype=np.int32)
-    for i, label in enumerate(labels):
-        if label in positive_labels:
-            binary[i] = 1
-        elif label in negative_labels:
-            binary[i] = 0
+def holm(p_values: list[float], alpha: float = 0.05) -> list[dict]:
+    """Step-down Holm. A later hypothesis is not rejected after the first failure."""
+    order = sorted(range(len(p_values)), key=lambda index: (p_values[index], index))
+    rejected = [False] * len(p_values)
+    thresholds = [0.0] * len(p_values)
+    still_rejecting = True
+    total = len(p_values)
+    for rank, index in enumerate(order):
+        threshold = alpha / (total - rank)
+        thresholds[index] = threshold
+        if still_rejecting and p_values[index] <= threshold:
+            rejected[index] = True
         else:
-            binary[i] = -1  # skip unknown labels
-
-    # Filter to only positive/negative labels
-    mask = binary >= 0
-    binary = binary[mask]
-    filtered_scores = scores[mask]
-
-    if len(np.unique(binary)) < 2:
-        logger.warning("Cannot compute AUC: only one class present")
-        return 0.0
-
-    return float(roc_auc_score(binary, filtered_scores))
+            still_rejecting = False
+    return [
+        {"p": p_values[index], "threshold": thresholds[index], "reject": rejected[index]}
+        for index in range(len(p_values))
+    ]
 
 
-def evaluate_candidate_scoring(
-    query_candidates: Dict[Any, Dict[str, Any]],
-    scoring_fn: Callable,
-    method_name: str,
-    eval_config: EvalConfig = DEFAULT_EVAL_CONFIG,
-) -> Dict[str, Any]:
-    """Score-based evaluation on ESCI annotated candidates.
+def relative_difference(system_a: float, system_b: float) -> float:
+    denominator = abs(system_b)
+    if denominator == 0.0:
+        return 0.0 if system_a == 0.0 else float("inf")
+    return abs(system_a - system_b) / denominator
 
-    For each query, scores its ~16 labeled candidates using scoring_fn,
-    then computes re-ranking NDCG, MRR, Precision, and collects
-    per-label score distributions for boxplots.
 
-    Args:
-        query_candidates: from ESCIDataset.get_query_candidates()
-        scoring_fn: Callable(query_text, candidate_ids) -> np.ndarray of scores
-        method_name: identifier for this method
-        eval_config: evaluation configuration
+def interpretable(system_a: float, system_b: float, threshold: float = 0.01) -> bool:
+    return relative_difference(system_a, system_b) >= threshold
 
-    Returns:
-        Dict with ranking metrics, per-label scores, and separability AUC.
-    """
-    from tqdm import tqdm
 
-    k_values = eval_config.k_values
+def _mix_seed(seed: int, query_id: str) -> int:
+    digest = hashlib.sha256(f"{seed}:{query_id}".encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], "little")
 
-    # Accumulators
-    ndcg_scores = {k: [] for k in k_values}
-    mrr_scores = {k: [] for k in k_values}
-    precision_scores = {k: [] for k in k_values}
-    label_dists = {k: [] for k in k_values}
 
-    # Per-label score accumulation for boxplots
-    per_label_scores = {label: [] for label in ESCI_LABELS_ORDERED}
-
-    # All scores and labels for separability AUC
-    all_scores = []
-    all_labels = []
-
-    for qid, qdata in tqdm(query_candidates.items(),
-                           desc=f"Scoring [{method_name}]",
-                           total=len(query_candidates)):
-        query_text = qdata["query_text"]
-        candidate_ids = qdata["candidate_ids"]
-        labels = qdata["labels"]
-
-        # Score candidates
-        scores = scoring_fn(query_text, candidate_ids)
-        if scores is None or len(scores) == 0:
+def random_order_floor(
+    queries: dict[str, QueryJudgments],
+    gains: dict[str, float],
+    shuffles: int,
+    seed: int,
+) -> dict:
+    full_values: list[float] = []
+    at10_values: list[float] = []
+    excluded = 0
+    for query_id, item in queries.items():
+        gain_map = item.gains(gains)
+        if not _defined(gain_map):
+            excluded += 1
             continue
-
-        scores = np.asarray(scores, dtype=np.float64)
-
-        # Sort by score descending
-        sorted_indices = np.argsort(-scores)
-        sorted_gains = np.array([ESCI_GAINS.get(labels[i], 0) for i in sorted_indices],
-                                dtype=np.float32)
-        sorted_labels = [labels[i] for i in sorted_indices]
-
-        # Compute ranking metrics
-        for k in k_values:
-            ndcg_scores[k].append(ndcg_at_k_graded(sorted_gains, k))
-            mrr_scores[k].append(mrr_at_k(sorted_gains, k))
-            precision_scores[k].append(precision_at_k(sorted_gains, k))
-
-            # Label distribution in top-K
-            top_k_labels = sorted_labels[:k]
-            dist = {}
-            for label in ESCI_LABELS_ORDERED:
-                dist[label] = top_k_labels.count(label) / min(k, len(top_k_labels)) if top_k_labels else 0.0
-            label_dists[k].append(dist)
-
-        # Collect per-label scores for boxplots
-        for score, label in zip(scores, labels):
-            per_label_scores[label].append(float(score))
-
-        all_scores.extend(scores.tolist())
-        all_labels.extend(labels)
-
-    # Aggregate
-    results = {
-        "method": method_name,
-        "num_queries": len(ndcg_scores[k_values[0]]),
-        "ranking_metrics": {},
-        "label_distribution": {},
-        "per_label_scores": {},
-        "separability_auc": 0.0,
+        generator = np.random.default_rng(_mix_seed(seed, query_id))
+        ids = list(item.product_order)
+        one_full: list[float] = []
+        one_at10: list[float] = []
+        for _ in range(shuffles):
+            generator.shuffle(ids)
+            one_full.append(float(ndcg_for_ids(ids, gain_map, None)))
+            one_at10.append(float(ndcg_for_ids(ids, gain_map, 10)))
+        full_values.append(float(np.mean(one_full)))
+        at10_values.append(float(np.mean(one_at10)))
+    return {
+        "ndcg": float(np.mean(full_values)) if full_values else None,
+        "ndcg_at_10": float(np.mean(at10_values)) if at10_values else None,
+        "n_scored": len(full_values),
+        "n_excluded": excluded,
+        "shuffles": shuffles,
+        "seed": seed,
     }
 
-    for k in k_values:
-        results["ranking_metrics"][f"ndcg@{k}"] = float(np.mean(ndcg_scores[k]))
-        results["ranking_metrics"][f"mrr@{k}"] = float(np.mean(mrr_scores[k]))
-        results["ranking_metrics"][f"precision@{k}"] = float(np.mean(precision_scores[k]))
 
-        # Average label distribution
-        avg_dist = {}
-        for label in ESCI_LABELS_ORDERED:
-            avg_dist[label] = float(np.mean([d[label] for d in label_dists[k]]))
-        results["label_distribution"][f"K={k}"] = avg_dist
-
-    # Convert per-label scores to numpy
-    for label in ESCI_LABELS_ORDERED:
-        results["per_label_scores"][label] = np.array(per_label_scores[label])
-
-    # Separability AUC
-    if len(all_scores) > 0:
-        results["separability_auc"] = compute_separability_auc(
-            np.array(all_scores),
-            np.array(all_labels),
-            eval_config.separability_positive_labels,
-            eval_config.separability_negative_labels,
-        )
-
-    return results
+def hajek_mean(values: list[float], inclusion_probabilities: list[float]) -> float:
+    if len(values) != len(inclusion_probabilities) or not values:
+        raise ValueError("Hajek mean needs one probability per value.")
+    weights = []
+    for probability in inclusion_probabilities:
+        if probability <= 0.0 or probability > 1.0:
+            raise ValueError(f"Inclusion probability {probability} is outside (0, 1].")
+        weights.append(1.0 / probability)
+    weight_sum = float(sum(weights))
+    return float(sum(weight * value for weight, value in zip(weights, values)) / weight_sum)
 
 
-# =============================================================================
-# Printing Functions
-# =============================================================================
-
-def print_evaluation_results(results: Dict[str, Any]) -> None:
-    """Pretty-print evaluation results for a single method."""
-    method = results["method"]
-    n_queries = results["num_queries"]
-
-    print(f"\n{'='*60}")
-    print(f"  {method} ({n_queries:,} queries)")
-    print(f"{'='*60}")
-
-    # Ranking metrics
-    print(f"\n  Ranking Metrics:")
-    for metric, value in sorted(results["ranking_metrics"].items()):
-        print(f"    {metric:<20s} {value:.4f}")
-
-    # Separability AUC
-    print(f"\n  Separability AUC (E+S+C vs I): {results['separability_auc']:.4f}")
-
-    # Label distribution
-    print(f"\n  Label Distribution in Top-K:")
-    for k_label, dist in sorted(results["label_distribution"].items()):
-        parts = [f"{l}={100*v:.1f}%" for l, v in dist.items()]
-        print(f"    {k_label}: {', '.join(parts)}")
-
-    # Per-label score stats
-    print(f"\n  Score Statistics by Label:")
-    for label in ESCI_LABELS_ORDERED:
-        scores = results["per_label_scores"].get(label)
-        if scores is not None and len(scores) > 0:
-            if isinstance(scores, list):
-                scores = np.array(scores)
-            print(f"    {label} ({ESCI_LABEL_NAMES[label]}): "
-                  f"mean={np.mean(scores):.4f}, "
-                  f"median={np.median(scores):.4f}, "
-                  f"std={np.std(scores):.4f}, "
-                  f"n={len(scores):,}")
+def quadratic_weighted_kappa(left: list[int], right: list[int], n_classes: int = 4) -> float:
+    if len(left) != len(right) or not left:
+        raise ValueError("Kappa needs paired labels.")
+    observed = np.zeros((n_classes, n_classes), dtype=np.float64)
+    for a, b in zip(left, right):
+        observed[a, b] += 1.0
+    observed /= observed.sum()
+    row = observed.sum(axis=1)
+    col = observed.sum(axis=0)
+    expected = np.outer(row, col)
+    weights = np.zeros_like(observed)
+    scale = float(n_classes - 1)
+    for i in range(n_classes):
+        for j in range(n_classes):
+            weights[i, j] = ((i - j) / scale) ** 2
+    observed_score = float(np.sum(weights * observed))
+    expected_score = float(np.sum(weights * expected))
+    if expected_score == 0.0:
+        return 1.0 if observed_score == 0.0 else 0.0
+    return 1.0 - observed_score / expected_score
 
 
-def print_comparison_table(all_results: List[Dict[str, Any]]) -> None:
-    """Print side-by-side comparison of all methods."""
-    print(f"\n{'='*90}")
-    print(f"  METHOD COMPARISON")
-    print(f"{'='*90}")
-
-    # Header
-    header = f"  {'Method':<20s}"
-    metrics_to_show = ["ndcg@10", "mrr@10", "precision@10"]
-    for m in metrics_to_show:
-        header += f" {m:>12s}"
-    header += f" {'%E@10':>8s} {'%I@10':>8s} {'Sep.AUC':>8s}"
-    print(header)
-    print(f"  {'-'*86}")
-
-    for r in all_results:
-        row = f"  {r['method']:<20s}"
-        for m in metrics_to_show:
-            val = r["ranking_metrics"].get(m, 0)
-            row += f" {val:>12.4f}"
-
-        # Label distribution at K=10
-        dist_10 = r["label_distribution"].get("K=10", {})
-        row += f" {100*dist_10.get('E', 0):>7.1f}%"
-        row += f" {100*dist_10.get('I', 0):>7.1f}%"
-        row += f" {r['separability_auc']:>8.4f}"
-        print(row)
+def write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-# =============================================================================
-# Plotting Functions
-# =============================================================================
+def assert_result_size(path: Path, limit_bytes: int = 1_000_000) -> None:
+    size = path.stat().st_size
+    if size > limit_bytes:
+        raise RuntimeError(f"{path.name} is {size} bytes, above the {limit_bytes} byte result limit.")
 
-def plot_score_boxplots(
-    all_results: List[Dict[str, Any]],
-    output_path: Path = PLOTS_DIR / "score_boxplots.png",
-    max_points_per_label: int = 50000,
-) -> None:
-    """Generate score distribution boxplots per ESCI label.
 
-    Creates 1 x N subplots (one per method). Each subplot has:
-      X-axis: ESCI labels (E, S, C, I)
-      Y-axis: Raw scores from the method
-
-    Uses seaborn boxenplot (letter-value plot) for better visualization
-    of large distributions.
-    """
-    n_methods = len(all_results)
-    fig, axes = plt.subplots(1, n_methods, figsize=(5 * n_methods, 6))
-    if n_methods == 1:
-        axes = [axes]
-
-    rng = np.random.RandomState(42)
-
-    for ax, result in zip(axes, all_results):
-        method_name = result["method"]
-        data_rows = []
-
-        for label in ESCI_LABELS_ORDERED:
-            scores = result["per_label_scores"].get(label, np.array([]))
-            if isinstance(scores, list):
-                scores = np.array(scores)
-            if len(scores) == 0:
+def record_test_scoring(output_dir: Path, key: str, plan_digest: str) -> None:
+    """Refuse a second test scoring of the same configuration."""
+    log_path = output_dir / "eval_log.jsonl"
+    if log_path.exists():
+        for line in log_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
                 continue
+            record = json.loads(line)
+            if record.get("key") == key and record.get("plan_sha256") == plan_digest:
+                raise RuntimeError(
+                    f"Test configuration {key} was already scored under this protocol digest."
+                )
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({"key": key, "plan_sha256": plan_digest, "split": "test"}) + "\n")
 
-            # Subsample for plotting speed
-            if len(scores) > max_points_per_label:
-                indices = rng.choice(len(scores), size=max_points_per_label, replace=False)
-                scores = scores[indices]
 
-            for s in scores:
-                data_rows.append({"ESCI Label": label, "Score": s})
+def guard_test_split(output_dir: Path, key: str, split: str) -> str | None:
+    if split != "test":
+        return None
+    digest = require_plan_hash()
+    record_test_scoring(output_dir, key, digest)
+    return digest
 
-        if not data_rows:
-            continue
 
-        df_plot = pd.DataFrame(data_rows)
-        palette = [ESCI_COLORS[l] for l in ESCI_LABELS_ORDERED if l in df_plot["ESCI Label"].unique()]
+def load_run_or_empty(path: Path, query_ids: Iterable[str]) -> Run:
+    if not path.exists():
+        return {query_id: [] for query_id in query_ids}
+    run = read_run(path)
+    for query_id in query_ids:
+        run.setdefault(query_id, [])
+    return run
 
-        sns.boxenplot(
-            data=df_plot,
-            x="ESCI Label",
-            y="Score",
-            ax=ax,
-            palette=palette,
-            order=ESCI_LABELS_ORDERED,
+
+def primary_comparisons(
+    per_query_by_system: dict[str, dict[str, dict]],
+    family: list[dict],
+    n_resamples: int,
+    seed: int,
+    alpha: float,
+    relative_threshold: float,
+    selection: dict[str, str] | None = None,
+) -> list[dict]:
+    resolved = []
+    p_values = []
+    for item in family:
+        system_a = item["system_a"]
+        system_b = item["system_b"]
+        if selection:
+            system_a = selection.get(system_a, system_a)
+            system_b = selection.get(system_b, system_b)
+        if system_a.startswith("{") or system_b.startswith("{"):
+            raise RuntimeError("Best-system placeholders are still unresolved.")
+        if system_a not in per_query_by_system or system_b not in per_query_by_system:
+            raise KeyError(f"Missing per-query metrics for {system_a} or {system_b}.")
+        _ids, diff = aligned_diff(
+            per_query_by_system[system_a],
+            per_query_by_system[system_b],
+            item["metric"],
         )
-        ax.set_title(method_name, fontsize=13, fontweight="bold")
-        ax.set_xlabel("ESCI Label", fontsize=11)
-        ax.set_ylabel("Score", fontsize=11)
-
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches="tight")
-    plt.close()
-    logger.info(f"Score boxplots saved to {output_path}")
-
-
-def plot_label_distribution_bars(
-    all_results: List[Dict[str, Any]],
-    k_values: List[int] = [10, 20, 50],
-    output_path: Path = PLOTS_DIR / "label_distribution.png",
-) -> None:
-    """Stacked bar chart of ESCI label distribution in top-K.
-
-    One group of bars per K value, one bar per method.
-    Stacked segments: E (green), S (blue), C (orange), I (red).
-    """
-    n_k = len(k_values)
-    fig, axes = plt.subplots(1, n_k, figsize=(5 * n_k, 5))
-    if n_k == 1:
-        axes = [axes]
-
-    method_names = [r["method"] for r in all_results]
-
-    for ax, k in zip(axes, k_values):
-        bottoms = np.zeros(len(method_names))
-        k_label = f"K={k}"
-
-        for label in ESCI_LABELS_ORDERED:
-            values = []
-            for r in all_results:
-                dist = r["label_distribution"].get(k_label, {})
-                values.append(100 * dist.get(label, 0))
-
-            values = np.array(values)
-            ax.bar(
-                method_names, values, bottom=bottoms,
-                label=f"{label} ({ESCI_LABEL_NAMES[label]})",
-                color=ESCI_COLORS[label],
-                edgecolor="white", linewidth=0.5,
-            )
-            bottoms += values
-
-        ax.set_title(f"Top-{k} Label Distribution", fontsize=13, fontweight="bold")
-        ax.set_ylabel("Percentage (%)", fontsize=11)
-        ax.set_ylim(0, 105)
-        ax.tick_params(axis="x", rotation=30)
-        if ax == axes[-1]:
-            ax.legend(loc="upper right", fontsize=9)
-
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches="tight")
-    plt.close()
-    logger.info(f"Label distribution chart saved to {output_path}")
+        estimate = paired_bootstrap(diff, n_resamples, seed)
+        mean_a = macro(per_query_by_system[system_a], item["metric"])["mean"]
+        mean_b = macro(per_query_by_system[system_b], item["metric"])["mean"]
+        resolved.append(
+            {
+                "id": item["id"],
+                "system_a": system_a,
+                "system_b": system_b,
+                "protocol": item["protocol"],
+                "metric": item["metric"],
+                "mean_a": mean_a,
+                "mean_b": mean_b,
+                "difference": estimate["mean"],
+                "interval_low": estimate["low"],
+                "interval_high": estimate["high"],
+                "n": estimate["n"],
+                "interpret": None
+                if estimate["mean"] is None
+                else interpretable(float(mean_a), float(mean_b), relative_threshold),
+            }
+        )
+        p_values.append(1.0 if estimate["p"] is None else float(estimate["p"]))
+    decisions = holm(p_values, alpha)
+    for row, decision in zip(resolved, decisions):
+        row["p"] = decision["p"]
+        row["holm_threshold"] = decision["threshold"]
+        row["holm_reject"] = decision["reject"]
+    return resolved
 
 
-# =============================================================================
-# Output Functions
-# =============================================================================
-
-def save_results_json(
-    all_results: List[Dict[str, Any]],
-    output_path: Path = METRICS_DIR / "hybrid_search_results.json",
-) -> None:
-    """Save evaluation results to JSON.
-
-    Converts numpy arrays to lists for JSON serialization.
-    """
-    serializable = []
-    for r in all_results:
-        r_copy = {}
-        for key, value in r.items():
-            if key == "per_label_scores":
-                # Convert numpy arrays to summary stats (not full arrays)
-                r_copy[key] = {}
-                for label, scores in value.items():
-                    if isinstance(scores, np.ndarray):
-                        r_copy[key][label] = {
-                            "count": int(len(scores)),
-                            "mean": float(np.mean(scores)) if len(scores) > 0 else 0,
-                            "median": float(np.median(scores)) if len(scores) > 0 else 0,
-                            "std": float(np.std(scores)) if len(scores) > 0 else 0,
-                            "min": float(np.min(scores)) if len(scores) > 0 else 0,
-                            "max": float(np.max(scores)) if len(scores) > 0 else 0,
-                        }
-                    else:
-                        r_copy[key][label] = value
-            elif isinstance(value, (np.floating, np.integer)):
-                r_copy[key] = float(value)
-            else:
-                r_copy[key] = value
-        serializable.append(r_copy)
-
-    with open(output_path, "w") as f:
-        json.dump(serializable, f, indent=2, default=str)
-    logger.info(f"Results saved to {output_path}")
+# Official gains are the default used by callers that do not pass a table.
+DEFAULT_GAINS = dict(OFFICIAL_GAINS)
 
 
-def save_comparison_csv(
-    all_results: List[Dict[str, Any]],
-    output_path: Path = METRICS_DIR / "method_comparison.csv",
-) -> None:
-    """Save comparison table as CSV."""
-    rows = []
-    for r in all_results:
-        row = {"method": r["method"], "num_queries": r["num_queries"]}
-        row.update(r["ranking_metrics"])
-        row["separability_auc"] = r["separability_auc"]
-
-        for k_label, dist in r["label_distribution"].items():
-            for label, val in dist.items():
-                row[f"{k_label}_{label}%"] = val
-
-        rows.append(row)
-
-    df = pd.DataFrame(rows)
-    df.to_csv(output_path, index=False)
-    logger.info(f"Comparison CSV saved to {output_path}")
+def report_primary_family(
+    per_p1: dict[str, dict],
+    per_p2: dict[str, dict],
+    family: list[dict],
+    n_resamples: int,
+    seed: int,
+    alpha: float,
+    relative_threshold: float,
+    selection: dict[str, str] | None = None,
+) -> list[dict]:
+    """Holm correction is applied once across every resolved primary comparison."""
+    resolved = []
+    p_values = []
+    for item in family:
+        system_a = item["system_a"]
+        system_b = item["system_b"]
+        if selection:
+            system_a = selection.get(system_a, system_a)
+            system_b = selection.get(system_b, system_b)
+        table = per_p1 if item["protocol"] == "p1" else per_p2
+        if system_a not in table or system_b not in table:
+            continue
+        _ids, diff = aligned_diff(table[system_a], table[system_b], item["metric"])
+        estimate = paired_bootstrap(diff, n_resamples, seed)
+        mean_a = macro(table[system_a], item["metric"])["mean"]
+        mean_b = macro(table[system_b], item["metric"])["mean"]
+        resolved.append(
+            {
+                "id": item["id"],
+                "system_a": system_a,
+                "system_b": system_b,
+                "protocol": item["protocol"],
+                "metric": item["metric"],
+                "mean_a": mean_a,
+                "mean_b": mean_b,
+                "difference": estimate["mean"],
+                "interval_low": estimate["low"],
+                "interval_high": estimate["high"],
+                "n": estimate["n"],
+                "interpret": None
+                if mean_a is None or mean_b is None
+                else interpretable(float(mean_a), float(mean_b), relative_threshold),
+            }
+        )
+        p_values.append(1.0 if estimate["p"] is None else float(estimate["p"]))
+    for row, decision in zip(resolved, holm(p_values, alpha)):
+        row["p"] = decision["p"]
+        row["holm_threshold"] = decision["threshold"]
+        row["holm_reject"] = decision["reject"]
+    return resolved

@@ -1,26 +1,26 @@
-# Core ML/Data
-numpy>=1.21.0
-pandas>=1.3.0
-scipy>=1.7.0
-scikit-learn>=1.0.0
+# Companion libraries for Appendix B, Hybrid Search with Vector Databases.
+# Python 3.13. torch is intentionally absent: a Colab runtime already provides
+# a CUDA build (2.14.1+cu130 on the current image). Installing this file must
+# not replace that build. See requirements-gpu.txt.
+#
+# sentence-transformers 6.3 still provides SparseEncoder, the interface
+# introduced in the 5.x line. It requires torch>=2.2, which the preinstalled
+# CUDA build satisfies, and transformers>=5,<6.
 
-# BM25 (fast sparse-matrix based)
-bm25s[core]>=0.2.0
-
-# SPLADE (learned sparse retrieval)
-transformers>=4.30.0
-torch>=2.0.0
-
-# Dense retrieval (Sentence-BERT + FAISS)
-sentence-transformers>=2.2.0
-faiss-cpu>=1.7.0
-
-# Parquet support
-pyarrow>=12.0.0
-
-# Progress bars
-tqdm>=4.60.0
-
-# Visualization
-matplotlib>=3.5.0
-seaborn>=0.11.0
+sentence-transformers[train]==6.3.0
+transformers==5.22.2
+huggingface-hub==2.4.0
+accelerate==1.15.0
+datasets==5.2.0
+numpy==2.5.4
+pandas==3.1.1
+scipy==1.18.1
+scikit-learn==1.9.1
+bm25s==0.3.16
+faiss-cpu==1.16.0
+pyarrow==26.0.1
+qdrant-client==1.20.0
+tqdm==4.70.1
+PyYAML==6.0.3
+psutil==7.2.2
+ir-measures==0.4.3

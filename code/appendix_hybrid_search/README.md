@@ -1,388 +1,112 @@
-# Appendix B: Hybrid Search with Vector Databases
+# Hybrid Search with Vector Databases
 
-This appendix compares **three retrieval paradigms** — lexical (BM25), learned sparse (SPLADE), and dense semantic (SBERT + FAISS) — on the Amazon ESCI Shopping Queries Dataset (1.2M US products, ~97K queries). It then demonstrates how to combine them via **hybrid fusion** (Reciprocal Rank Fusion, weighted score fusion) and **BM25 re-ranking** of neural candidates.
+This folder is the companion code for Appendix B of *AI-Powered Personalization*. It retrieves products for shopping queries with BM25, three public SPLADE checkpoints, and one dense encoder, then fuses those lists and scores them on the human ESCI labels.
 
-## Why This Appendix?
+The catalog is the US English `large_version` of the Amazon shopping-queries dataset. Task 1 of that dataset used `small_version`. This appendix uses `large_version` for every retriever.
 
-Chapters 5 and 10 built retrieval and embedding systems using dense bi-encoders. But production search systems increasingly use **hybrid search** — combining lexical and semantic methods — because:
+## What the code measures
 
-1. **BM25 excels at exact keyword matching** (brand names, model numbers, SKUs)
-2. **Dense models capture semantic similarity** ("wireless headphones" → "bluetooth earbuds")
-3. **SPLADE bridges both worlds** — learned sparse vectors that expand queries with semantically related vocabulary terms while retaining sparse-space efficiency
+Protocol P1 ranks each query's judged products and reports nDCG, with gains Exact 1.0, Substitute 0.1, Complement 0.01, and Irrelevant 0. Protocol P2 treats unjudged products as unjudged. It reports recall of Exact and of Exact or Substitute at 100 and 1,000, condensed nDCG at 10, and judged-at-10. An empty list scores zero and stays in the count. A query whose labels are all Irrelevant is left out of nDCG only.
 
-The key question: *when does each method help, and does combining them beat any single method?*
+`analysis_plan.yaml` fixes the splits, model revisions, fusion grids, and the ten primary comparisons. `analysis_plan.sha256` is the SHA-256 of that file. Scoring the test split a second time, under the same digest, stops.
 
----
+## Data
 
-## Dataset: Amazon ESCI (Shopping Queries Dataset)
+Download the shopping-queries release from the amazon-science/esci-data repository. The licence is Apache-2.0. Place these two files in one directory:
 
-The [Amazon ESCI dataset](https://github.com/amazon-science/esci-data) provides real Amazon shopper queries with 4-level graded relevance annotations:
+- `shopping_queries_dataset_examples.parquet`
+- `shopping_queries_dataset_products.parquet`
 
-| Label | Meaning | Gain (ours) | Gain (Qdrant) |
-|-------|---------|:-----------:|:-------------:|
-| **E** (Exact) | Satisfies the query's core intent | 3 | 1.0 |
-| **S** (Substitute) | Close alternative, not an exact match | 2 | 0.7 |
-| **C** (Complement) | Related/complementary product | 1 | 0.5 |
-| **I** (Irrelevant) | Not relevant to the query | 0 | 0.0 |
+Pass that directory with `--data-dir`, or set the environment variable `ESCI_DATA_DIR`. There is no default path.
 
-**Dataset statistics (US locale):**
-- ~1.2M products with title, bullet points, brand, color, description
-- ~97K unique queries in the training split
-- ~16 labeled products per query (sparse coverage by design — ESCI only labels products that a search system surfaced)
+The Qdrant ESCI SPLADE checkpoint was trained from `tasksource/esci` at revision `8113b17a5d4099e20243282c926f1bc1a08a4d13`. Its document text is that dataset's `product_text` field: title, brand, color, description, and bullet point, joined by newlines, with a missing value written as `None`. Protocol P1 uses that text for this checkpoint only. Every other model, and protocol P2 for every model, uses `{title}. {bullet_point}. Brand: {brand}`. The split code replays the training prefix and keeps those query texts out of development. A test query whose text matches that prefix, under the same comparison, is left out of the test split, and every system is scored on the queries that remain. That dataset card also uses the Apache-2.0 licence.
 
-### The Label Coverage Problem
+Reciprocal rank fusion starts at rank 1 with k = 60, so the first document contributes 1/61. The Qdrant client's local-mode formula is 1/(k + position) and its positions start at 0, so the client constant that matches this script is 61. The client's default constant is 2.
 
-ESCI provides only ~16 relevance judgments per query against a 1.2M product catalog. When retrieving top-50 from the full catalog, **~84% of retrieved products are unlabeled** — we don't know if they're relevant or not. This fundamentally limits full-catalog evaluation and motivated our dual evaluation strategy (see Evaluation Design below).
+## Models and licences
 
----
+Every Hugging Face load uses the revision in `analysis_plan.yaml` and `trust_remote_code=False`.
 
-## Methods
+| Role | Repository | Licence |
+| --- | --- | --- |
+| SPLADE | `naver/splade-cocondenser-ensembledistil` | CC BY-NC-SA 4.0 |
+| SPLADE | `prithivida/Splade_PP_en_v2` | Apache-2.0 |
+| SPLADE | `thierrydamiba/splade-ecommerce-esci` | Apache-2.0 |
+| Dense | `sentence-transformers/all-MiniLM-L6-v2` | Apache-2.0 |
+| Cross-encoder, optional | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Apache-2.0 |
 
-### BM25 (Lexical Baseline)
+Naver vectors and indexes are an evaluation cache. Do not redistribute them. The other checkpoints are Apache-2.0.
 
-- **Library:** `bm25s` — pre-computes BM25 scores into scipy sparse matrices at index time
-- **Variant:** Lucene-compatible scoring (`k1=1.5, b=0.75`)
-- **Strengths:** Exact keyword matching, no training required, extremely fast
-- **Weaknesses:** No semantic understanding — "laptop" won't match "notebook computer"
+`prithivida/Splade_PP_en_v2` is a document encoder. Its model card says a separate query model will be released. This code uses that one checkpoint for queries and documents, with query length 24 and document length 128.
 
-### SPLADE (Learned Sparse)
+## CPU teaching slice
 
-SPLADE uses a BERT masked language model to produce sparse vocabulary-sized vectors. The model learns to **expand** queries and documents with semantically related terms while keeping representations sparse.
+These times were measured on a laptop CPU, Python 3.13.15, on a schema fixture of 8 products, 4 test queries, and 1 development query. They include the first load of each checkpoint. They are teaching measurements. They are not catalog timings, and the scores from this slice are not results for the book.
 
-**Key insight:** For the query "wireless headphones", SPLADE activates vocabulary tokens like "bluetooth", "earbuds", "audio" — terms that aren't in the query but are semantically relevant. This gives SPLADE both exact matching AND semantic matching in sparse space.
+| Step | Seconds | RSS at end (bytes) | Process peak working set after the step (bytes) |
+| --- | ---: | ---: | ---: |
+| Fixture and splits | 0.381 | 111,173,632 | 111,173,632 |
+| BM25 | 7.438 | 280,694,784 | 281,759,744 |
+| Qdrant parity | 4.924 | 327,766,016 | 327,766,016 |
+| Dense encode and search | 52.013 | 655,335,424 | 656,408,576 |
+| ESCI SPLADE encode and search | 1.969 | 1,008,496,640 | 1,014,833,152 |
+| Fusion | 0.138 | 1,008,513,024 | 1,014,833,152 |
+| Evaluation | 0.114 | 1,008,689,152 | 1,014,833,152 |
+| Slices | 0.000 | 1,008,689,152 | 1,014,833,152 |
+| Cross-encoder rerank | 1.570 | 1,111,093,248 | 1,111,093,248 |
+| One fine-tune step | 10.045 | 1,633,792,000 | 2,192,551,936 |
+| Label-file conversion | 0.118 | 1,634,234,368 | 2,192,551,936 |
+| Total | 78.710 |  | 2,192,551,936 |
 
-We compare **three SPLADE variants:**
+The peak working set is the Windows process peak since the process started, so it does not fall after a later step uses less memory. The highest value was 2,192,551,936 bytes, about 2.04 GiB, during the one-step fine-tune.
 
-| Variant | Model | License | Backend | Notes |
-|---------|-------|---------|---------|-------|
-| **Prithivi** | `prithivida/Splade_PP_en_v2` | Apache 2.0 | AutoModelForMaskedLM | General-purpose, permissive license |
-| **Qdrant ESCI** | `thierrydamiba/splade-ecommerce-esci` | Apache 2.0 | SparseEncoder (ST v5) | Fine-tuned on ESCI with E+S as positives |
-| **Naver** | `naver/splade-cocondenser-ensembledistil` | CC-BY-NC-SA-4.0 | SparseEncoder (ST v5) | Trained on MS-MARCO, non-commercial |
-
-**Why three variants?**
-- **Prithivi** is the default because it uses the permissive Apache 2.0 license and loads with standard `AutoModelForMaskedLM` (no special dependencies)
-- **Qdrant ESCI** was fine-tuned specifically on the ESCI dataset by the Qdrant team ([tutorial](https://qdrant.tech/articles/sparse-embeddings-ecommerce-part-1/)), providing a domain-specific comparison point
-- **Naver** is the original SPLADE team's model trained on MS-MARCO, representing the general-domain learned sparse state-of-the-art
-
-**Backend difference:** Prithivi uses `transformers.AutoModelForMaskedLM` directly. Qdrant and Naver models require `sentence_transformers.SparseEncoder` (introduced in sentence-transformers v5). The `SPLADEEncoder` class handles both backends transparently via the `use_sparse_encoder` config flag.
-
-### Dense (Sentence-BERT + FAISS)
-
-- **Model:** `sentence-transformers/all-MiniLM-L6-v2` (384-dim, L2-normalized)
-- **Index:** FAISS `IndexFlatIP` — exact inner-product search (cosine similarity on normalized vectors)
-- **Strengths:** Captures semantic similarity across paraphrases
-- **Weaknesses:** May miss exact keyword matches that BM25 handles trivially
-
-### Hybrid Fusion
-
-Two fusion strategies combine the three retrieval methods:
-
-1. **Reciprocal Rank Fusion (RRF):** Score-agnostic, rank-based. `RRF(d) = Σ 1/(k + rank(d))` with `k=60` (from the original Cormack et al. paper). Robust to different score scales.
-
-2. **Weighted Score Fusion:** Min-max normalizes each method's scores to [0,1], then computes a weighted sum (default: BM25=0.3, SPLADE=0.4, Dense=0.3).
-
-### BM25 Re-ranking
-
-An additional hybrid strategy: retrieve candidates with a neural method (Dense or SPLADE), then **re-rank by BM25 score**. This tests whether BM25's lexical precision can improve neural recall. Implementation caches BM25 top-1000 scores per query for efficient lookup.
-
----
-
-## Evaluation Design
-
-### The Core Challenge
-
-With only ~16 labels per query against 1.2M products, standard IR metrics become unreliable at the full-catalog scale. A method that retrieves a truly relevant but unlabeled product gets penalized. This is a known limitation of the ESCI dataset.
-
-### Our Solution: Dual Evaluation Strategy
-
-We run **four evaluation parts**, each addressing a different question:
-
-#### Part A: Curated Pool Evaluation (Qdrant-style)
-
-Creates a small product pool from ESCI-labeled products only, then retrieves within this pool.
-
-- **Pool construction:** Select N test queries (default: 2,000 from test split). Pool = union of all products with ESCI labels for those queries (~10-30K products, deduplicated).
-- **Assumption:** Unlabeled products in the pool are treated as Irrelevant (I=0.0)
-- **Gains:** Qdrant-compatible graded gains (E=1.0, S=0.7, C=0.5, I=0.0) for comparability with [published SPLADE results](https://qdrant.tech/articles/sparse-embeddings-ecommerce-part-1/)
-- **Metrics:** NDCG@K, MRR@K, Precision@K, Recall@K
-
-> **Caveat:** Treating unlabeled products as Irrelevant is standard practice (used by Qdrant, BEIR, and most ESCI evaluations) but may underestimate methods that retrieve truly relevant but unlabeled products. We document this assumption explicitly in all output.
-
-**Why this approach?** With the curated pool, label coverage is much higher (~100% for the labeled subset), making NDCG and MRR meaningful. The Qdrant-compatible gains allow direct comparison with their published SPLADE fine-tuning results.
-
-#### Part B: Score-Based Analysis (Annotated Candidates)
-
-For each query, scores its ~16 ESCI-labeled candidates and computes:
-
-- **Re-ranking NDCG@K** — how well each method ranks the labeled candidates
-- **Score distribution boxplots** — per-label score distributions (E vs S vs C vs I)
-- **Separability AUC** — ROC AUC for distinguishing relevant (E+S+C) from irrelevant (I) using raw scores
-- **Label distribution in top-K** — what fraction of top-K are E, S, C, I
-
-This analysis is independent of the full catalog — it only asks: "given the ~16 candidates, does the method rank relevant ones higher?"
-
-#### Part C: Full-Catalog Retrieval
-
-Retrieves from the full 1.2M product catalog and reports:
-
-- **Recall@K (E):** Fraction of Exact products found in top-K
-- **Recall@K (E+S):** Fraction of Exact + Substitute products found
-- **Label distribution** in top-K
-
-These metrics are conservative (penalize unlabeled retrievals) but show relative method differences.
-
-#### Part D: LLM-Augmented Evaluation (Stub)
-
-A placeholder for future LLM-based evaluation. The idea: use an LLM (Claude, GPT) to label the top-K products retrieved by each method, providing denser coverage than ESCI's ~16 labels per query.
-
-**Status:** Not part of the reported evaluation. The only committed output is `outputs/metrics/llm_benchmark_results.json`, a comparison of two models on 2,499 query-product pairs against reference labels from another LLM (Claude Sonnet 4), not against ESCI's human labels. See **LLM Label Expansion** below.
-
----
-
-## Results: Curated Pool Evaluation (2,000 queries; under revision)
-
-> **These numbers are under revision and cannot be reproduced as committed.** Appendix B will report results from a corrected run. Known problems in the run behind `outputs/metrics/curated_pool_results.json`: result lists were truncated after filtering, precision used the returned list length as its denominator, queries with empty result lists were dropped, the RRF fusion used only the first SPLADE variant (Prithivi), there are no confidence intervals, and the code version that produced the file is not recorded.
-
-The committed file contains these values for 2,000 test queries, with Qdrant-compatible gains (E=1.0, S=0.7, C=0.5, I=0.0):
-
-| Method | NDCG@10 | MRR@10 | P@10 |
-|--------|:-------:|:------:|:----:|
-| BM25 | 0.648 | 0.831 | 0.641 |
-| Dense (SBERT) | 0.651 | 0.840 | 0.638 |
-| SPLADE (Qdrant ESCI) | 0.698 | 0.862 | 0.681 |
-| SPLADE (Prithivi) | 0.726 | 0.876 | 0.708 |
-| SPLADE (Naver) | 0.736 | 0.888 | 0.717 |
-| BM25 Rerank (Dense) | 0.667 | 0.855 | 0.654 |
-| BM25 Rerank (SPLADE Prithivi) | 0.703 | 0.861 | 0.693 |
-| Hybrid (RRF, Prithivi as the SPLADE leg) | 0.731 | 0.887 | 0.702 |
-
-No recall values are committed, so no recall claim is made. Treat the ordering as provisional until the corrected run.
-
-> **Exercise:** The Hybrid RRF row uses Prithivi as its SPLADE component. Swap in Naver SPLADE and compare.
-
----
-
-## Quick Start
-
-### 1. Install Dependencies
+Create a virtual environment named `venv`, install a CPU build of PyTorch from the PyTorch CPU index when the machine has no CUDA build, then install this folder's requirements with `--upgrade-strategy only-if-needed`. That flag keeps an existing CUDA build in place. `requirements.txt` does not pin torch.
 
 ```bash
-pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python run_cpu_slice.py --output-dir outputs/cpu_slice --device cpu
 ```
 
-Key dependencies: `bm25s`, `transformers`, `torch`, `sentence-transformers>=5.0` (for SparseEncoder), `faiss-cpu`, `scipy`, `scikit-learn`, `matplotlib`, `seaborn`.
+Exercise 1 builds a larger slice: the judged products of 1,000 test queries plus 30,000 distractors. Slice metrics on that exercise are inflated relative to the full catalog. Exercise 2 runs the same hybrid in Qdrant local mode. Exercise 3 is the optional fine-tune. Exercise 4 needs a label file that is not included here.
 
-### 2. Build Indexes
+## Full catalog
 
-Each method needs a one-time index build over the 1.2M product catalog:
+The GPU times below are planning estimates. They were not measured in this folder, and they were not recomputed from a 20,000-product smoke.
+
+| Stage | Where | Planning estimate |
+| --- | --- | --- |
+| S0 smoke, 20,000 products and 200 queries | Laptop CPU | 20 to 40 minutes |
+| S1 encode and retrieve | Colab L4 | 2.5 to 4.5 hours |
+| S2 BM25, fusion, evaluation | Colab CPU or a CPU virtual machine | 1.5 to 3 hours |
+| S3 cross-encoder, optional | Colab L4 | 15 to 30 minutes |
+| S4 fine-tune, optional | Colab L4 | 2 to 4 hours |
+| S5 score the saved runs again and compare summary hashes | CPU virtual machine | 1.5 to 3 hours |
+
+The required path is S0, S1, S2, and S5: about 3 to 5.5 L4 hours. Adding S3 and S4 brings the L4 time to about 6 to 10 hours.
+
+On a Colab runtime that already has torch `2.14.1+cu130`, install with:
 
 ```bash
-# BM25 — builds sparse score matrix (~600MB cache)
-python bm25_search.py --mode index
-
-# Dense (SBERT) — encodes all products to 384-dim embeddings
-python dense_search.py --mode encode --device cuda
-
-# SPLADE (default: Prithivi) — encodes to sparse vocab-sized vectors
-python splade_search.py --mode encode --device cuda
-
-# SPLADE (all 3 variants)
-python splade_search.py --mode encode --splade_model all --device cuda
-
-# SPLADE (specific variant)
-python splade_search.py --mode encode --splade_model qdrant_esci --device cuda
+pip install -r requirements.txt --upgrade-strategy only-if-needed
+python run_pipeline.py --stages s1,s2 --data-dir /content/esci --output-dir outputs --device auto --prefix-source tasksource/esci
+python run_pipeline.py --stages s5 --data-dir /content/esci --output-dir outputs --device auto
 ```
 
-### 3. Run Evaluation
+Optional stages:
 
 ```bash
-# Full evaluation (Parts A + B + C)
-python hybrid_search.py --mode evaluate --max_queries 5000
-
-# Curated pool only (Part A — fast, recommended first)
-python hybrid_search.py --mode evaluate --eval_mode curated --max_queries 2000
-
-# Full-catalog only (Parts B + C)
-python hybrid_search.py --mode evaluate --eval_mode full_catalog --max_queries 5000
-
-# With all SPLADE variants
-python hybrid_search.py --mode evaluate --splade_models prithivi,qdrant_esci,naver
+python run_pipeline.py --stages s3 --data-dir /content/esci --output-dir outputs --device auto
+python run_pipeline.py --stages s4 --data-dir /content/esci --output-dir outputs --device cuda
 ```
 
-### 4. Demo Search
+A step whose output files already exist is skipped. Encoding writes a checkpoint every 50,000 products. After each stage the runner can execute a command you pass with `--sync-cmd`. The placeholders are `{stage}`, `{step}`, and `{output}`. The code does not contain a destination.
 
 ```bash
-# Interactive demo showing all methods side-by-side
-python hybrid_search.py --mode demo --demo_query "wireless bluetooth headphones"
-
-# With multiple SPLADE variants
-python hybrid_search.py --mode demo --splade_models prithivi,qdrant_esci,naver \
-    --demo_query "running shoes for women"
+python run_pipeline.py --stages s1,s2,s5 --data-dir /content/esci --output-dir outputs --device auto --sync-cmd "your-command {stage} {step} {output}"
 ```
 
-### 5. SPLADE Term Expansion Visualization
+The notebooks `colab/encode_and_retrieve.ipynb` and `colab/finetune_splade.ipynb` call the same runner. L4 batch sizes are in `analysis_plan.yaml`: 32 for the BERT SPLADE checkpoints, 64 for the DistilBERT SPLADE checkpoint and the cross-encoder, and 256 for the dense encoder.
 
-```bash
-# The "aha moment" — see which terms SPLADE activates beyond the query
-python splade_search.py --mode visualize --demo_query "notebook for travel"
-```
+## Labels
 
-### 6. Individual Method Evaluation
-
-Each method can be evaluated standalone:
-
-```bash
-python bm25_search.py --mode evaluate --max_queries 5000
-python dense_search.py --mode evaluate --max_queries 5000 --device cuda
-python splade_search.py --mode evaluate --max_queries 5000 --device cuda
-```
-
----
-
-## Code Structure
-
-```
-appendix_hybrid_search/
-├── config.py            # All configs: data, BM25, SPLADE, Dense, Hybrid, Eval
-├── data_loader.py       # Amazon ESCI dataset loader (products + judgments)
-├── bm25_search.py       # BM25 engine (bm25s library)
-├── splade_search.py     # SPLADE encoder + index (dual backend: MLM / SparseEncoder)
-├── dense_search.py      # Dense encoder + FAISS index (SBERT)
-├── evaluate.py          # Metrics: NDCG, MRR, Recall, AUC, curated pool, plotting
-├── hybrid_search.py     # Fusion (RRF, weighted), BM25 rerank, full eval pipeline
-├── llm_labeler.py       # LLM label expansion: sampling, Gemini API, incremental store
-├── colab_splade_encode.py  # Colab notebook script for SPLADE encoding on cloud GPU
-├── requirements.txt     # Python dependencies
-├── cache/               # Cached indexes (auto-created)
-│   ├── bm25/            # BM25 sparse matrix index
-│   ├── embeddings/      # Dense SBERT embeddings (.npz)
-│   └── splade/          # SPLADE sparse vectors (per-model subdirectories)
-│       ├── prithivi/
-│       ├── qdrant_esci/
-│       └── naver/
-└── outputs/             # Evaluation results (auto-created)
-    ├── metrics/         # JSON results, comparison CSV
-    └── plots/           # Score boxplots, label distributions, SPLADE expansion
-```
-
----
-
-## Configuration
-
-All settings are centralized in `config.py` using dataclasses:
-
-```python
-from config import (
-    DEFAULT_DATA_CONFIG,     # ESCIDataConfig: locale, split, text template
-    DEFAULT_BM25_CONFIG,     # BM25Config: k1, b, method
-    DEFAULT_SPLADE_CONFIG,   # SPLADEConfig: model, batch_size, backend
-    DEFAULT_DENSE_CONFIG,    # DenseConfig: model, embedding_dim, FAISS type
-    DEFAULT_HYBRID_CONFIG,   # HybridConfig: RRF k, score weights
-    DEFAULT_EVAL_CONFIG,     # EvalConfig: k_values, gains, curated pool settings
-    SPLADE_MODELS,           # Dict of 3 SPLADE variant configs
-)
-```
-
-### Key Configuration Choices
-
-**Product text template:** `"{title}. {bullet_point}. Brand: {brand}"` — omits description (often lengthy/noisy) and color (rarely useful for retrieval). This follows the text serialization pattern from Chapter 10.
-
-**BM25 variant:** Lucene-compatible scoring (default in Elasticsearch/Solr). `k1=1.5` controls term frequency saturation; `b=0.75` controls document length normalization.
-
-**ESCI gains (two mappings):**
-- **Our gains** (`ESCI_GAINS`): E=3, S=2, C=1, I=0 — standard graded relevance
-- **Qdrant gains** (`ESCI_GAINS_QDRANT`): E=1.0, S=0.7, C=0.5, I=0.0 — used for curated pool evaluation, enables comparison with Qdrant's published results
-
-**RRF smoothing constant:** `k=60` (the standard default from the original RRF paper).
-
-**Score fusion weights:** BM25=0.3, SPLADE=0.4, Dense=0.3. Gives SPLADE slightly more weight as it bridges lexical and semantic matching.
-
----
-
-## Design Decisions
-
-### Why bm25s instead of rank_bm25 or Elasticsearch?
-
-`bm25s` pre-computes BM25 scores into scipy sparse matrices at index time. This makes query-time retrieval a single sparse matrix multiplication — orders of magnitude faster than traditional BM25 implementations that compute scores on-the-fly. It also avoids the operational overhead of running an Elasticsearch cluster.
-
-### Why AutoModelForMaskedLM for Prithivi instead of SparseEncoder for all?
-
-`SparseEncoder` (sentence-transformers v5) is the modern way to load SPLADE models, but `prithivida/Splade_PP_en_v2` was released before this API existed. It loads cleanly with `AutoModelForMaskedLM` + manual SPLADE transform (`log(1 + ReLU(logits))` → max-pool). The Qdrant and Naver models require `SparseEncoder`. Supporting both backends keeps the code compatible with all three variants.
-
-### Why FAISS IndexFlatIP instead of approximate search?
-
-With 1.2M products and 384-dim vectors, exact search is fast enough (sub-second per query). Approximate methods (IVF, HNSW) add complexity and recall loss that isn't justified at this scale. Production systems with 100M+ items would need approximate indexes.
-
-### Why two ESCI gain mappings?
-
-Our standard gains (E=3, S=2, C=1, I=0) provide more separation between relevance levels. But Qdrant's SPLADE evaluation uses (E=1.0, S=0.7, C=0.5, I=0.0). We include both so that:
-1. Score-based analysis (Part B) uses our gains for maximum separability
-2. Curated pool evaluation (Part A) uses Qdrant gains for direct comparability
-
-### Why RRF over learned fusion?
-
-RRF is score-agnostic — it only uses rank positions, making it robust to the very different score scales of BM25 (unbounded), SPLADE (sparse dot product), and Dense (cosine similarity in [0,1]). Learned fusion (e.g., training a weighted combination) would require a held-out set and risks overfitting to the specific methods used.
-
-### Why curated pool evaluation?
-
-With only ~16 labels per query against 1.2M products, full-catalog NDCG is dominated by the "unlabeled" category. The curated pool (~10-30K products with near-complete label coverage) makes NDCG, MRR, and Precision meaningful. [Qdrant's SPLADE evaluation](https://qdrant.tech/articles/sparse-embeddings-ecommerce-part-1/) uses a similar curated pool.
-
----
-
-## Connection to Other Chapters
-
-- **Chapter 5 (Retrieval):** Introduced dense bi-encoder retrieval. This appendix adds lexical and learned sparse retrieval, then fuses all three.
-- **Chapter 10 (Item Embeddings):** Used `all-MiniLM-L6-v2` for zero-shot encoding. The dense search here reuses the same model and encoding pattern.
-- **Chapter 10, Section 10.7 (Multi-Modal Fusion):** Keeps per-modality embeddings separate, L2-normalized, and weighted at query time. Weighted score fusion here follows the same idea; RRF fuses ranks instead.
-- **Appendix A (RexBERT):** A domain-specialized e-commerce encoder. A version fine-tuned for retrieval could replace the dense encoder here.
-
----
-
-## LLM Label Expansion
-
-The ESCI dataset's labels come from Amazon's production search funnel, creating **pool selection bias** — only products surfaced by Amazon's search system get labeled. This may favour keyword-matching methods (BM25, SPLADE) over dense retrieval; the size of the effect has not been measured here.
-
-`llm_labeler.py` can expand label coverage with an LLM (Gemini 2.5 Flash Lite by default). It calls a paid API and is not needed for the rest of the appendix.
-
-### Model benchmark (committed output)
-
-`outputs/metrics/llm_benchmark_results.json` (2026-03-17) compares two models on 2,499 query-product pairs. The reference labels were Claude Sonnet 4's, not ESCI's human labels, so agreement measures consistency with that model, not accuracy:
-
-| Model | Agreement with the reference labels | Valid responses |
-|-------|:-----------------------------------:|:---------------:|
-| Gemini 2.5 Flash Lite | 71.1% | 2,497 of 2,499 |
-| GPT-4o-mini | 68.0% | 2,499 of 2,499 |
-
-### Query sampling (Option C: Retrieval-Diversity)
-Rather than labeling random queries, we **oversample queries where methods disagree** — where BM25, SPLADE, and Dense return different top-50 results (measured by pairwise Jaccard distance). This targets the queries where expanded labels matter most for distinguishing method quality.
-
-- Queries are stratified by disagreement tercile, with high-disagreement queries oversampled
-- The pairs to label are the union of each method's top-K products per query (`--top_k`, default 100)
-
-### Incremental labeling pipeline
-The pipeline (`llm_labeler.py`) labels the **union of top-K** products from all methods per query, with:
-- **Resume support**: labels stored in a persistent JSON keyed by `(query_id, product_id)` — safe to interrupt and restart without re-labeling existing pairs
-- **Phased**: start with top-100 per method, extend to a larger `--top_k` later without re-labeling
-- **Concurrent**: async API calls (`--concurrency`, default 10)
-- **Incremental**: future runs with higher `--top_k` or `--max_queries` automatically skip already-labeled pairs, labeling only the new ones
-
-### Recall caveat
-True Recall is unknowable without exhaustive labeling of the full 1.2M catalog per query. All Recall metrics should be interpreted as **relative Recall** within the labeled pool.
-
-### Future work
-- **Option D sampling**: Stratify queries by product category × method disagreement for more representative catalog coverage
-- **ColBERT re-scoring**: Use ColBERT's token-level late interaction as a silver-standard relevance signal to refine NDCG without exhaustive human labeling
-- **Cross-encoder reranking**: Score top-K candidates with a cross-encoder (e.g., `ms-marco-MiniLM-L-6-v2`) as a stronger relevance signal than bi-encoder similarity
-
----
-
-## References
-
-- **Amazon ESCI Dataset:** Reddy et al., "Shopping Queries Dataset: A Large-Scale ESCI Benchmark for Improving Product Search", KDD 2022
-- **BM25:** Robertson et al., "Okapi at TREC-3", 1995
-- **bm25s:** Lù, "bm25s: Best Practices for BM25 Sparse Retrieval", 2024
-- **SPLADE:** Formal et al., "SPLADE v2: Sparse Lexical and Expansion Model for Information Retrieval", SIGIR 2022
-- **SPLADE e-commerce fine-tuning:** [Qdrant tutorial](https://qdrant.tech/articles/sparse-embeddings-ecommerce-part-1/)
-- **Sentence-BERT:** Reimers & Gurevych, "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks", EMNLP 2019
-- **Reciprocal Rank Fusion:** Cormack et al., "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods", SIGIR 2009
-- **FAISS:** Johnson et al., "Billion-Scale Similarity Search with GPUs", IEEE TPDS 2021
+`provenance/llm_labeler.py` refuses to run. An earlier draft called a paid language-model API. That client is not included, and this folder does not call one. `llm_labels_convert.py` only reads a label file you already have. Protocol P3 and Exercise 4 are not reported. The saved label file does not store the sampling parameters, so the query sample is not reconstructed.

@@ -1,0 +1,341 @@
+# Fixed protocol for Appendix B, Hybrid Search with Vector Databases.
+# This file contains no measured results. Test-split scoring refuses to run
+# unless analysis_plan.sha256 matches the SHA-256 of this file.
+
+schema_version: 1
+contains_results: false
+title: Hybrid Search with Vector Databases
+
+data:
+  locale: us
+  judgment_rows: large_version
+  task1_rows_not_used: small_version
+  examples_file: shopping_queries_dataset_examples.parquet
+  products_file: shopping_queries_dataset_products.parquet
+  catalog: unique product_id values on US large_version judgment rows
+  text_template: "{title}. {bullet_point}. Brand: {brand}"
+  text_rule: skip empty parts, join the remaining parts with ". ", collapse whitespace
+  qdrant_sensitivity_template: "{title}\\n{brand}\\n{color}\\n{description}\\n{bullet_point}"
+  qdrant_sensitivity_rule: >-
+    product_text of tasksource/esci. Field order is title, brand, color,
+    description, bullet_point. A missing value is the token None. Fields are
+    joined by a newline. Characters inside a field are kept. There is no
+    character truncation in this template.
+  qdrant_sensitivity_scope: splade_esci documents only, protocol P1 only
+
+gains:
+  primary:
+    E: 1.0
+    S: 0.1
+    C: 0.01
+    I: 0.0
+  sensitivity_linear:
+    E: 3
+    S: 2
+    C: 1
+    I: 0
+
+splits:
+  test:
+    rule: all US large_version query ids with split test
+    exclude: query texts in the qdrant prefix, compared as in qdrant_prefix.rule. Applies to every system and protocol.
+    note: on the official US large_version table this removes one query
+  duplicate_split_query: if a query id has both train and test rows, drop the train rows and keep the test rows
+  qdrant_prefix:
+    dataset: tasksource/esci
+    revision: 8113b17a5d4099e20243282c926f1bc1a08a4d13
+    rule: >-
+      train split, product_locale us, label Exact or E or Substitute or S,
+      first 100000 pairs in file order. Query text is stripped and internal
+      whitespace is collapsed before comparison. A train query is excluded
+      when either the raw text or the normalized text matches.
+  exercise3_reservation:
+    pairs: 100000
+    labels: [E, S]
+    order: file order of the official examples parquet
+    exclude: query texts in the qdrant prefix
+    note: reserved before development sampling, so development cannot overlap it
+  development:
+    size: 1000
+    seed: 20261110
+    method: sort remaining train query ids, then numpy Generator choice without replacement
+    exclude:
+      - qdrant prefix query texts
+      - exercise3 reserved query ids
+  exercise1_slice:
+    test_queries: 1000
+    distractor_products: 30000
+    seed: 20261110
+  query_id_type: string
+
+models:
+  bm25:
+    package: bm25s
+    method: lucene
+    k1: 1.5
+    b: 0.75
+    stopwords: en
+    stemming: false
+  splade_naver:
+    repo: naver/splade-cocondenser-ensembledistil
+    revision: 49cf4c7b0db5b870a401ddf5e2669993ef3699c7
+    trust_remote_code: false
+    licence: CC-BY-NC-SA-4.0
+    redistribute_vectors: false
+    query_max_length: 256
+    document_max_length: 256
+    max_length_source: model card states 512 tokens, and 256 for evaluation reproduction
+    l4_batch_size: 32
+  splade_prithivi:
+    repo: prithivida/Splade_PP_en_v2
+    revision: f0d4aa214dcb60c274052a52c0497535e3aec64c
+    trust_remote_code: false
+    licence: Apache-2.0
+    query_max_length: 24
+    document_max_length: 128
+    max_length_source: model card token budgets, document 128 and query 24
+    checkpoint_use: one checkpoint for queries and documents
+    card_note: the model is document-oriented and the card announces a separate query model
+    l4_batch_size: 32
+  splade_esci:
+    repo: thierrydamiba/splade-ecommerce-esci
+    revision: ad71287c26efab59abfaadde6256df14f38cc10c
+    trust_remote_code: false
+    licence: Apache-2.0
+    query_max_length: 512
+    document_max_length: 512
+    max_length_source: model card maximum sequence length 512; no separate query budget is stated
+    l4_batch_size: 64
+  dense:
+    repo: sentence-transformers/all-MiniLM-L6-v2
+    revision: 1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+    trust_remote_code: false
+    licence: Apache-2.0
+    embedding_dim: 384
+    max_length: 256
+    normalize: true
+    index: IndexFlatIP
+    query_batch_size: 128
+    l4_batch_size: 256
+    faiss_index_file: dense_faiss.index
+  cross_encoder:
+    repo: cross-encoder/ms-marco-MiniLM-L-6-v2
+    revision: 233902d25c440f23af6f7d6e94d2946bac0bee0a
+    trust_remote_code: false
+    licence: Apache-2.0
+    rerank_depth: 100
+    exercise_rerank_depth: 50
+    l4_batch_size: 64
+    optional: true
+
+retrieval:
+  exact_search: true
+  run_depth: 1000
+  run_format: "query_id Q0 product_id rank score run_name"
+  rank_origin: 1
+  tie_break: score descending, then product_id ascending
+  p1_run: every judged product for that query, ranked by score
+  p2_run: top 1000, or the whole catalog when the catalog is smaller
+  empty_query_vector: scores are zeros and ties follow product_id
+  checkpoint_every_products: 50000
+  splade_storage: term-major CSC
+  splade_cpu_scoring: scipy posting lists
+  splade_gpu_scoring: torch sparse matrix products in query batches
+  sparse_agreement_relative_tolerance: 1.0e-4
+  sparse_agreement_top10_fraction: 0.995
+
+fusion:
+  rank_origin: 1
+  rrf_formula: "sum over legs that contain the product of weight / (k + rank), rank starts at 1"
+  qdrant_rrf_note: "qdrant-client 1.20.0 local mode scores 1 / (k + position) with position starting at 0, and the default Fusion.RRF constant is 2. Script k = 60 matches client Rrf(k = 61)."
+  missing_leg:
+    rrf: add nothing
+    convex: 0 after normalization
+    dbsf: 0 after normalization
+  zero_range_normalization: min-max and z-score map a zero-range leg to 0; DBSF maps a zero-range leg to 0.5
+  dbsf: "(score - (mean - 3 * sample_std)) / (6 * sample_std), sample variance divides by n - 1; a single score or zero variance normalizes to 0.5. This matches qdrant-client 1.20.0 local mode."
+  f1: rrf of bm25 and dense, k = 60
+  f2: rrf of bm25, one splade variant, and dense, k = 60, for each of the three variants
+  f3: rrf of one splade variant and dense, k = 60, for each variant
+  f4:
+    method: convex combination of min-max normalized bm25 and dense
+    alpha_grid: [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.0]
+    alpha_applies_to: bm25
+  f5:
+    method: three-leg convex combination, min-max per leg
+    variant: development-selected splade variant
+    simplex_step: 0.1
+  f6:
+    method: dbsf
+    legs: bm25, development-selected splade variant, dense
+  f7:
+    method: rrf of the f2 legs for the development-selected variant
+    k_grid: [2, 5, 10, 20, 30, 40, 60, 80, 100]
+  depth_sensitivity:
+    split: development
+    depths: [100, 1000]
+    systems: [f1, f2 for each variant]
+  selection:
+    metric: p2_recall_at_100_exact
+    tie_break: [p2_condensed_ndcg_at_10 descending, system name ascending]
+    splade_pool: [splade_naver, splade_prithivi, splade_esci]
+    single_pool: [bm25, splade_naver, splade_prithivi, splade_esci, dense]
+    hybrid_pool: [f1, f2 for each variant, f3 for each variant, f4, f5, f6, f7]
+
+protocols:
+  p1:
+    name: judged-list ranking
+    queries: all test queries
+    judgments: human labels on that query's judged products
+    metrics: [ndcg, ndcg_at_10]
+    primary_metric: ndcg
+    exclude_when: no judgment with gain above 0
+    random_floor_shuffles: 100
+    random_floor_seed: 20261110
+  p2:
+    name: full-catalog retrieval
+    unjudged_are_not_irrelevant: true
+    metrics: [recall_at_100_exact, recall_at_1000_exact, recall_at_100_exact_substitute, recall_at_1000_exact_substitute, condensed_ndcg_at_10, judged_at_10]
+    primary_metric: recall_at_100_exact
+    recall_excludes: queries with no judged Exact
+    condensed_rule: drop unjudged products, then apply the cutoff
+    judged_at_k_denominator: 10
+  p3:
+    name: pooled synthetic judgments
+    optional: true
+    queries: labelled test queries, intended size 10000
+    labels_distributed: false
+    metric: ndcg_at_10
+    estimator: hajek inverse-probability weighted mean
+    sampling:
+      high_disagree_fraction: 0.6
+      seed: 42
+      max_queries: 10000
+      top_k: 100
+      methods: [bm25, splade_prithivi, dense]
+    report_when_judged_at_10_at_least: 0.98
+    report_only_if_sample_reconstructed: true
+    reported: false
+    report_note: >-
+      Not reported. The saved label file does not store the sampling
+      parameters, so the query sample is not reconstructed. Exercise 4 is
+      not reported for the same reason.
+
+statistics:
+  bootstrap_resamples: 10000
+  bootstrap_seed: 20261110
+  interval: percentile
+  interval_level: 0.95
+  paired_over: queries
+  seed_variance: false
+  holm_alpha: 0.05
+  min_relative_difference_to_interpret: 0.01
+  relative_baseline: the second system in each comparison
+  test_scored_once: true
+
+primary_family:
+  - id: esci_vs_naver_p1_ndcg
+    system_a: splade_esci
+    system_b: splade_naver
+    protocol: p1
+    metric: ndcg
+  - id: esci_vs_naver_p2_recall100
+    system_a: splade_esci
+    system_b: splade_naver
+    protocol: p2
+    metric: recall_at_100_exact
+  - id: naver_vs_bm25_p1_ndcg
+    system_a: splade_naver
+    system_b: bm25
+    protocol: p1
+    metric: ndcg
+  - id: naver_vs_bm25_p2_recall100
+    system_a: splade_naver
+    system_b: bm25
+    protocol: p2
+    metric: recall_at_100_exact
+  - id: prithivi_vs_bm25_p1_ndcg
+    system_a: splade_prithivi
+    system_b: bm25
+    protocol: p1
+    metric: ndcg
+  - id: prithivi_vs_bm25_p2_recall100
+    system_a: splade_prithivi
+    system_b: bm25
+    protocol: p2
+    metric: recall_at_100_exact
+  - id: esci_vs_bm25_p1_ndcg
+    system_a: splade_esci
+    system_b: bm25
+    protocol: p1
+    metric: ndcg
+  - id: esci_vs_bm25_p2_recall100
+    system_a: splade_esci
+    system_b: bm25
+    protocol: p2
+    metric: recall_at_100_exact
+  - id: best_hybrid_vs_best_single_p2_recall100
+    system_a: "{best_hybrid}"
+    system_b: "{best_single}"
+    protocol: p2
+    metric: recall_at_100_exact
+  - id: best_hybrid_vs_best_single_p2_condensed_ndcg10
+    system_a: "{best_hybrid}"
+    system_b: "{best_single}"
+    protocol: p2
+    metric: condensed_ndcg_at_10
+
+slices:
+  - id: digits
+    rule: query text contains a digit
+  - id: negation
+    rule: query text matches a whole word among without, not, no
+  - id: long
+    rule: six or more whitespace-separated words
+  - id: short
+    rule: two or fewer whitespace-separated words
+  - id: all
+    rule: every query included in the metric
+
+vector_database:
+  client: qdrant-client local mode
+  dense: named vector dense, size 384, cosine
+  sparse: named vector sparse, dot product
+  prefetch_limit: 1000
+  parity_top_k: 10
+  parity_pass_fraction: 0.99
+  variants:
+    - id: server_default_rrf
+      expect: mismatch against script k = 60
+      client_default_k: 2
+    - id: explicit_k_60
+      expect: scores differ from script k = 60, because client local mode uses 1/(k + position) with position starting at 0. The ordered top-k can still agree.
+    - id: aligned
+      client_k: 61
+      script_k: 60
+      expect: scores and ordered top-k match, because 1/(61 + position) equals 1/(60 + rank) when rank = position + 1
+    - id: dbsf
+      expect: match script DBSF
+  parameterized_rrf: true for qdrant-client 1.20.0 local mode via RrfQuery
+
+exercise3:
+  base: splade_prithivi
+  pairs: 100000
+  epochs: 1
+  batch_size: 32
+  learning_rate: 2.0e-5
+  query_regularizer_weight: 5.0e-5
+  document_regularizer_weight: 3.0e-5
+  batch_sampler: no_duplicates
+  loss: SpladeLoss wrapping SparseMultipleNegativesRankingLoss
+  warmup_steps: 0.1
+  seeds: [20261111, 20261112, 20261113]
+  fp16_on_cuda: true
+  evaluation: p1 against the same base checkpoint
+  optional: true
+
+device:
+  default: auto
+  auto_rule: cuda when torch.cuda.is_available, otherwise cpu
+  full_catalog_encoding: cuda
+  reader_slice: cpu

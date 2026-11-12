@@ -1,256 +1,179 @@
-"""
-Configuration for Appendix: Hybrid Search with Vector Databases.
+"""Settings for Appendix B, Hybrid Search with Vector Databases.
 
-Follows the dataclass-based config pattern from Chapters 10 and 11.
-All paths, model settings, and hyperparameters are centralized here.
+Importing this module does not create directories and does not read a data
+path outside the process environment. Call ``ensure_dirs`` before writing.
 """
 
+from __future__ import annotations
+
+import hashlib
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Any
-import logging
+from typing import Any
 
-logger = logging.getLogger(__name__)
+import yaml
 
-# =============================================================================
-# Path Configuration
-# =============================================================================
+PACKAGE_ROOT = Path(__file__).resolve().parent
+PLAN_PATH = PACKAGE_ROOT / "analysis_plan.yaml"
+PLAN_HASH_PATH = PACKAGE_ROOT / "analysis_plan.sha256"
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-DATASET_ROOT = PROJECT_ROOT / "Dataset"
-CHAPTER_ROOT = Path(__file__).parent
+OFFICIAL_GAINS = {"E": 1.0, "S": 0.1, "C": 0.01, "I": 0.0}
+LINEAR_GAINS = {"E": 3.0, "S": 2.0, "C": 1.0, "I": 0.0}
+LABELS = ("E", "S", "C", "I")
 
-# Dataset path
-ESCI_DATA_PATH = DATASET_ROOT / "Amazon ESCI" / "shopping_queries_dataset"
+TEXT_TEMPLATE = "{title}. {bullet_point}. Brand: {brand}"
+TEXT_RULE = "skip empty parts, join with '. ', collapse whitespace"
 
-# Output paths
-OUTPUTS_DIR = CHAPTER_ROOT / "outputs"
-CACHE_DIR = CHAPTER_ROOT / "cache"
-METRICS_DIR = OUTPUTS_DIR / "metrics"
-PLOTS_DIR = OUTPUTS_DIR / "plots"
-EMBEDDINGS_DIR = CACHE_DIR / "embeddings"
-SPLADE_CACHE_DIR = CACHE_DIR / "splade"
-BM25_CACHE_DIR = CACHE_DIR / "bm25"
+EXAMPLES_FILE = "shopping_queries_dataset_examples.parquet"
+PRODUCTS_FILE = "shopping_queries_dataset_products.parquet"
 
-# Auto-create directories
-for dir_path in [OUTPUTS_DIR, CACHE_DIR, METRICS_DIR, PLOTS_DIR,
-                 EMBEDDINGS_DIR, SPLADE_CACHE_DIR, BM25_CACHE_DIR,
-                 SPLADE_CACHE_DIR / "prithivi",
-                 SPLADE_CACHE_DIR / "qdrant_esci",
-                 SPLADE_CACHE_DIR / "naver"]:
-    dir_path.mkdir(parents=True, exist_ok=True)
-
-# =============================================================================
-# ESCI Label Configuration
-# =============================================================================
-
-# Graded relevance gains for NDCG computation
-ESCI_GAINS: Dict[str, int] = {"E": 3, "S": 2, "C": 1, "I": 0}
-
-# Qdrant-compatible gains (for curated pool evaluation, enables comparison
-# with published SPLADE results from qdrant.tech/articles/sparse-embeddings)
-ESCI_GAINS_QDRANT: Dict[str, float] = {"E": 1.0, "S": 0.7, "C": 0.5, "I": 0.0}
-
-# Ordered labels for consistent plotting
-ESCI_LABELS_ORDERED: List[str] = ["E", "S", "C", "I"]
-
-# Colors for ESCI labels in plots
-ESCI_COLORS: Dict[str, str] = {
-    "E": "#2ecc71",   # Green  - Exact
-    "S": "#3498db",   # Blue   - Substitute
-    "C": "#e67e22",   # Orange - Complement
-    "I": "#e74c3c",   # Red    - Irrelevant
-}
-
-# Human-readable label names
-ESCI_LABEL_NAMES: Dict[str, str] = {
-    "E": "Exact",
-    "S": "Substitute",
-    "C": "Complement",
-    "I": "Irrelevant",
-}
+TRACKED_PACKAGES = (
+    "sentence-transformers",
+    "transformers",
+    "huggingface-hub",
+    "torch",
+    "numpy",
+    "pandas",
+    "scipy",
+    "bm25s",
+    "faiss-cpu",
+    "pyarrow",
+    "qdrant-client",
+    "datasets",
+    "accelerate",
+    "ir-measures",
+    "PyYAML",
+)
 
 
-# =============================================================================
-# Dataclass Configurations
-# =============================================================================
-
-@dataclass
-class ESCIDataConfig:
-    """Configuration for Amazon ESCI dataset loading."""
-    data_dir: Path = ESCI_DATA_PATH
-    examples_file: str = "shopping_queries_dataset_examples.parquet"
-    products_file: str = "shopping_queries_dataset_products.parquet"
-    locale: str = "us"
-    split: str = "train"
-
-    # Text serialization template for product representation
-    # Available fields: {title}, {bullet_point}, {brand}, {color}, {description}
-    text_template: str = "{title}. {bullet_point}. Brand: {brand}"
-
-    # Sampling controls
-    max_queries: int = 5000     # 0 = all ~97K queries
-    max_products: int = 0       # 0 = all ~1.2M products
-    random_seed: int = 42
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
-@dataclass
-class BM25Config:
-    """Configuration for BM25 search using bm25s."""
-    method: str = "lucene"       # BM25 variant: "lucene", "robertson", "atire", "bm25l", "bm25+"
-    k1: float = 1.5              # Term frequency saturation parameter
-    b: float = 0.75              # Document length normalization
-    cache_dir: Path = BM25_CACHE_DIR
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-@dataclass
-class SPLADEConfig:
-    """Configuration for SPLADE learned sparse search.
-
-    Supports multiple SPLADE variants via use_sparse_encoder flag:
-      - AutoModelForMaskedLM: prithivida/Splade_PP_en_v2 (Apache 2.0)
-      - SparseEncoder (sentence-transformers v5): Qdrant ESCI-tuned, Naver
-    """
-    model_name: str = "prithivida/Splade_PP_en_v2"
-    use_sparse_encoder: bool = False  # True = SparseEncoder, False = AutoModelForMaskedLM
-    label: str = "SPLADE (Prithivi)"  # Display name for plots/tables
-    batch_size: int = 32
-    max_seq_length: int = 256
-    vocab_size: int = 30522      # BERT vocabulary size
-    cache_dir: Path = SPLADE_CACHE_DIR
-    product_vectors_file: str = "splade_product_vectors.npz"
-    product_ids_file: str = "splade_product_ids.npy"
-    top_k_expansion_tokens: int = 20    # For visualization
+def load_plan(path: Path | None = None) -> dict[str, Any]:
+    plan_path = path or PLAN_PATH
+    with plan_path.open("r", encoding="utf-8") as handle:
+        plan = yaml.safe_load(handle)
+    if not isinstance(plan, dict):
+        raise ValueError(f"Analysis plan at {plan_path} is not a mapping.")
+    if plan.get("contains_results"):
+        raise ValueError("The analysis plan must not contain results.")
+    return plan
 
 
-# Three SPLADE variants for comparison
-SPLADE_MODELS: Dict[str, SPLADEConfig] = {
-    "prithivi": SPLADEConfig(
-        model_name="prithivida/Splade_PP_en_v2",
-        use_sparse_encoder=False,
-        label="SPLADE (Prithivi)",
-        cache_dir=SPLADE_CACHE_DIR / "prithivi",
-    ),
-    "qdrant_esci": SPLADEConfig(
-        model_name="thierrydamiba/splade-ecommerce-esci",
-        use_sparse_encoder=True,
-        label="SPLADE (Qdrant ESCI)",
-        cache_dir=SPLADE_CACHE_DIR / "qdrant_esci",
-    ),
-    "naver": SPLADEConfig(
-        model_name="naver/splade-cocondenser-ensembledistil",
-        use_sparse_encoder=True,
-        label="SPLADE (Naver)",
-        cache_dir=SPLADE_CACHE_DIR / "naver",
-    ),
-}
+def require_plan_hash(plan_path: Path | None = None, hash_path: Path | None = None) -> str:
+    """Return the analysis_plan.yaml digest, or raise if the sidecar does not match."""
+    plan_path = plan_path or PLAN_PATH
+    hash_path = hash_path or PLAN_HASH_PATH
+    digest = sha256_file(plan_path)
+    if not hash_path.exists():
+        raise FileNotFoundError(
+            "analysis_plan.sha256 is missing. Test scoring is refused until the "
+            "fixed protocol file has a recorded digest."
+        )
+    recorded = hash_path.read_text(encoding="utf-8").strip()
+    if recorded != digest:
+        raise ValueError(
+            "analysis_plan.yaml does not match analysis_plan.sha256. "
+            "Test scoring is refused."
+        )
+    return digest
+
+
+def data_dir_from_env() -> Path | None:
+    raw = os.environ.get("ESCI_DATA_DIR", "").strip()
+    if not raw:
+        return None
+    return Path(raw)
+
+
+def resolve_data_dir(cli_value: str | None) -> Path:
+    if cli_value:
+        return Path(cli_value)
+    env_dir = data_dir_from_env()
+    if env_dir is not None:
+        return env_dir
+    raise FileNotFoundError(
+        "No ESCI directory was given. Pass --data-dir or set ESCI_DATA_DIR. "
+        "There is no default path."
+    )
+
+
+def resolve_device(requested: str | None) -> str:
+    """Use CUDA when it is present and the caller asked for auto."""
+    choice = (requested or "auto").strip().lower()
+    if choice not in {"auto", "cpu", "cuda"}:
+        raise ValueError(f"Unknown device {requested!r}. Use auto, cpu, or cuda.")
+    if choice == "auto":
+        try:
+            import torch
+        except ImportError:
+            return "cpu"
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    if choice == "cuda":
+        import torch
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA was requested and torch.cuda.is_available() is false.")
+    return choice
+
+
+def package_versions() -> dict[str, str | None]:
+    from importlib.metadata import PackageNotFoundError, version
+
+    found: dict[str, str | None] = {}
+    for name in TRACKED_PACKAGES:
+        try:
+            found[name] = version(name)
+        except PackageNotFoundError:
+            found[name] = None
+    return found
+
+
+def ensure_dirs(*paths: Path) -> None:
+    for path in paths:
+        path.mkdir(parents=True, exist_ok=True)
 
 
 @dataclass
-class DenseConfig:
-    """Configuration for dense semantic search using SBERT + FAISS."""
-    model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
-    batch_size: int = 64
-    max_seq_length: int = 128
+class BM25Settings:
+    method: str = "lucene"
+    k1: float = 1.5
+    b: float = 0.75
+    stopwords: str = "en"
+
+
+@dataclass
+class DenseSettings:
+    repo: str = "sentence-transformers/all-MiniLM-L6-v2"
+    revision: str = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+    trust_remote_code: bool = False
     embedding_dim: int = 384
-    normalize_embeddings: bool = True
-    faiss_index_type: str = "IndexFlatIP"
-    cache_dir: Path = EMBEDDINGS_DIR
-    cache_file: str = "dense_product_embeddings.npz"
+    max_length: int = 256
+    normalize: bool = True
+    index_type: str = "IndexFlatIP"
+    batch_size: int = 64
+    query_batch_size: int = 128
+    faiss_index_file: str = "dense_faiss.index"
+    embeddings_file: str = "dense_embeddings.npz"
 
 
 @dataclass
-class HybridConfig:
-    """Configuration for hybrid fusion methods."""
-    # Reciprocal Rank Fusion parameters
-    rrf_k: int = 60              # RRF smoothing constant (standard default)
+class Paths:
+    data_dir: Path | None = None
+    output_dir: Path = field(default_factory=lambda: PACKAGE_ROOT / "outputs")
+    cache_dir: Path = field(default_factory=lambda: PACKAGE_ROOT / "cache")
 
-    # Weighted score fusion weights
-    score_weights: Dict[str, float] = field(default_factory=lambda: {
-        "bm25": 0.3,
-        "splade": 0.4,
-        "dense": 0.3,
-    })
+    def runs_dir(self, split: str) -> Path:
+        return self.output_dir / "runs" / split
 
-    # Top-K for full-catalog retrieval per individual method (before fusion)
-    retrieval_top_k: int = 100
-
-
-@dataclass
-class EvalConfig:
-    """Configuration for evaluation."""
-    k_values: List[int] = field(default_factory=lambda: [10, 20, 50])
-    esci_gains: Dict[str, int] = field(default_factory=lambda: dict(ESCI_GAINS))
-
-    # Separability analysis: relevant vs irrelevant classification
-    separability_positive_labels: List[str] = field(
-        default_factory=lambda: ["E", "S", "C"]
-    )
-    separability_negative_labels: List[str] = field(
-        default_factory=lambda: ["I"]
-    )
-
-    # Boxplot settings
-    max_points_per_label: int = 50000   # Subsample for plotting speed
-
-    # Output files
-    results_file: str = "hybrid_search_results.json"
-    comparison_csv: str = "method_comparison.csv"
-
-    # Curated pool evaluation (Qdrant-style)
-    curated_pool_gains: Dict[str, float] = field(
-        default_factory=lambda: dict(ESCI_GAINS_QDRANT)
-    )
-    curated_pool_split: str = "test"      # Use test split for curated pool
-    curated_pool_max_queries: int = 2000  # Qdrant uses 2000 test queries
-
-    # BM25 re-ranking
-    bm25_rerank_cache_top_k: int = 1000  # Retrieve BM25 top-1000 for score caching
-
-
-# =============================================================================
-# Default Instances
-# =============================================================================
-
-DEFAULT_DATA_CONFIG = ESCIDataConfig()
-DEFAULT_BM25_CONFIG = BM25Config()
-DEFAULT_SPLADE_CONFIG = SPLADE_MODELS["prithivi"]  # Default to Prithivi (Apache 2.0)
-DEFAULT_DENSE_CONFIG = DenseConfig()
-DEFAULT_HYBRID_CONFIG = HybridConfig()
-DEFAULT_EVAL_CONFIG = EvalConfig()
-
-# For backwards compatibility
-DEFAULT_SPLADE_CONFIGS = SPLADE_MODELS
-
-
-# =============================================================================
-# Utility Functions
-# =============================================================================
-
-def print_config(config: Any, title: str = "") -> None:
-    """Pretty-print a dataclass configuration."""
-    if title:
-        logger.info(f"\n{'='*60}")
-        logger.info(f"  {title}")
-        logger.info(f"{'='*60}")
-
-    for field_name in config.__dataclass_fields__:
-        value = getattr(config, field_name)
-        if isinstance(value, Path):
-            value = str(value)
-        logger.info(f"  {field_name}: {value}")
-
-
-def validate_paths() -> Dict[str, bool]:
-    """Check that required dataset files exist."""
-    checks = {
-        "ESCI examples": (DEFAULT_DATA_CONFIG.data_dir / DEFAULT_DATA_CONFIG.examples_file).exists(),
-        "ESCI products": (DEFAULT_DATA_CONFIG.data_dir / DEFAULT_DATA_CONFIG.products_file).exists(),
-    }
-
-    logger.info("\nPath validation:")
-    for name, exists in checks.items():
-        status = "OK" if exists else "MISSING"
-        logger.info(f"  {name}: {status}")
-
-    return checks
+    def manifest_dir(self) -> Path:
+        return self.output_dir / "manifests"
