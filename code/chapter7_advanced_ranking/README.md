@@ -167,9 +167,9 @@ Input → [Expert 1] → ┐   │
 
 **Tasks (4 total):**
 - **Engagement:** played_ratio_pct > 0 (user started listening)
-- **Completion:** played_ratio_pct >= 50 (~63% positive)
-- **Like:** User liked the item (~4-8% positive, use focal loss)
-- **Dislike:** User disliked the item (~1-2% positive, use focal loss)
+- **Completion:** played_ratio_pct >= 50 (about 64% positive in training, about 68% on the test day)
+- **Like:** user liked the item (about 1% positive, use focal loss)
+- **Dislike:** user disliked the item (about 0.2% positive, use focal loss)
 
 **Value Function:**
 ```
@@ -202,7 +202,7 @@ python train_mmoe.py --train_days 30 --num_experts 6 --use_focal_loss
 ### MMoE
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `num_experts` | 4 | Number of shared expert networks (default from earlier runs compared on the test set; re-tune on validation) |
+| `num_experts` | 4 | Number of shared expert networks. On the 30-day validation set, 4, 6, and 8 experts tie on completion AUC, and 8 is worse on like AUC. The default is 4 because it is smaller, not because it won a test-set comparison. |
 | `expert_dims` | 256,128 | Expert network hidden layers |
 | `tower_dims` | 64,32 | Task tower hidden layers |
 | `engagement_weight` | 1.0 | Loss weight for engagement task (binary) |
@@ -358,15 +358,21 @@ plt.tight_layout()
 
 ## Expected Results
 
-| Model | Train Days | Completion AUC | Like AUC | Dislike AUC | Notes |
-|-------|------------|----------------|----------|-------------|-------|
-| DCN-V2 | 30 | ~0.56-0.58 | - | - | Single-task |
-| DLRM | 30 | ~0.55-0.57 | - | - | Single-task |
-| MMoE | 30 | ~0.55-0.57 | ~0.65-0.70 | ~0.60-0.65 | 4-task |
-| DeepFM (Ch6) | 30 | ~0.55-0.58 | - | - | Baseline |
-| XGBoost (Ch6) | 30 | ~0.58-0.60 | - | - | Feature engineering |
+Test AUC-ROC for listen completion on the 30-day window, one seed. Validation is in the notes.
 
-Note: These ranges were recorded before the validation-window fix (2026-11-08), when model selection monitored the test window, so they are optimistic. They also predate the 2026-11-09 time-unit fix (see Evaluation Protocol), so the "30-day" window covered about 6 days of data; they are pending re-measurement. Results depend on hardware, random seeds, and hyperparameters. Engagement AUC is typically high (>0.95) since almost all listens have played_ratio_pct > 0 in the dataset.
+| Model | Train days | Test AUC-ROC | Test AUC-PR | Notes |
+|---|---:|---:|---:|---|
+| XGBoost (Ch. 6) | 30 | 0.7247 | 0.8566 | Validation 0.7825 |
+| DCN-V2, learned embeddings | 30 | 0.7242 | 0.8560 | Validation 0.7748. Tied with XGBoost on this test day |
+| MMoE completion | 30 | 0.7229 | 0.8547 | Focal loss, 4 experts. Validation 0.7766. Tied with DCN |
+| DeepFM (Ch. 6) | 30 | 0.7088 | 0.8479 | Validation 0.7767 |
+| DLRM | 30 | 0.7024 | 0.8455 | Validation 0.7750. The 7-day model is lower, not higher (finding 3) |
+
+On validation, DeepFM, DCN, DLRM, and MMoE completion sit within 0.002 of each other. Do not rank those four from a single seed. XGBoost is the one model that is clearly higher on validation.
+
+On the same test day, DLRM test AUC-ROC is 0.6862 after 7 days of training and 0.7024 after 30 days. The longer window is better on this seed. It does not show a collapse from a strong 7-day model to a weak 30-day model.
+
+Engagement AUC-PR is high (0.982 on validation, 0.978 on the test day) because about 93% of listens count as engaged. AUC-ROC is lower: 0.809 on validation and 0.768 on the test day.
 
 ## Comparison with Chapter 6
 

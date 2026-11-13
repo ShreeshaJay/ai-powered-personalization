@@ -139,10 +139,10 @@ The `item_id` feature has **176,000+ unique values** in a 30-day sample (counted
 2. **Severe overfitting**: Model memorizes training items, fails to generalize
 3. **Cold-start issues**: New items have random embeddings with no semantic meaning
 
-**Evidence from experiments:**
-- Train AUC: 0.88 → 0.95 (increasing each epoch)
-- Test AUC: 0.53 → 0.51 (decreasing each epoch)
-- Early stopping triggered at epoch 4
+**Evidence from the 30-day re-measurement (one seed):**
+- Learned embeddings: train AUC-ROC is 0.8383 at the best epoch and climbs to 0.8983 by epoch 4, while validation peaks at epoch 1 (0.7748) and then falls. Training stopped at epoch 4. Test AUC-ROC at the selected checkpoint is 0.7242.
+- Pre-trained embeddings: validation peaks at epoch 4 (0.7783) and training stops at epoch 7. Test AUC-ROC is 0.7440.
+- The train-test gap stays near 0.10 for both (0.114 learned, 0.103 pre-trained).
 
 ### The Solution: Pre-trained Item Embeddings
 
@@ -165,9 +165,9 @@ SPARSE_FEATURES = ['uid', 'hour_of_day', 'day_of_week']
 
 | Aspect | Learned Embeddings | Pre-trained Embeddings |
 |--------|-------------------|------------------------|
-| Parameters | ~3M | ~300K |
+| Parameters | 5,750,202 | 262,950 |
 | Item representation | 16-dim (limited) | 128-dim (richer) |
-| Overfitting | High risk | Lower risk |
+| Train-test gap | 0.114 | 0.103 |
 | Cold-start | Random vectors | Zero vector fallback |
 | Semantic meaning | Learned from scratch | Pre-computed from larger corpus |
 
@@ -358,14 +358,15 @@ python train_dcn_pretrained.py \
     --patience 3
 ```
 
-### Expected Improvements
+### Measured comparison (30-day window, one seed)
 
 | Metric | Learned Item Embed | Pre-trained Item Embed |
 |--------|-------------------|------------------------|
-| Train AUC | 0.88-0.95 (overfit) | 0.65-0.70 |
-| Test AUC | 0.51-0.53 | 0.56-0.60 (expected) |
-| Parameters | ~3M | ~300K |
-| Generalization | Poor | Better |
+| Train AUC-ROC at the best epoch | 0.8383 | 0.8473 |
+| Validation AUC-ROC | 0.7748 | 0.7783 |
+| Test AUC-ROC | 0.7242 | 0.7440 |
+| Parameters | 5,750,202 | 262,950 |
+| Train-test gap | 0.114 | 0.103 |
 
 ---
 
@@ -461,9 +462,9 @@ Both scripts use `models/dcn.py`, but differ in how they handle item_id:
 | **Sparse features** | `uid, item_id, hour, day` | `uid, hour, day` |
 | **Embedding dims** | Uniform 16 for all | Per-feature: uid=16, hour=4, day=2 |
 | **Dense features** | 18 features | 18 + 128 item embed = 146 |
-| **Parameters** | ~3M | ~250K |
-| **Test AUC** | ~0.53 (overfit) | ~0.56-0.60 (expected) |
-| **Use case** | Demonstrate overfitting | Production-ready approach |
+| **Parameters** | 5,750,202 | 262,950 |
+| **Test AUC-ROC** | 0.7242 | 0.7440 |
+| **Use case** | Learned item embeddings | Pre-trained item embeddings (about 22× fewer parameters) |
 
 ---
 
@@ -545,9 +546,9 @@ All five training scripts (`train_dcn.py`, `train_dcn_pretrained.py`, `train_dlr
 | Cross network | 3 × (168 × 32 × 2 + 168) | ~32K |
 | Deep network | 168×256 + 256×128 + 128×64 | ~84K |
 | Output layer | 232 × 1 | 232 |
-| **Total** | | **~250K** |
+| **Total** | | **~250K sketch; the 30-day run reports 262,950** |
 
-Compare to `train_dcn.py` with learned item embeddings: **~3M parameters**
+Compare to `train_dcn.py` with learned item embeddings: **5,750,202 parameters** in the 30-day run, about 22× this pre-trained model (262,950).
 
 ---
 
@@ -567,59 +568,51 @@ Compare to `train_dcn.py` with learned item embeddings: **~3M parameters**
 
 7. **Justify every hyperparameter**. Don't use defaults blindly—understand why each value was chosen (e.g., cross_rank=32 gives 62% parameter reduction while preserving expressiveness).
 
-8. **Provide multiple training scripts for pedagogical value**. `train_dcn.py` shows what happens with naive learned embeddings (overfitting); `train_dcn_pretrained.py` shows the solution.
+8. **Provide multiple training scripts for pedagogical value**. `train_dcn.py` trains learned item embeddings. Train AUC keeps climbing after the best epoch, so early stopping is doing the work. `train_dcn_pretrained.py` trains the smaller pre-trained model. On this seed the test-day gain is 0.020 AUC, and the train-test gap stays near 0.10 for both.
 
 ---
 
 ## 9. Experimental Results: Pre-trained vs Learned Embeddings
 
-> **Note (2026-11-08):** All results in this document were recorded with an earlier version of the scripts in which early stopping, learning-rate scheduling, and checkpoint selection monitored the test window, and in which the MMoE "Optimal Threshold" column was tuned on the test window. The test metrics are therefore optimistically biased. They are kept as historical development notes. Rerun the current scripts, which select on a separate validation window (see "Validation Protocol" in Section 7), for unbiased numbers.
+> **Note (2026-11-13):** The result tables in this section, Section 14, and Section 17 are the re-measurement: one seed (seed 42), Colab L4, after the time-unit fix, the training-row history fix, and validation-set early stopping. AUC gaps under 0.005 are ties. Wall time and peak GPU memory for DCN, DLRM, and MMoE are not quoted, because another job shared the GPU.
 
-> **Note (2026-11-09):** All results, sample counts and runtimes in this document also predate the time-unit fix. Yambda timestamps are seconds since the first event, rounded down to multiples of 5 (Yambda paper, Section 3.3), but the earlier code read one unit as 5 seconds. The "30-day" window therefore covered about 6 days of data, the 30-minute gap 6 minutes, the 1-day test window 4.8 hours, and the 24-hour like/dislike window 4.8 hours. These values are pending re-measurement.
-
-> **Note (2026-11-09, history features):** These results also predate the training-row history fix (see "Validation Protocol" in Section 7): the training rows' user and item aggregates included each row's own label, which inflates train metrics, and like/dislike labels were not cut at the end of each split. Pending re-measurement.
+> Earlier runs read one Yambda timestamp unit as 5 seconds. Timestamps are seconds, so those runs' "30-day" window covered about 6 days. The numbers below replace those runs.
 
 ### Results Comparison (30-day training window)
 
-| Metric | DCN-V2 (Learned Item Embed) | DCN-V2 (Pre-trained Item Embed) | Improvement |
-|--------|----------------------------|--------------------------------|-------------|
-| **Test AUC-ROC** | 0.53 | **0.80** | +51% ↑ |
-| **Test AUC-PR** | 0.76 | **0.90** | +18% ↑ |
-| **Test F1** | 0.65 | **0.83** | +28% ↑ |
-| **Train AUC-ROC** | 0.88 → 0.95 (increasing) | 0.89 (stable) | — |
-| **Train-Test Gap** | 0.35 (severe overfit) | **0.09** (healthy) | Much smaller |
-| **Parameters** | 3,029,418 | **243,094** | **12x smaller** |
-| **Early Stopping** | Epoch 4 | Epoch 7 | More stable |
-| **Item Coverage** | 100% (learned) | 96.9% | — |
+| Metric | Learned item embeddings | Pre-trained item embeddings |
+|---|---:|---:|
+| Test AUC-ROC | 0.7242 | 0.7440 |
+| Validation AUC-ROC | 0.7748 | 0.7783 |
+| Test AUC-PR | 0.8560 | 0.8655 |
+| Test F1 | 0.7777 | 0.7859 |
+| Train AUC-ROC at the best epoch | 0.8383 | 0.8473 |
+| Train-test gap | 0.114 | 0.103 |
+| Parameters | 5,750,202 | 262,950 |
+| Best epoch (training stopped) | 1 (stopped at 4) | 4 (stopped at 7) |
+| Item coverage | learned for every seen item | 97.3% |
 
-### Key Observations
-
-1. **Overfitting completely eliminated**: The learned embedding approach showed classic overfitting—Train AUC climbed to 0.95 while Test AUC dropped to 0.53. With pre-trained embeddings, the gap is only 0.09 (0.89 vs 0.80).
-
-2. **12x parameter reduction with better performance**: Counter-intuitively, using fewer learnable parameters (243K vs 3M) led to *better* generalization. The pre-trained 128-dim embeddings carry more semantic information than 16-dim learned embeddings for items with limited training examples.
-
-3. **Training stability improved**: The model trained for 7 epochs before early stopping (vs 4 with learned embeddings), indicating more stable convergence.
-
-4. **96.9% item coverage**: Of the 176,548 unique items in training data, 170,806 (96.9%) had pre-trained embeddings available. Items without embeddings received zero vectors.
+Pre-trained embeddings are a head start, not a different regime. The test-day gain is 0.020 AUC (about 2.7% relative). On validation the two models are tied (0.7783 vs 0.7748). Both still have a train-test gap near 0.10. With learned embeddings, train AUC keeps climbing after epoch 1 (0.8383 to 0.8983 by epoch 4) while validation falls, so early stopping is doing the work. Pre-training does not remove that gap. It does cut the parameter count by about 22×, because the item table is no longer trained.
 
 ### Comparison with Other Models
 
 | Model | Test AUC-ROC | Parameters | Notes |
 |-------|-------------|------------|-------|
-| XGBoost (150d) | ~0.60 | N/A | Tree-based baseline |
-| DeepFM (30d) | 0.75 | 3.2M | Also suffers from item embedding overfitting |
-| DCN-V2 Learned (30d) | 0.53 | 3.0M | Severe overfitting |
-| **DCN-V2 Pre-trained (30d)** | **0.80** | **243K** | Best performance, smallest model |
+| XGBoost pointwise (30d) | 0.7247 | — | Validation 0.7825. Tied with learned DCN on this test day |
+| XGBoost pointwise (150d) | 0.7593 | — | Longer window, same test day |
+| DeepFM (30d) | 0.7088 | 6,088,859 | Below pointwise XGBoost on this window |
+| DCN-V2 learned (30d) | 0.7242 | 5,750,202 | Validation 0.7748 |
+| DCN-V2 pre-trained (30d) | 0.7440 | 262,950 | Test-day gain of 0.020 over learned embeddings. Validation 0.7783, tied with the learned model |
 
 ### What This Demonstrates
 
-The dramatic improvement validates several important principles:
+Pre-trained embeddings are a head start on this window. The test-day gain is 0.020 AUC. Validation does not separate the two models on this seed.
 
-1. **Embedding quality > Embedding trainability**: For high-cardinality features like `item_id`, leveraging pre-computed embeddings from larger corpora beats learning from scratch in data-limited scenarios.
+1. **A pre-trained item table is smaller.** Dropping the learned item embeddings cuts the parameter count from 5,750,202 to 262,950, about 22×, and raises test AUC from 0.7242 to 0.7440.
 
-2. **Parameter count ≠ Model quality**: More parameters can hurt when you don't have enough data to train them properly.
+2. **The train-test gap stays near 0.10.** Early stopping is what holds the learned model back after epoch 1. Pre-training does not remove that gap.
 
-3. **Feature engineering still matters**: Even with deep learning, thoughtful decisions about *how* to represent features (pre-trained vs learned, embedding dimensions) have massive impact.
+3. **How you represent `item_id` still changes the result.** The change on this seed is a modest test-day gain and a much smaller model, not a different accuracy regime.
 
 ---
 
@@ -636,10 +629,10 @@ Chapter 7 (This Chapter)              Later Chapter (Embeddings)
 │   matter for ranking"           │ → │   embeddings in the first place"│
 │                                 │   │                                 │
 │  Evidence:                      │   │  Methods:                       │
-│  • Learned 16-dim: 0.53 AUC     │   │  • Item2Vec (sequence-based)    │
-│  • Pre-trained 128-dim: 0.80    │   │  • Matrix Factorization (ALS)   │
-│  • 12x fewer parameters         │   │  • Two-Tower Models             │
-│  • Eliminates overfitting       │   │  • Contrastive Learning         │
+│  • Learned 16-dim test AUC 0.7242│  │  • Item2Vec (sequence-based)    │
+│  • Pre-trained 128-dim AUC 0.7440│ │  • Matrix Factorization (ALS)   │
+│  • about 22× fewer parameters   │   │  • Two-Tower Models             │
+│  • train-test gap stays near 0.10│ │  • Contrastive Learning         │
 │                                 │   │  • Graph Neural Networks        │
 └─────────────────────────────────┘   └─────────────────────────────────┘
          Stakes & Impact                      Methods & Techniques
@@ -647,9 +640,9 @@ Chapter 7 (This Chapter)              Later Chapter (Embeddings)
 
 ### Pedagogical Value of This Ordering
 
-1. **Motivation first**: Readers see the *concrete impact* of quality embeddings (0.53 → 0.80 AUC) before learning to create them.
+1. **Motivation first**: Readers see a concrete but modest gain from pre-trained embeddings (test AUC 0.7242 to 0.7440) before learning how to build them.
 
-2. **Stakes are clear**: The dramatic improvement makes embedding quality feel urgent and worth investing in.
+2. **Stakes are clear**: The test-day gain is 0.020 AUC (about 2.7% relative). On validation the two models are tied. The train-test gap stays near 0.10 for both, and the pre-trained model has about 22× fewer parameters.
 
 3. **Practical grounding**: Readers understand *where* embeddings get used in the ranking stack before diving into creation methods.
 
@@ -674,7 +667,7 @@ In later chapters, readers will learn to create similar embeddings for their own
 
 ### Forward Reference for Readers
 
-> "The 51% improvement in Test AUC from using pre-trained item embeddings raises an important question: *How were these embeddings created?* In Chapter X, we'll explore techniques for generating high-quality item and user embeddings, including Item2Vec, matrix factorization, and two-tower models. The stakes for embedding quality, as demonstrated here, make those techniques worth mastering."
+> "Pre-trained item embeddings raise test AUC from 0.7242 to 0.7440 on this 30-day window. That is a modest gain, validation does not separate the two models, and the train-test gap stays near 0.10. How were these embeddings created? In Chapter X, we'll explore techniques for generating high-quality item and user embeddings, including Item2Vec, matrix factorization, and two-tower models."
 
 ---
 
@@ -924,10 +917,10 @@ This approach labels a listen as "liked" if the user **ever** liked that item, e
 
 | Metric | Leaky Labels | Corrected Labels | Interpretation |
 |--------|--------------|------------------|----------------|
-| **Like positive rate** | 24.98% | **0.84%** | 30x inflation! |
-| **Dislike positive rate** | 0.75% | **0.16%** | 5x inflation |
+| **Like positive rate** | 24.98% | **1.04%** | leaky join vs training window |
+| **Dislike positive rate** | 0.75% | **0.20%** | leaky join vs training window |
 
-A 25% like rate is unrealistic for music streaming—users don't like 1 in 4 songs they listen to. The corrected 0.84% rate (roughly 1 in 120 listens) is much more realistic.
+A 25% like rate is unrealistic for music streaming. Users do not like 1 in 4 songs they listen to. Corrected like rate 1.04% on the training window (0.74% on the test day), about 1 in 100 listens. Corrected dislike rate 0.20% (0.15% on the test day). The 24.98% and 0.75% figures describe the old leaky join. That bug was not re-run.
 
 ### The Solution: Time-Windowed Causal Join
 
@@ -979,39 +972,38 @@ fit_lf, val_lf, test_lf = load_multitask_splits(data_dir, train_days, test_days,
 
 ### Corrected Multi-Task MMoE Results
 
-After fixing the temporal leakage, here are the honest metrics:
+After fixing the temporal leakage, here are the 30-day metrics (`mmoe30`, focal loss, 4 experts). F1 is `f1_at_threshold` at the validation threshold applied to the test day, not `f1_max`.
 
-> **Note (2026-11-08):** These numbers predate the validation-window fix: checkpoint selection used the test window, and "Optimal Threshold" / "F1-max" were tuned on the test window. See the note at the start of Section 9.
+| Task | Test AUC-ROC | Test AUC-PR | F1 at validation threshold | Threshold | Positive rate |
+|------|-------------|-------------|----------------------------|-----------|---------------|
+| **Engagement** | 0.7681 | 0.9778 | 0.9435 | 0.4372 | 93.41% |
+| **Completion** | 0.7229 | 0.8547 | 0.7950 | 0.3459 | 67.96% |
+| **Like** | 0.7012 | 0.0174 | 0.0459 | 0.1618 | 0.74% |
+| **Dislike** | 0.6933 | 0.0153 | 0.0150 | 0.0999 | 0.15% |
 
-| Task | Test AUC-ROC | Test AUC-PR | F1-max | Optimal Threshold | Positive Rate |
-|------|-------------|-------------|--------|-------------------|---------------|
-| **Engagement** | 0.7688 | 0.9655 | 0.9584 | 0.433 | 91.98% |
-| **Completion** | 0.7310 | 0.7845 | 0.7747 | 0.346 | 60.90% |
-| **Like** | 0.7393 | 0.0327 | 0.0838 | **0.059** | 0.72% |
-| **Dislike** | 0.7857 | 0.0207 | 0.0783 | **0.014** | 0.20% |
+Validation AUC-ROC on the same run: engagement 0.8094, completion 0.7766, like 0.7386, dislike 0.7007.
 
 ### Interpreting Metrics for Imbalanced Tasks
 
 #### AUC-PR for Like Task
 
-The AUC-PR of 0.0327 for the Like task may seem low, but context matters:
+Test AUC-PR is 0.0174 against a test positive rate of 0.0074 (about 2.3×). Validation AUC-PR is 0.0380 against a validation positive rate of 0.0103 (about 3.7×).
 
-| Metric | Value | Interpretation |
-|--------|-------|----------------|
-| Random baseline AUC-PR | 0.0072 | Equal to positive rate |
-| Model AUC-PR | 0.0327 | **4.5x better than random** |
-| Lift | 4.5x | Model provides significant signal |
+| Split | Model AUC-PR | Positive rate | Ratio |
+|-------|--------------|---------------|-------|
+| Test | 0.0174 | 0.0074 | about 2.3× |
+| Validation | 0.0380 | 0.0103 | about 3.7× |
 
-#### Optimal Thresholds Are Critical
+#### Thresholds Are Critical
 
-For highly imbalanced tasks, the default threshold of 0.5 is **wrong**:
+For highly imbalanced tasks, the default threshold of 0.5 is wrong. The thresholds below were chosen on validation and applied to the test day.
 
-| Task | Default Threshold | Optimal Threshold | Why It Matters |
-|------|-------------------|-------------------|----------------|
-| Like | 0.5 (50%) | **0.059 (5.9%)** | Would predict 0% likes with 0.5 |
-| Dislike | 0.5 (50%) | **0.014 (1.4%)** | Would predict 0% dislikes with 0.5 |
+| Task | Default Threshold | Validation threshold | Why It Matters |
+|------|-------------------|----------------------|----------------|
+| Like | 0.5 (50%) | 0.1618 (16.2%) | A threshold of 0.5 would miss the rare likes |
+| Dislike | 0.5 (50%) | 0.0999 (10.0%) | A threshold of 0.5 would miss the rare dislikes |
 
-The F1-max metric finds the threshold that maximizes F1 score, which is essential for production deployment. Choose that threshold on the validation set and apply it unchanged to the test set; a threshold tuned on the test set makes the reported test F1 optimistic.
+Choose the threshold on the validation set and apply it unchanged to the test set. A threshold tuned on the test set makes the reported test F1 optimistic.
 
 ### Key Takeaways for the Book
 
@@ -1034,7 +1026,7 @@ The 24-hour window is a design choice with trade-offs:
 
 For music streaming, 24 hours captures most immediate reactions while maintaining reasonable causality.
 
-Before 2026-11-09 the code set this window to 17,280 timestamp units on the assumption that one unit was 5 seconds. Yambda timestamps are seconds, so the window was 4.8 hours, and the like/dislike positive rates and results in this section were measured with that shorter window. The code now uses 86,400 seconds; the rates are pending re-measurement.
+Before 2026-11-09 the code set this window to 17,280 timestamp units on the assumption that one unit was 5 seconds. Yambda timestamps are seconds, so the window was 4.8 hours. The code now uses 86,400 seconds. The corrected rates in the table above are from the 30-day re-measurement after that change.
 
 ---
 
@@ -1043,7 +1035,7 @@ Before 2026-11-09 the code set this window to 17,280 timestamp units on the assu
 ### DCN-V2
 
 ```bash
-# Run with learned item embeddings (will overfit - for demonstration)
+# Run with learned item embeddings (train AUC climbs after the best epoch; early stopping matters)
 python train_dcn.py --train_days 30
 
 # Run with pre-trained item embeddings (recommended)
@@ -1273,49 +1265,48 @@ At the end of Chapter 7, suggest:
 
 ## 17. Calibration Analysis and Model Improvements
 
-> **Note (2026-11-08):** This section predates the validation-window fix. The "Optimal F1 Threshold" column was tuned on the test window, and the expert-count comparison that set the default `--num_experts 4` compared test-window metrics. See the note at the start of Section 9; confirm the expert count on the validation set before relying on it.
+> **Note (2026-11-13):** Calibration ratios below are the 30-day focal-loss run (`mmoe30`), on the validation window unless a row says test. The expert-count table is focal loss off, and the decision split is validation.
 
 ### Observed Calibration Ratios (5-Task MMoE, 4 Experts, 30 Days)
 
-After running the 5-task MMoE model, we analyzed the calibration of predictions vs actual positive rates:
+Ratios for the binary tasks are the validation F1 threshold divided by the validation positive rate. The play-ratio ratio is mean prediction divided by mean label.
 
-| Task | Actual Rate | Optimal F1 Threshold | Ratio (Threshold/Actual) | Interpretation |
-|------|-------------|---------------------|--------------------------|----------------|
-| **Engagement** | 91.98% | 0.487 (48.7%) | 0.53x | Under-predicting |
-| **Completion** | 60.90% | 0.380 (38.0%) | 0.62x | Under-predicting |
-| **Play Ratio** | 0.625 (mean) | 0.651 (mean pred) | **1.04x** ✓ | Well calibrated |
-| **Like** | 0.72% | 0.125 (12.5%) | **17.4x** ⚠️ | Severely over-predicting |
-| **Dislike** | 0.20% | 0.064 (6.4%) | **32x** ⚠️ | Severely over-predicting |
+| Task | Validation rate or mean | Threshold or mean prediction | Ratio | Interpretation |
+|------|-------------------------|------------------------------|-------|----------------|
+| **Engagement** | 93.36% | 0.4372 | 0.47× | Threshold below the base rate |
+| **Completion** | 65.91% | 0.3459 | 0.52× | Threshold below the base rate |
+| **Play Ratio** | 0.672 (mean label) | 0.672 (mean pred) | 1.00× | Close to calibrated on validation. R² 0.224 |
+| **Like** | 1.03% | 0.1618 | 15.7× | Over-predicting |
+| **Dislike** | 0.18% | 0.0999 | 56× | Over-predicting |
+
+On the test day the play-ratio head under-predicts (mean prediction 0.632 against mean label 0.691, ratio 0.91×) and R² is −0.086.
 
 ### Key Finding
 
-The **play_ratio regression task is well-calibrated**, but **like and dislike binary tasks are severely miscalibrated** — the model outputs probabilities 17-32x higher than actual positive rates.
+On the validation window the play-ratio head is close to calibrated: mean prediction 0.672 against mean label 0.672, R² 0.224. On the test day it under-predicts (0.632 against 0.691) and R² is −0.086, worse than predicting the mean. Like and dislike probabilities are still far above their base rates. Do not describe the play-ratio head as well calibrated without saying that this is the validation window, not the test day.
 
 ### Root Cause Analysis
 
 | Factor | Impact |
 |--------|--------|
-| **Extreme class imbalance** | Like: 1:139, Dislike: 1:500 |
-| **Insufficient experts** | 4 experts for 5 tasks (below minimum) |
-| **Multi-task negative transfer** | High-volume tasks dominate shared experts |
+| **Extreme class imbalance** | Like: about 1 in 96 training listens (1.04%). Dislike: about 0.20% (about 1 in 500) |
+| **Expert count** | 4, 6, and 8 experts tie on validation completion. The default stays at 4 because it is the smaller model |
+| **Multi-task negative transfer** | High-volume tasks can dominate shared experts |
 | **Feature insufficiency** | No explicit feedback history features |
 
 ### Expert Count Experiments
 
-We tested different expert counts to find the optimal configuration:
+Focal loss off, 30-day window. The decision split is validation.
 
-| Experts | Completion AUC | Like AUC-ROC | Like AUC-PR | Dislike AUC-PR |
-|---------|----------------|--------------|-------------|----------------|
-| **4** | **0.7380** ✓ | **0.7541** ✓ | **0.0336** ✓ | **0.1630** ✓ |
-| 6 | 0.7279 | 0.6557 | 0.0226 | 0.1279 |
-| 8 | 0.7343 | 0.6542 | 0.0162 | 0.0023 |
+| Experts | Validation completion AUC-ROC | Like AUC-ROC | Like AUC-PR | Dislike AUC-PR |
+|---------|-------------------------------|--------------|-------------|----------------|
+| 4 | 0.7763 | 0.8067 | 0.0650 | 0.0381 |
+| 6 | 0.7760 | 0.8071 | 0.0747 | 0.0969 |
+| 8 | 0.7765 | 0.7905 | 0.0661 | 0.0533 |
 
-**Finding**: 4 experts performed best despite having fewer experts than tasks. This suggests:
-- The shared representations benefit from forced collaboration
-- More experts can lead to overfitting on this dataset size
-- The "≥ num_tasks" heuristic isn't universal
+Validation completion AUC-ROC is 0.7763, 0.7760, and 0.7765 for 4, 6, and 8 experts. That is a tie on one seed. Like AUC-ROC is 0.8067 and 0.8071 for 4 and 6 experts, and 0.7905 for 8. Four experts did not win. Eight experts are worse on likes. The default stays at 4 because it is the smaller model, not because a comparison crowned it. Revisit the default if a later multi-seed run separates these.
 
-**Default**: We keep `--num_experts 4` as the default.
+Test completion AUC-ROC, not used for the decision: 0.7009 (4 experts), 0.7059 (6 experts), 0.7282 (8 experts). Eight experts look better on that one test day. Do not move the default because of the test number.
 
 ### Ideas for Further Improvement (Not Implemented)
 
@@ -1331,7 +1322,7 @@ For readers who want to improve like/dislike prediction further:
 
 ### Key Takeaway for the Book
 
-> "Extreme class imbalance (0.7% like rate) makes probability calibration very challenging. For value functions in Chapter 8, consider using calibration factors to adjust the effective weights, or focus on rank-based blending rather than probability-based blending."
+> "Extreme class imbalance (about a 1% like rate on the training window, 0.74% on the test day) makes probability calibration very challenging. For value functions in Chapter 8, consider using calibration factors to adjust the effective weights, or focus on rank-based blending rather than probability-based blending."
 
 ---
 

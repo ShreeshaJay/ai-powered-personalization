@@ -214,12 +214,10 @@ Our ranking models (listen completion prediction):
 
 | Model | AUC | Log Loss |
 |-------|-----|----------|
-| XGBoost | ~0.70 | ~0.55 |
-| DeepFM | TBD | TBD |
-| DCN | TBD | TBD |
+| XGBoost (pointwise) | 0.725 | — |
+| DeepFM | 0.709 | — |
 
-These values were recorded before the 2026-11-09 time-unit fix (see Evaluation
-Protocol) and are pending re-measurement.
+Test AUC-ROC on the 30-day window, one seed. Validation is 0.783 for XGBoost and 0.777 for DeepFM. DeepFM does not beat XGBoost on this window. DCN is reported with Chapter 7.
 
 ## Key Concepts
 

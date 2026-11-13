@@ -1391,40 +1391,32 @@ and preprocessing already shuffles rows). Early stopping, checkpoint selection, 
 baseline. The baseline reloads its best checkpoint before the final pass. The test set
 is scored once at the end.
 
-> **Note (2026-11-08):** Experiment 1 below was recorded before this protocol was
-> adopted. At that time the hold-out file drove early stopping and checkpoint selection
-> and also produced the reported metrics, so those numbers are optimistically biased and
-> should be treated as historical; rerun before quoting them. The clicked-only baseline
-> numbers also came from its last-epoch model rather than its best checkpoint.
-> Experiment 3 trained for a single epoch, so no checkpoint was selected on the
-> reported set; it matches the current `--val_split_ratio 0` mode, while the current
-> default holds out 10% of the train rows. In both experiments, "val" refers to the
-> hold-out rows that the current scripts call the test set.
+> **Note (2026-11-13):** Experiment 1 and Experiment 3 below are the re-measurement (one seed). Checkpoints are selected on a validation split carved from the training file. The hold-out file is scored once. "Hold-out" here is the file older drafts called val. Selected ESMM metrics match epoch 6 of the validation history. The ESMM log stops at epoch 9 and the baseline log stops at epoch 8.
 
 ### Experiment 1: ESMM vs Clicked-Only CVR Baseline
 
-- **Date:** 2026-02-11
-- **Dataset:** Ali-CCP, 10% sample (~4.2M samples: 3.8M train, 423K val)
+- **Date:** 2026-02-11 (metrics replaced 2026-11-13)
+- **Dataset:** Ali-CCP, 10% sample. Hold-out file: 423,001 rows and 127 conversions. Validation split: 380,701 rows and 109 conversions. Fit conversions: 984.
 - **Device:** CUDA (GPU)
-- **Training:** 4 epochs (early stopping patience=3), batch_size=4096, lr=1e-3
+- **Training:** early stopping patience=3, batch_size=4096, lr=1e-3. Selected metrics match epoch 6. The ESMM log stops at epoch 9 (baseline stops at epoch 8).
 - **Hypothesis:** ESMM (entire-space training) will outperform a naive CVR model trained on clicked samples only
 
-**Results:**
+**Results (hold-out file):**
 
 | Metric | ESMM | Clicked-Only Baseline | Delta |
 |--------|------|-----------------------|-------|
-| **CVR AUC** (on clicked samples) | **0.6311** | 0.5926 | +3.85pp |
-| **CTCVR AUC** (on all samples) | **0.6204** | 0.5848 | +3.56pp |
-| **CTR AUC** | 0.6009 | N/A | — |
+| **CVR AUC** (on clicked samples) | **0.6038** | 0.5630 | +0.0408 |
+| **CTCVR AUC** (on all samples) | **0.5831** | 0.5523 | +0.0308 |
+| **CTR AUC** | 0.6384 | N/A | — |
 
 **Data characteristics:**
-- Click rate: 4.67%, Purchase rate: 0.03%, Post-click CVR: 0.63%
-- Train conversions: 1,093 | Val conversions: 127
+- Click rate: 4.67%, Purchase rate: 0.030%, Post-click CVR: 0.63% (unchanged at this rounding)
+- Fit conversions: 984. Validation conversions: 109. Hold-out conversions: 127.
 
 **Key Takeaways:**
-1. **ESMM significantly outperforms the clicked-only baseline** on both CVR and CTCVR metrics, confirming that entire-space training reduces selection bias.
-2. **Calibration is poor** — the clicked-only baseline predicts mean CVR of 7.6% vs true CVR of 0.03% on all samples. This is because it was trained on clicked samples (6.3% CVR) and applied to all impressions — a clear manifestation of selection bias.
-3. **CTR AUC (0.60) is moderate** — this is reasonable for sparse features with feature hashing. Higher CTR AUC would further benefit the CVR tower through stronger CTCVR gradients.
+1. On the hold-out file, ESMM's CVR AUC on clicked rows is 0.6038 and the clicked-only baseline's is 0.5630. CTCVR AUC on all rows is 0.5831 versus 0.5523. The baseline still over-predicts: mean predicted CVR 10.3% against a 0.03% purchase rate. The hold-out has 127 conversions, and on the validation split the CVR AUCs are tied (0.5574 for ESMM, 0.5592 for the baseline). The hold-out gap is the comparison this note reports. One validation split does not confirm it.
+2. The calibration failure is the clearer of the two results. Mean predicted CVR on all hold-out rows is 10.3% (0.103375) against a 0.03% purchase rate. The baseline was trained on clicked samples and applied to all impressions.
+3. CTR AUC on the hold-out is 0.6384. Validation CTCVR AUC for ESMM is 0.5808. The results file has no baseline validation CTCVR.
 
 ### Experiment 2: Calibration Impact on Bid Accuracy
 - **Date:** [TBD]
@@ -1435,7 +1427,7 @@ is scored once at the end.
 ### Experiment 3: FedAds Paper Replication (VanillaVFL)
 
 - **Date:** 2026-02-14
-- **Dataset:** FedAds aligned, all 2,598,552 samples (2.30M train, 299K val)
+- **Dataset:** FedAds aligned, 2,598,552 rows. 2,299,719 rows before the inner split (229,971 validation, 2,069,748 fit rows). Test hold-out: 298,833 rows.
 - **Split:** Time-based (row-order proxy), val_ratio=11.5%
 - **Device:** CUDA (GPU)
 - **Training:** 1 epoch, batch_size=256, lr=1e-3, standard BCE, no dropout/weight decay
@@ -1453,18 +1445,19 @@ It measures probability quality — how well predicted probabilities match true 
 
 | Model | Our AUC | Our NLL | Paper AUC | Delta vs Paper |
 |-------|---------|---------|-----------|----------------|
-| **VanillaVFL** (SplitNN) | **0.6511** | 0.0366 | 0.620 | +0.031 |
-| ORALE (Centralized) | 0.6284 | 0.0370 | 0.658 | -0.030 |
-| Local (label party only) | 0.5604 | 0.0373 | 0.609 | -0.049 |
-| NonLabel (publisher only) | 0.6279 | 0.0367 | N/A | — |
+| **VanillaVFL** (SplitNN) | **0.6391** | 0.0366 | 0.620 | +0.019 |
+| ORALE (Centralized) | 0.6210 | 0.0369 | 0.658 | -0.037 |
+| Local (label party only) | 0.5448 | 0.0374 | 0.609 | -0.064 |
+| NonLabel (publisher only) | 0.6289 | 0.0368 | N/A | — |
+
+Validation AUC on the inner split: VanillaVFL 0.6462, NonLabel 0.6228, ORALE 0.6191, Local 0.5459. On test the order is VanillaVFL, then publisher-only, then centralized, then label-party. On validation, VanillaVFL leads and the label-party model is last. Publisher-only and centralized are tied there (0.6228 versus 0.6191, gap 0.0038).
 
 **Data characteristics:**
-- CVR: 0.59% (train) / 0.61% (val)
-- Train conversions: ~13,600 | Val conversions: ~1,830
+- CVR: 0.5896% on the 2,299,719 pre-hold-out rows (~13,559 conversions) and 0.6131% on the 298,833 test rows (~1,832). Those rates still round to 0.59% and 0.61% when "val" means the hold-out.
 
 #### Why Our Results Diverge from the Paper
 
-**Divergence 1: VanillaVFL outperforms ORALE (ours: 0.651 > 0.628; paper: 0.620 < 0.658)**
+**Divergence 1: VanillaVFL outperforms ORALE (ours: 0.6391 > 0.6210; paper: 0.620 < 0.658)**
 
 The paper expects ORALE > VanillaVFL, but we observe the opposite. The most likely explanation is the **flipped feature distribution**:
 
@@ -1477,15 +1470,15 @@ In the paper's system, the label party contributes the majority of features (16/
 
 In our public dataset, the non-label party already has 17/22 = 77% of all features. The centralized model gains relatively little by adding the label party's 5 features, and is more prone to overfitting on the larger combined feature space. Meanwhile, the split architecture imposes a **structural bottleneck** (separate embeddings, separate towers per party) that acts as an implicit regularizer — similar to how dropout constrains model capacity.
 
-**Evidence of centralized overfitting:** NLL for ORALE (0.0370) is worse than VanillaVFL (0.0366) despite seeing the same data, suggesting the centralized model's probability estimates are less calibrated.
+**Evidence of centralized overfitting:** NLL for ORALE (0.0369) is worse than VanillaVFL (0.0366) despite seeing the same data, suggesting the centralized model's probability estimates are less calibrated.
 
-**Divergence 2: Local (label party) is much weaker than paper (ours: 0.560 vs paper: 0.609)**
+**Divergence 2: Local (label party) is much weaker than paper (ours: 0.5448 vs paper: 0.609)**
 
-This is directly explained by the feature count discrepancy. The paper's label party has 16 features — enough to build a reasonable standalone model (AUC 0.609). Our label party has only 5 features — significantly less signal, resulting in AUC 0.560.
+This is directly explained by the feature count discrepancy. The paper's label party has 16 features, enough to build a reasonable standalone model (AUC 0.609). Our label party has only 5 features, resulting in test AUC 0.5448.
 
-**Divergence 3: NonLabel (publisher) is nearly as strong as ORALE (0.628 vs 0.628)**
+**Divergence 3: NonLabel (publisher) is above ORALE (0.6289 vs 0.6210)**
 
-Since the publisher has 17 of 22 features, it already captures most of the available signal. The advertiser's 5 features add only marginal value when used independently. This is the opposite of the paper's setting where the label party is the dominant feature owner.
+The publisher-only model is above the centralized model by 0.0080, which is outside a 0.005 tie, so the two are not tied. The publisher has 17 of 22 features and already captures most of the available signal. This is the opposite of the paper's setting where the label party is the dominant feature owner.
 
 #### Summary of Divergence Analysis
 
@@ -1493,10 +1486,10 @@ Since the publisher has 17 of 22 features, it already captures most of the avail
 |-------------|-----------|------------|
 | VanillaVFL > ORALE | Implicit regularization from split arch + centralized overfitting on sparse CVR signal | High |
 | Local baseline much weaker | Only 5 features vs paper's 16 | Very High |
-| NonLabel ≈ ORALE | Publisher has 17/22 features — dominates signal | Very High |
+| NonLabel above ORALE | Publisher test AUC 0.6289 vs centralized 0.6210 (gap 0.0080) | High |
 | Absolute AUC higher for VFL | Flipped feature ratio changes which party benefits from federation | High |
 
-The core pedagogical claim from the paper still holds: **federation adds significant value** (+9.07pp AUC for the label party by collaborating with the publisher). The privacy cost is negligible or even negative.
+Federation still adds value for the label party. VanillaVFL test AUC is 0.6391 and the label-party model is 0.5448, a gap of 9.44 points (validation 0.6462 versus 0.5459). That is the comparison behind the old "+9.07 pp" sentence. The centralized model, at 0.6210, is below both VanillaVFL and the publisher-only model (0.6289). On this feature split the privacy cost relative to pooling the raw features is not a loss. Privacy cost can be negative: VanillaVFL is above the centralized model by 0.0181 on test.
 
 #### NLL Interpretation Note
 

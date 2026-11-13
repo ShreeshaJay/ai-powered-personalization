@@ -71,10 +71,10 @@ first event, rounded down to multiples of 5 (Yambda paper, Section 3.3), so the
 code converts days with 86,400 and minutes with 60. Before 2026-11-09 the code
 read one unit as 5 seconds, so every window was five times shorter than its
 name (a "30-day" window covered about 6 days, the 30-minute gap 6 minutes and
-the 1-day test window 4.8 hours), and the full dataset, which spans about 300
-days, looked like about 1,500 days. Row counts, memory figures, runtimes and
-results in these notes that were recorded before that date are pending
-re-measurement.
+the 1-day test window 4.8 hours), and the full dataset, which spans about 301
+days, looked like about 1,500 days. Result tables below were replaced on
+2026-11-13 (one seed, seed 42). Feature-importance shares, the before-fix PIT
+column, the 90-day memory row, and DeepFM at 150 days were not re-measured.
 
 ### Time-Window Approach for Memory Efficiency
 
@@ -85,7 +85,7 @@ For memory-constrained environments (16GB laptop), we use a **shorter training w
 train_lf, test_lf = load_yambda_polars(data_dir, train_days=None)
 
 # Reduced window - preserves temporal integrity
-# (the ~5M row estimate predates the 2026-11-09 time-unit fix)
+# (30-day re-measurement: 5,651,933 train rows)
 train_lf, test_lf = load_yambda_polars(data_dir, train_days=30)
 ```
 
@@ -392,14 +392,14 @@ train_lf, test_lf = load_yambda_polars(data_dir, train_days=30)
 
 ### Memory Usage by Configuration
 
-> **Note (2026-11-09):** These estimates predate the time-unit fix (see Section 2) and are pending re-measurement.
+> **Note (2026-11-13):** Peak RSS below is from the re-measurement (one seed, seed 42). The 90-day row was not re-run, so that estimate is unchanged. The old ~50M figure is the listens file, not the fit-row count. Full-file peak RSS (13.92 GB) sits inside the old 12-18 GB band.
 
-| Configuration | Approx Rows | Peak Memory |
-|---------------|-------------|-------------|
-| `train_days=30` | ~5M | ~2-3 GB |
+| Configuration | Fit rows | Peak RSS |
+|---------------|----------|----------|
+| `train_days=30` | 5,651,933 | 3.89 GB |
 | `train_days=90` | ~15M | ~5-8 GB |
-| `train_days=150` | ~25M | ~8-12 GB |
-| `train_days=300` (full) | ~50M | ~12-18 GB |
+| `train_days=150` | 24,032,083 | 12.98 GB |
+| full file (about 301 days) | 23,731,967 | 13.92 GB |
 
 ---
 
@@ -457,15 +457,13 @@ Both are valid; choice depends on use case.
 
 ### Observed Metrics After Fixes
 
-> **Note (2026-11-09):** These figures were recorded while the training rows' user and item aggregates still included their own labels (see Section 3), which inflates the train AUC and the train-test gap. Pending re-measurement.
+> **Note (2026-11-13):** The After column is the 30-day pointwise re-measurement (one seed, seed 42). Validation AUC-ROC on that run is 0.7825. The Before column was not re-run.
 
-> **Note (2026-11-08):** Recorded before the validation-window fix. At that time `train_xgboost_polars.py` chose its number of boosting rounds on the test window, so if these figures came from that script the test AUCs are optimistic. Rerun before quoting them.
-
-| Metric | Before Fixes | After PIT Fixes |
-|--------|-------------|-----------------|
-| Train AUC-ROC | 0.9455 | 0.7962 |
-| Test AUC-ROC | 0.5367 | 0.6282 |
-| Train-Test Gap | 0.41 ⚠️ | 0.17 ✅ |
+| Metric | Before Fixes | After PIT Fixes (30-day) |
+|--------|-------------|--------------------------|
+| Train AUC-ROC | 0.9455 | 0.7792 |
+| Test AUC-ROC | 0.5367 | 0.7247 |
+| Train-Test Gap | 0.41 ⚠️ | 0.0545 |
 
 ### Adversarial Validation
 
@@ -637,61 +635,60 @@ should consider session-level grouping.
 
 ### Experimental Results Comparison
 
-> **Note (2026-11-08):** The results in this section and in the DeepFM results below were recorded with an earlier version of the scripts in which early stopping, and for DeepFM also learning-rate scheduling and checkpoint selection, monitored the test window. The test metrics are therefore optimistically biased. They are kept as historical development notes. Rerun the current scripts, which select on a separate validation window (see "Validation Protocol" above), for unbiased numbers.
+> **Note (2026-11-13):** The tables in this section, the DeepFM comparison, and the Section 12 status row are the re-measurement: one seed (seed 42), Colab L4, after the time-unit fix, the training-row history fix, and validation-set early stopping. AUC gaps under 0.005 are ties. Pairwise train AUC-PR, pairwise validation AUC, and pairwise AUC-PR at 150 days were not in the re-measurement extract, so those cells are blank. Feature-importance shares below were not re-measured.
 
-> **Note (2026-11-09):** These runs, the DeepFM results and the Section 12 table below also predate the time-unit fix (see Section 2): the "30-day" and "150-day" windows covered about 6 and 30 days of data. Sample counts, training times and metrics are pending re-measurement.
+#### 30-Day Training Window
 
-#### 30-Day Training Window (~1.3M samples)
-
-| Metric | Pointwise (XGBClassifier) | Pairwise LTR (XGBRanker) |
-|--------|---------------------------|--------------------------|
-| **Train AUC-ROC** | 0.8661 | 0.6512 |
-| **Test AUC-ROC** | 0.5354 | 0.5144 |
-| **Train AUC-PR** | 0.9258 | 0.8096 |
-| **Test AUC-PR** | 0.7720 | 0.6580 |
-| **Test NDCG@5** | — | 0.7483 |
-| **Test NDCG@10** | — | 0.7815 |
-| **Test MAP** | — | 0.7523 |
-| **Test MRR** | — | 0.7672 |
-| **Train Samples** | 1,259,976 | 1,240,047 |
-| **Training Time** | 5.8s | 6.3s |
-
-#### 150-Day Training Window (~6.3M samples)
+Pointwise split: 5,651,933 train rows, 627,994 validation rows, 232,049 test rows. Pairwise LTR uses 4,271,508 train rows.
 
 | Metric | Pointwise (XGBClassifier) | Pairwise LTR (XGBRanker) |
 |--------|---------------------------|--------------------------|
-| **Train AUC-ROC** | 0.8246 | 0.6095 |
-| **Test AUC-ROC** | **0.5955** | 0.5364 |
-| **Train AUC-PR** | 0.8924 | 0.7569 |
-| **Test AUC-PR** | **0.8014** | 0.6769 |
-| **Test NDCG@5** | — | **0.7484** |
-| **Test NDCG@10** | — | **0.7828** |
-| **Test MAP** | — | **0.7531** |
-| **Test MRR** | — | **0.7749** |
-| **Train Samples** | 6,292,354 | 4,535,948 |
-| **Training Time** | 24.3s | 16.1s |
+| **Train AUC-ROC** | 0.7792 | 0.5579 |
+| **Validation AUC-ROC** | 0.7825 | — |
+| **Test AUC-ROC** | 0.7247 | 0.5676 |
+| **Train AUC-PR** | 0.8613 | — |
+| **Validation AUC-PR** | 0.8741 | — |
+| **Test AUC-PR** | 0.8566 | 0.7463 |
+| **Test NDCG@5** | — | 0.7435 |
+| **Test NDCG@10** | — | 0.7627 |
+| **Test MAP** | — | 0.7473 |
+| **Test MRR** | — | 0.8067 |
+| **Train Samples** | 5,651,933 | 4,271,508 |
+| **Training Time** | 44.8 s (wall 65.1 s, peak RSS 3.89 GB) | 51.2 s (wall 69.3 s, peak RSS 4.35 GB) |
 
-#### Scaling Comparison: 30 → 150 Days
+#### 150-Day Training Window
 
-| Metric | 30 days | 150 days | Δ (Improvement) |
-|--------|---------|----------|-----------------|
-| **Pointwise Test AUC** | 0.5354 | 0.5955 | **+0.060 (+11%)** ✅ |
-| **LTR Test AUC** | 0.5144 | 0.5364 | +0.022 (+4%) |
-| **LTR Test NDCG@10** | 0.7815 | 0.7828 | +0.001 (~stable) |
+Pointwise fit rows: 24,032,083. Pairwise fit rows: 7,011,513. The two validation scores use different rows (the last 10% of each window), so they are not compared here. Pointwise validation on this window is 0.7697 (2,670,255 rows).
+
+| Metric | Pointwise (XGBClassifier) | Pairwise LTR (XGBRanker) |
+|--------|---------------------------|--------------------------|
+| **Train AUC-ROC** | 0.7521 | 0.5607 |
+| **Validation AUC-ROC** | 0.7697 | — |
+| **Test AUC-ROC** | 0.7593 | 0.5638 |
+| **Train AUC-PR** | 0.8388 | — |
+| **Test AUC-PR** | 0.8663 | — |
+| **Test NDCG@5** | — | 0.7409 |
+| **Test NDCG@10** | — | 0.7591 |
+| **Test MAP** | — | 0.7450 |
+| **Test MRR** | — | 0.8017 |
+| **Train Samples** | 24,032,083 | 7,011,513 |
+| **Training Time** | 183.1 s (wall 244 s, peak RSS 12.98 GB) | 86.8 s (wall 126.4 s, peak RSS 13.31 GB) |
+
+#### Scaling: 30 to 150 days
+
+On the same test day, pointwise test AUC-ROC rises from 0.7247 at 30 days to 0.7593 at 150 days, a gain of 0.035 on 4.25× as many training rows (5,651,933 to 24,032,083). Pairwise test AUC (0.5676 to 0.5638) and NDCG@10 (0.7627 to 0.7591) do not move by more than 0.005, so on this data the extra history helps the pointwise model and leaves the pairwise model where it was.
 
 #### Key Insights from Experiments
 
-1. **Pointwise benefits more from additional data**: Test AUC improved by 11% (0.54→0.60) with 5× more training data.
+1. **Pointwise benefits from the longer window on the shared test day.** The pairwise AUC and NDCG@10 changes are inside 0.005. See the scaling note above.
 
-2. **LTR maintains ranking quality with less data**: NDCG/MAP/MRR are stable across training sizes—pairwise comparison learns relative ordering efficiently.
-
-3. **Different feature importance patterns**:
+2. **Different feature importance patterns**:
    - **Pointwise** relies heavily on `user_median_completion` (63%)
    - **Pairwise LTR** relies more on `item_avg_completion` (48%)
 
-4. **LTR AUC is naturally lower**: Pairwise ranking loss doesn't optimize for probability calibration, so AUC is a secondary metric.
+3. **LTR AUC is naturally lower**: Pairwise ranking loss does not optimize for probability calibration, so AUC is a secondary metric.
 
-**Key Insight:** Pairwise LTR may have slightly lower AUC (optimizes ranking, not probability) but better NDCG (directly optimizes position-aware metrics).
+Pairwise LTR has a much lower AUC than the pointwise model on this data (test AUC-ROC 0.5676 versus 0.7247). The pairwise loss is not trained to produce calibrated probabilities, so AUC is a weak way to judge it. Test NDCG@10 for the pairwise model is 0.7627. This run does not compute NDCG for the pointwise model, so do not claim that pairwise wins on NDCG until both models are scored the same way.
 
 ### When to Use Each
 
@@ -787,7 +784,7 @@ likes_df = pl.read_parquet("flat/likes.parquet")
 
 ### Key Considerations
 
-1. **Class Imbalance:** Likes are much rarer than listens (~4% like rate)
+1. **Class Imbalance:** Likes are much rarer than listens (about 1% positive on the training window, 0.74% on the test day)
    - Use `scale_pos_weight` or SMOTE
    - Consider `eval_metric='aucpr'` instead of `'auc'`
 
@@ -803,8 +800,8 @@ likes_df = pl.read_parquet("flat/likes.parquet")
 
 | Metric | Listen Completion | Like Prediction |
 |--------|-------------------|-----------------|
-| Positive Rate | ~63% | ~4-8% |
-| Expected Test AUC | ~0.65-0.68 | ~0.70-0.75 |
+| Positive Rate | about 64% in training, about 68% on the test day | about 1% in training (0.74% on the test day) |
+| Test AUC-ROC | 0.7247 (pointwise XGBoost, 30-day listen completion) | not run |
 | Key Challenge | Moderate | Class imbalance |
 
 ---
@@ -1044,29 +1041,25 @@ python train_deepfm.py --train_days 30 --embed_dim 32 --mlp_dims 512,256,128 --b
 
 ### Actual Results Comparison (30-Day Training Window)
 
-> **Note (2026-11-08):** Recorded before the validation-window fix; model selection used the test window. See the note under "Experimental Results Comparison".
+> **Note (2026-11-13):** One seed, seed 42. DeepFM's 1,250 s is the trainer timer. The last two minutes overlapped the start of another job, so it is not a clean machine benchmark.
 
 | Model | Test AUC-ROC | Test AUC-PR | Training Time | Parameters |
 |-------|--------------|-------------|---------------|------------|
-| XGBoost Pointwise | ~0.58 | ~0.80 | ~6s | ~100 trees |
-| XGBoost LTR | ~0.54 | N/A | ~15s | ~100 trees |
-| **DeepFM** | **0.8031** | **0.8994** | ~13 min | 3.2M |
+| XGBoost Pointwise | 0.7247 | 0.8566 | 44.8 s (wall 65.1 s, peak RSS 3.89 GB) | — |
+| XGBoost LTR | 0.5676 | 0.7463 | 51.2 s (wall 69.3 s, peak RSS 4.35 GB) | — |
+| DeepFM | 0.7088 | 0.8479 | 1,250 s (trainer timer, not a clean benchmark) | 6,088,859 |
 
-**Key Finding:** DeepFM dramatically outperforms XGBoost on the same 30-day data:
-- **Test AUC-ROC: 0.80 vs 0.58** — **38% relative improvement**
-- **Test AUC-PR: 0.90 vs 0.80** — **12% relative improvement**
-
-This demonstrates the power of **learned embeddings** for high-cardinality IDs (uid, item_id). XGBoost relies on frequency encoding which loses individual user/item preferences, while DeepFM learns dense representations that capture collaborative filtering signals.
+On the same 30-day window, pointwise XGBoost reaches a test AUC-ROC of 0.7247 (validation 0.7825, test AUC-PR 0.8566). DeepFM reaches 0.7088 (validation 0.7767, test AUC-PR 0.8479). The tree model is ahead on this data. DeepFM is still the model to use when you want embeddings learned inside the network instead of hand-built aggregate features. It is not a large accuracy gain over XGBoost here.
 
 ### 150-Day Training Window Results
 
-> **Note (2026-11-08):** Recorded before the validation-window fix; see the note under "Experimental Results Comparison".
+> **Note (2026-11-13):** XGBoost rows are the re-measurement. DeepFM at 150 days was not run.
 
 | Model | Test AUC-ROC | Test AUC-PR | Training Time |
 |-------|--------------|-------------|---------------|
-| XGBoost Pointwise | 0.5955 | 0.8014 | ~25s |
-| XGBoost LTR | 0.5364 | N/A | ~24s |
-| **DeepFM** | TBD | TBD | ~30-45 min |
+| XGBoost Pointwise | 0.7593 | 0.8663 | 183.1 s (wall 244 s, peak RSS 12.98 GB) |
+| XGBoost LTR | 0.5638 | not reported | 86.8 s (wall 126.4 s, peak RSS 13.31 GB) |
+| **DeepFM** | TBD | TBD | TBD |
 
 ### Homework: Enhance DeepFM
 
@@ -1090,13 +1083,13 @@ Students can extend the DeepFM implementation with:
 
 ## 12. Model Implementation Status
 
-> **Note (2026-11-08):** The Test AUC-ROC and NDCG values below were recorded before the validation-window fix; see the note under "Experimental Results Comparison".
+> **Note (2026-11-13):** Test AUC-ROC values are the 30-day re-measurement, one seed. DCN is reported in Chapter 7.
 
 | Model | Script | Status | Test AUC-ROC (30d) | Notes |
 |-------|--------|--------|-------------------|-------|
-| **XGBoost Pointwise** | `train_xgboost_polars.py` | ✅ Complete | ~0.58 | Baseline with engineered features |
-| **XGBoost Pairwise LTR** | `train_xgboost_ltr.py` | ✅ Complete | ~0.54 | NDCG@10 ~0.78 |
-| **DeepFM** | `train_deepfm.py` | ✅ Complete | **0.80** | FM + DNN, learned embeddings |
+| **XGBoost Pointwise** | `train_xgboost_polars.py` | ✅ Complete | 0.7247 | Validation 0.7825. Ahead of DeepFM on this window |
+| **XGBoost Pairwise LTR** | `train_xgboost_ltr.py` | ✅ Complete | 0.5676 | Test NDCG@10 0.7627. AUC is much lower than pointwise |
+| **DeepFM** | `train_deepfm.py` | ✅ Complete | 0.7088 | Validation 0.7767. Below pointwise XGBoost |
 
 **Note:** Advanced architectures (DCN-V2, DLRM, MMoE, PLE) are covered in Chapter 7.
 
@@ -1162,10 +1155,10 @@ $env:YAMBDA_DATA_DIR = "C:\path\to\Yandex\flat"
 # =====================================================================
 # POINTWISE CLASSIFICATION (train_xgboost_polars.py)
 # =====================================================================
-# Quick run (30 days; row count and runtime pending re-measurement)
+# Quick run (30 days: 5,651,933 train rows on the re-measurement)
 python train_xgboost_polars.py --train_days 30
 
-# Full run (whole dataset, about 300 days; runtime pending re-measurement)
+# Full run (whole file, about 301 days)
 python train_xgboost_polars.py --train_days 0
 
 # =====================================================================
@@ -1202,33 +1195,19 @@ python train_deepfm.py --train_days 30          # DeepFM → AUC (deep learning)
 
 ### Expected Results (with PIT-correct features)
 
-> **Note (2026-11-08):** These ranges and the "Latest Run" output below were recorded with `train_xgboost_polars.py` before the validation-window fix, when early stopping monitored the test window, so the test metrics are optimistic. Rerun the current script for unbiased numbers.
+> **Note (2026-11-13):** One full-file pointwise run, one seed. The file spans about 301 days, so the old "300-day" and "full dataset" columns were this same run.
 
-> **Note (2026-11-09):** They also predate the time-unit fix (see Section 2): the "300-day Window" covered about 60 days of data, and "Full Dataset (~1500 days)" is the whole dataset, which spans about 300 days. Pending re-measurement.
+| Metric | Full file (about 301 days) |
+|--------|----------------------------|
+| Train rows | 23,731,967 |
+| Train AUC-ROC | 0.7479 |
+| Validation AUC-ROC | 0.7629 |
+| Test AUC-ROC | 0.7320 |
+| Test AUC-PR | 0.8563 |
+| Train-test gap | 0.0159 |
+| Training time | 144 s |
+| Feature engineering time | 26.8 s |
+| Peak RSS | 13.92 GB |
 
-| Metric | 300-day Window | Full Dataset (~1500 days) |
-|--------|----------------|---------------------------|
-| Train AUC-ROC | ~0.78-0.80 | ~0.79-0.80 |
-| Test AUC-ROC | ~0.60-0.63 | **~0.66-0.68** |
-| Test AUC-PR | ~0.80-0.82 | **~0.82-0.83** |
-| Train-Test Gap | ~0.15-0.18 | **~0.12-0.14** |
-| Training Time | ~1-2 min | ~3-4 min |
-| Feature Eng Time | ~5-6 sec | ~25-30 sec |
-
-**Latest Run (Full Dataset with PIT Fix):**
-```
-Train AUC-ROC: 0.7964
-Test AUC-ROC:  0.6680  ← Healthy generalization
-Test AUC-PR:   0.8221
-Train-Test Gap: 0.13   ← Acceptable
-```
-
-> **Note (2026-11-09):** The ranges and run above, and the explanation below, predate the training-row history fix (Section 3): at the time the training rows' aggregates included their own labels, which is the main cause of the gap. Pending re-measurement.
-
-**Note:** The remaining train-test gap (~0.13) is expected due to:
-1. User/item aggregate features using lookup tables (not strict PIT)
-2. Natural distribution shift in user behavior over time
-3. Cold-start users/items in test set
-
-This is acceptable for educational purposes. Production systems would use a Feature Store for strict PIT correctness across all features.
+The train-test gap on the full file is 0.016. The earlier gap near 0.13 came from aggregates that included each training row's own label. Validation (0.7629) is above train (0.7479).
 
