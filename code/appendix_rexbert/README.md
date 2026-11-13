@@ -56,16 +56,16 @@ On CPU, run `python run_all.py --profile cpu_small --runs R0,R1,R2,R3,R4` from t
 
 On Colab, use an L4 runtime and open `colab/appendix_rexbert_colab.ipynb`. Run the cells in order. The notebook installs `requirements.txt` only and checks that `torch.__version__` is unchanged, then runs `python run_all.py --profile gpu_full --runs R1,R2,R3,R4`.
 
-The `gpu_full` times below are planning estimates, not measurements. No L4 run has been timed.
+The `gpu_full` times below are driver wall-clock on a Colab L4 (Python 3.13, torch `2.14.1+cu130`). They are not retrieval metrics. Retrieval numbers are in `outputs/metrics/gpu_full/`.
 
-| Run | Estimate |
+| Run | Measured wall |
 |---|---|
-| R0 | 3 to 6 min |
-| R1 | 40 to 70 min on an L4 |
-| R2 | 30 to 50 min on an L4 |
-| R3 | 4 to 6 h on an L4 |
-| R4 | 40 to 60 min on an L4 |
-| Core total | about 6 to 8 L4 GPU-hours |
+| R0 | 32 s |
+| R1 | 83 min |
+| R2 | 30 min |
+| R3 | 6.4 h |
+| R4 | 67 min |
+| Core total (R1 to R4) | about 9.4 L4 GPU-hours |
 
 `CLOUD_RUN.md` records the same commands and the same labels.
 

@@ -1,0 +1,60 @@
+{
+  "run": "R2",
+  "sweep_executed": true,
+  "selected_learning_rate": {
+    "rexbert_micro": 5e-05,
+    "ettin_17m": 0.0001,
+    "minilm": 2e-05
+  },
+  "rows": [
+    {
+      "model": "rexbert_micro",
+      "learning_rate": 2e-05,
+      "validation_mrr_at_100": 0.367108885044607
+    },
+    {
+      "model": "rexbert_micro",
+      "learning_rate": 5e-05,
+      "validation_mrr_at_100": 0.3703002856008576
+    },
+    {
+      "model": "rexbert_micro",
+      "learning_rate": 0.0001,
+      "validation_mrr_at_100": 0.3686913478060197
+    },
+    {
+      "model": "ettin_17m",
+      "learning_rate": 2e-05,
+      "validation_mrr_at_100": 0.36303643290357834
+    },
+    {
+      "model": "ettin_17m",
+      "learning_rate": 5e-05,
+      "validation_mrr_at_100": 0.3612432319981576
+    },
+    {
+      "model": "ettin_17m",
+      "learning_rate": 0.0001,
+      "validation_mrr_at_100": 0.36395150999253373
+    },
+    {
+      "model": "minilm",
+      "learning_rate": 2e-05,
+      "validation_mrr_at_100": 0.3955766126956759
+    },
+    {
+      "model": "minilm",
+      "learning_rate": 5e-05,
+      "validation_mrr_at_100": 0.3935602173928284
+    },
+    {
+      "model": "minilm",
+      "learning_rate": 0.0001,
+      "validation_mrr_at_100": 0.3909497415062224
+    }
+  ],
+  "reported_protocol": true,
+  "wall_clock_seconds": 1768.397,
+  "peak_working_set_mb": 3628.9,
+  "rss_mb": 3628.9
+}

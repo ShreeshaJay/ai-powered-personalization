@@ -1,0 +1,193 @@
+{
+  "run": "R3",
+  "selected_learning_rate": {
+    "rexbert_micro": 5e-05,
+    "ettin_17m": 0.0001,
+    "minilm": 2e-05
+  },
+  "trained": [
+    {
+      "learning_rate": 5e-05,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 0,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.3849745568436846,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/rexbert_micro/seed0/best",
+      "model": "rexbert_micro",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    },
+    {
+      "learning_rate": 5e-05,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 1,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.37880151282537167,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/rexbert_micro/seed1/best",
+      "model": "rexbert_micro",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    },
+    {
+      "learning_rate": 5e-05,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 2,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.38175021348470767,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/rexbert_micro/seed2/best",
+      "model": "rexbert_micro",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    },
+    {
+      "learning_rate": 0.0001,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 0,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.3718221354406538,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/ettin_17m/seed0/best",
+      "model": "ettin_17m",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    },
+    {
+      "learning_rate": 0.0001,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 1,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.3712121089006754,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/ettin_17m/seed1/best",
+      "model": "ettin_17m",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    },
+    {
+      "learning_rate": 0.0001,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 2,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.3751501124255052,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/ettin_17m/seed2/best",
+      "model": "ettin_17m",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    },
+    {
+      "learning_rate": 2e-05,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 0,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.3959501714042127,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/minilm/seed0/best",
+      "model": "minilm",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    },
+    {
+      "learning_rate": 2e-05,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 1,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.3961421793974379,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/minilm/seed1/best",
+      "model": "minilm",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    },
+    {
+      "learning_rate": 2e-05,
+      "epochs": 3,
+      "batch_size": 128,
+      "seed": 2,
+      "n_pairs": 500000,
+      "best_validation_mrr_at_100": 0.39582279282521815,
+      "mnr_scale": 20.0,
+      "relative_model_dir": "cache/gpu_full/models/minilm/seed2/best",
+      "model": "minilm",
+      "validation_corpus": {
+        "n_catalog": 50000,
+        "n_must_include": 3949,
+        "n_must_missing": 0,
+        "expanded_past_cap": false,
+        "full_catalog": false,
+        "requested_n": 50000
+      }
+    }
+  ],
+  "n_pairs": 500000,
+  "epochs": 3,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "bf16": true,
+  "reported_protocol": true,
+  "wall_clock_seconds": 22980.761,
+  "peak_working_set_mb": 4790.0,
+  "rss_mb": 4790.0
+}

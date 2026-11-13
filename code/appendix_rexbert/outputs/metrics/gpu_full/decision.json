@@ -1,0 +1,68 @@
+{
+  "q3_rexbert_minus_ettin_mrr": {
+    "supported": true,
+    "sign": "positive",
+    "interval_excludes_zero": true,
+    "n_seeds": 3,
+    "n_seeds_required": 3,
+    "per_seed_mean_difference": [
+      0.004101264022569234,
+      0.0016585260881786489,
+      0.0035603213860182672
+    ],
+    "interval_low": 0.0015122368475509714,
+    "interval_high": 0.004709897476943155,
+    "seed_averaged_mean_difference": 0.003106703832255383,
+    "metric_interval": {
+      "mean": 0.003106703832255383,
+      "low": 0.0015122368475509714,
+      "high": 0.004709897476943155,
+      "n": 20000
+    }
+  },
+  "q3_rexbert_minus_ettin_recall_at_50": {
+    "supported": false,
+    "sign": "not_agreed",
+    "interval_excludes_zero": false,
+    "n_seeds": 3,
+    "n_seeds_required": 3,
+    "per_seed_mean_difference": [
+      0.0056,
+      -0.0061,
+      0.0018
+    ],
+    "interval_low": -0.0024175000000000004,
+    "interval_high": 0.003117499999999999,
+    "seed_averaged_mean_difference": 0.00043333333333333293,
+    "metric_interval": {
+      "mean": 0.00043333333333333293,
+      "low": -0.0024175000000000004,
+      "high": 0.003117499999999999,
+      "n": 20000
+    }
+  },
+  "q2_rexbert_finetuned_minus_zeroshot_mrr": {
+    "supported": true,
+    "sign": "positive",
+    "interval_excludes_zero": true,
+    "n_seeds": 3,
+    "n_seeds_required": 3,
+    "per_seed_mean_difference": [
+      0.03752651096350229,
+      0.034779870516716355,
+      0.037599050246484265
+    ],
+    "interval_low": 0.03398051467410159,
+    "interval_high": 0.0392241527328515,
+    "seed_averaged_mean_difference": 0.03663514390890096,
+    "metric_interval": {
+      "mean": 0.03663514390890096,
+      "low": 0.03398051467410159,
+      "high": 0.0392241527328515,
+      "n": 20000
+    }
+  },
+  "q3_branch_on_mrr": "a",
+  "primary_metric": "mrr",
+  "rule": "Supported when the paired 95% interval of the seed-averaged per-query difference excludes zero and all required seeds agree in sign."
+}

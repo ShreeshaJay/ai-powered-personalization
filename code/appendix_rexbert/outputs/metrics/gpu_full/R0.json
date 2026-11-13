@@ -1,0 +1,62 @@
+{
+  "run": "R0",
+  "data_card": {
+    "locale": "UK",
+    "n_product_rows_in_locale": 500180,
+    "n_products": 500180,
+    "n_duplicate_product_ids_skipped": 0,
+    "description_words_median": 24.0,
+    "description_words_p90": 53.0,
+    "description_words_mean": 26.218967171818147,
+    "n_products_with_empty_description": 39258,
+    "text_template": "{title} [SEP] {brand} [SEP] {description}",
+    "n_session_rows_in_locale": 1182181,
+    "n_sessions_kept": 1182181,
+    "n_sessions_dropped_empty_prev": 0,
+    "n_sessions_dropped_missing_catalog_or_target": 0,
+    "prev_items_length_median": 3.0,
+    "prev_items_length_p90": 8.0,
+    "prev_items_length_mean": 4.121624353631128,
+    "n_degenerate_sessions": 0,
+    "n_degenerate_by_split": {
+      "train": 0,
+      "val": 0,
+      "test": 0
+    },
+    "n_sessions_by_split": {
+      "train": 945368,
+      "val": 118434,
+      "test": 118379
+    },
+    "n_train_pairs_before_dedup": 945368,
+    "n_train_pairs_after_dedup": 764393,
+    "n_train_pairs_after_cap": 500000,
+    "pair_cap": 500000,
+    "pair_cap_seed": 42,
+    "split_seed": 42,
+    "split_rule": "sha256(f'{seed}:{filtered_row_index}') mod 10; 0-7 train, 8 val, 9 test",
+    "chapter10_min_prev_items": 2,
+    "n_chapter10_query_items": 333042
+  },
+  "file_hashes": {
+    "products_train.csv": "f4de2243372304af9820b6916210635c5f48e6d0b81012f0326906563f12f03b",
+    "sessions_train.csv": "83f9d5c72b7305243ceb1d06aaf96610a050e84d428ae55138e851e70e313954"
+  },
+  "n_test_queries": 20000,
+  "n_test_available": 118379,
+  "n_catalog": 500180,
+  "catalog_info": {
+    "n_catalog": 500180,
+    "n_must_include": 53433,
+    "n_must_missing": 0,
+    "expanded_past_cap": false,
+    "full_catalog": true
+  },
+  "n_chapter10_queries": 5000,
+  "n_val_sessions_sampled": 2000,
+  "profile": "gpu_full",
+  "reported_protocol": true,
+  "wall_clock_seconds": 32.471,
+  "peak_working_set_mb": 1275.4,
+  "rss_mb": 1275.4
+}

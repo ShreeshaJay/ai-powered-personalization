@@ -37,16 +37,16 @@ Reported profile. Colab L4: Python 3.13, the preinstalled torch build `2.14.1+cu
 
 R0 is prepended when its JSON is missing. A run whose metrics JSON exists is skipped, so a stopped job resumes at the next missing run.
 
-Planning estimates, not measurements:
+Measured driver wall-clock on a Colab L4 (Python 3.13, torch `2.14.1+cu130`). These are not retrieval metrics.
 
-| Run | Planning estimate |
+| Run | Measured wall |
 |---|---|
-| R0 | 3 to 6 min, 6 to 8 GB RAM, CPU |
-| R1 | 40 to 70 min on an L4 |
-| R2 | 30 to 50 min on an L4 |
-| R3 | 4 to 6 h on an L4 |
-| R4 | 40 to 60 min on an L4, plus the retrieval CPU work |
-| Core total | about 6 to 8 L4 GPU-hours |
+| R0 | 32 s |
+| R1 | 83 min |
+| R2 | 30 min |
+| R3 | 6.4 h |
+| R4 | 67 min |
+| Core total (R1 to R4) | about 9.4 L4 GPU-hours |
 
 Outputs mirror the CPU list under `outputs/metrics/gpu_full/` and `outputs/figures/gpu_full/`.
 
