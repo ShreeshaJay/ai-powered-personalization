@@ -71,6 +71,28 @@ class FusionTests(unittest.TestCase):
         hits = ranking_from_scores(["b", "a", "c"], [1.0, 1.0, 0.5])
         self.assertEqual([pid for pid, _ in hits], ["a", "b", "c"])
 
+    def test_partial_ranking_matches_full_sort(self) -> None:
+        import random
+
+        import numpy as np
+
+        def full_sort(ids, values, depth):
+            order = sorted(range(len(ids)), key=lambda index: (-float(values[index]), ids[index]))
+            return [(ids[index], float(values[index])) for index in order[:depth]]
+
+        rng = random.Random(20261119)
+        for trial in range(200):
+            size = rng.randint(1, 300)
+            ids = [f"p{rng.randrange(10**6):06d}x{index}" for index in range(size)]
+            rng.shuffle(ids)
+            levels = [0.0, -0.0, 0.5, 1.0, 1.0 + 1e-12, 2.0, -1.0]
+            if trial % 3 == 0:
+                values = np.array([rng.choice(levels) for _ in range(size)], dtype=np.float64)
+            else:
+                values = np.array([rng.choice(levels + [rng.random()]) for _ in range(size)], dtype=np.float64)
+            for depth in {0, 1, size // 2, max(size - 1, 0), size, size + 5}:
+                self.assertEqual(ranking_from_scores(ids, values, depth), full_sort(ids, values, depth))
+
     def test_run_file_round_trip_is_byte_stable(self) -> None:
         run = {"q2": [("b", 1.0), ("a", 1.0)], "q1": [("c", 0.25)]}
         # Caller is responsible for tie-broken order. Write what it is given.

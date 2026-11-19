@@ -9,6 +9,7 @@ combination and DBSF.
 
 from __future__ import annotations
 
+import heapq
 from pathlib import Path
 
 import numpy as np
@@ -208,13 +209,29 @@ def host_array(values, dtype=np.float64) -> np.ndarray:
 
 
 def ranking_from_scores(product_ids: list[str], scores, depth: int | None = None) -> HitList:
+    """Order by score descending, then product id ascending, and keep ``depth`` rows.
+
+    With a depth below the catalog size, only the products scoring at or above
+    the depth-th largest score are sorted. The result is identical to sorting
+    the whole catalog and truncating, including ties at the cut.
+    """
     array = host_array(scores).reshape(-1)
     if len(product_ids) != len(array):
         raise ValueError("product ids and scores have different lengths.")
-    order = sorted(
-        range(len(product_ids)),
-        key=lambda index: (-float(array[index]), product_ids[index]),
-    )
-    if depth is not None:
-        order = order[:depth]
+
+    def key(index: int) -> tuple[float, str]:
+        return (-float(array[index]), product_ids[index])
+
+    size = len(array)
+    if depth is not None and 0 <= depth < size and not np.isnan(array).any():
+        if depth == 0:
+            return []
+        cut = array[np.argpartition(array, size - depth)[size - depth]]
+        order = sorted(np.flatnonzero(array > cut).tolist(), key=key)
+        tied = np.flatnonzero(array == cut).tolist()
+        order += heapq.nsmallest(depth - len(order), tied, key=product_ids.__getitem__)
+    else:
+        order = sorted(range(size), key=key)
+        if depth is not None:
+            order = order[:depth]
     return [(product_ids[index], float(array[index])) for index in order]

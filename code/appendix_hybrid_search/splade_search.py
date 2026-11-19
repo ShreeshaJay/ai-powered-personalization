@@ -113,19 +113,32 @@ def score_csc(docs_csc: sp.csc_matrix, term_ids: np.ndarray, weights: np.ndarray
     return scores
 
 
-def score_torch(docs_csc: sp.csc_matrix, query_dense: np.ndarray, device: str) -> np.ndarray:
-    """Exact sparse-by-dense product. ``query_dense`` is (n_queries, vocabulary)."""
+def torch_documents(docs_csc: sp.csc_matrix, device: str):
+    """The document matrix as a coalesced torch sparse tensor, or None when it is empty."""
+    import torch
+
+    coo = docs_csc.tocoo()
+    if coo.nnz == 0:
+        return None
+    index = torch.tensor(np.vstack([coo.row, coo.col]), dtype=torch.long, device=device)
+    value = torch.tensor(coo.data.astype(np.float32), device=device)
+    return torch.sparse_coo_tensor(index, value, size=tuple(coo.shape), device=device).coalesce()
+
+
+def score_torch(docs_csc: sp.csc_matrix, query_dense: np.ndarray, device: str, sparse=None) -> np.ndarray:
+    """Exact sparse-by-dense product. ``query_dense`` is (n_queries, vocabulary).
+
+    Pass ``sparse`` from ``torch_documents`` to reuse one device copy across batches.
+    """
     import torch
 
     query_dense = host_array(query_dense, dtype=np.float32)
     if query_dense.ndim == 1:
         query_dense = query_dense.reshape(1, -1)
-    coo = docs_csc.tocoo()
-    if coo.nnz == 0:
+    if sparse is None:
+        sparse = torch_documents(docs_csc, device)
+    if sparse is None:
         return np.zeros((query_dense.shape[0], docs_csc.shape[0]), dtype=np.float64)
-    index = torch.tensor(np.vstack([coo.row, coo.col]), dtype=torch.long, device=device)
-    value = torch.tensor(coo.data.astype(np.float32), device=device)
-    sparse = torch.sparse_coo_tensor(index, value, size=tuple(coo.shape), device=device).coalesce()
     query = torch.tensor(query_dense, device=device)
     product = torch.sparse.mm(sparse, query.transpose(0, 1).contiguous())
     return host_array(product.transpose(0, 1).contiguous())
@@ -194,9 +207,10 @@ def search_csc(
             scores = score_csc(docs_csc, query_csr.indices[start:end], query_csr.data[start:end])
             hits.append(ranking_from_scores(product_ids, scores, depth))
         return hits
+    sparse = torch_documents(docs_csc, device)
     for start in range(0, query_csr.shape[0], query_batch):
         block = query_csr[start : start + query_batch].toarray()
-        scores = score_torch(docs_csc, block, device)
+        scores = score_torch(docs_csc, block, device, sparse=sparse)
         for row in range(scores.shape[0]):
             hits.append(ranking_from_scores(product_ids, scores[row], depth))
     return hits
