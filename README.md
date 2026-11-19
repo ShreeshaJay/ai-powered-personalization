@@ -59,7 +59,7 @@ While this is not a code-oriented book, there is just enough code within each ch
 16. **A/B Testing, Experimentation, and Bandits**
 
 ### Appendices
-- **Appendix A: RexBERT, from E-Commerce Language Model to Sentence Encoder**
+- **Appendix A: Domain-Specialized Encoders as Sentence-Embedding Models**
 - **Appendix B: Hybrid Search with Vector Databases**
 - **Appendix C: Agentic Autoresearch for Recommender Systems**
 - **Appendix D: Benchmarking Structured-Output Scorers**
