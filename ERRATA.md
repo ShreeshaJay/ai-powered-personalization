@@ -1,6 +1,6 @@
 # Errata
 
-Errata, 2026-11-10, updated 2026-11-18. Applies to chapters published before the date of each correction; corrected in the republished Chapters 1 (2026-11-18), 4, 5, 6, 7, 8, 10, 14 and 16.
+Errata, 2026-11-10, updated 2026-11-18. Applies to chapters published before the date of each correction; corrected in the republished Chapters 1 (2026-11-18), 4, 5, 6, 7, 8, 10 (again 2026-11-18), 14 and 16, and Appendix A (2026-11-18).
 
 ## Chapter 1: Introduction to Recommender Systems
 
@@ -40,7 +40,9 @@ Errata, 2026-11-10, updated 2026-11-18. Applies to chapters published before the
 - **Section 10.3.** Dense embeddings are now contrasted with bag-of-words and learned sparse models, whose vocabulary-sized sparse vectors are served from an inverted index. That comparison is in the Appendix on Hybrid Search with Vector Databases (forthcoming).
 - **Section 10.7.** The pointer to a discussion of task-aware fusion now refers to the Appendix on Hybrid Search with Vector Databases (forthcoming). Chapter 11 does not contain that discussion.
 - Minor wording and punctuation corrections in Sections 10.1, 10.2, 10.3, 10.4 and 10.6.
-
+- **Section 10.4 (2026-11-18).** RexBERT is no longer described as having deep knowledge of product terminology and catalog structure. The sentence now says it has seen far more product terminology than general-purpose encoders, and it cites Bajaj and Garg (2026), now in the References.
+- **Section 10.4 (2026-11-18).** The zero-shot SBERT-versus-RexBERT comparison is now attributed to the Appendix on Domain-Specialized Encoders as Sentence-Embedding Models: on Amazon KDD sessions, a general-purpose contrastively trained SBERT model used zero-shot retrieves better than an MLM-only domain model. The appendix also fine-tunes the domain model with a contrastive objective and finds any advantage over a general sibling to be small.
+- **Section 10.6 (2026-11-18).** The closing paragraph no longer says this section shows what happens when a contrastive objective is added to the domain model. That comparison is in the same appendix; Section 10.6 fine-tunes SBERT on behavioral pairs.
 ## Chapter 14: Latency Optimization
 
 - **Section 14.9.3.** The opening paragraph now states that Chapter 13's orchestrator already skips a stage when too little budget remains for it. This section treats that skip as the ladder's first level, adds triggers based on load, and measures what each level costs in quality.
@@ -48,3 +50,7 @@ Errata, 2026-11-10, updated 2026-11-18. Applies to chapters published before the
 ## Chapter 16: Experimentation and Bandits
 
 - **Section 16.10.3.** The appendix on agentic research loops is Appendix C. The appendices were re-lettered: A, RexBERT; B, Hybrid Search with Vector Databases; C, agentic research loops; D, structured-output benchmark. The previously listed Superlinked appendix was dropped.
+
+## Appendix A: Domain-Specialized Encoders as Sentence-Embedding Models
+
+- **Title (2026-11-18).** The appendix was retitled from "RexBERT: Turning a Domain-Specialized Encoder into a Sentence-Embedding Model". Its content is unchanged.
