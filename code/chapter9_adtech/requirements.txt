@@ -1,0 +1,18 @@
+# Chapter 9: Modeling for Adtech Use Cases
+# Dependencies for ESMM, split neural networks, calibration, and delayed feedback
+#
+# Install with: pip install -r requirements.txt
+
+# Core data processing
+numpy>=1.24.0
+polars>=1.9.0            # Parquet and CSV loading
+
+# Machine learning
+scikit-learn>=1.3.0      # AUC, log loss, Platt scaling, isotonic regression
+scipy>=1.11.0            # Delayed-feedback utilities
+
+# Deep learning
+torch>=2.0.0             # Lower bound only; keep an existing CUDA build
+
+# Progress bars
+tqdm>=4.65.0

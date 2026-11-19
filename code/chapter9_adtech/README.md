@@ -95,6 +95,7 @@ chapter9_adtech/
 │   └── metrics.py           # Adtech metrics (GAUC, Lift, Popularity)
 ├── train_esmm.py            # ESMM training pipeline
 ├── train_split_nn.py        # Federated learning training
+├── requirements.txt         # Python dependencies
 ├── docs/
 │   └── Chapter9_Design_Notes.md
 └── README.md
@@ -159,12 +160,8 @@ row-order time proxy. For SplitNN's single-epoch paper setting,
 
 ## Requirements
 
-```
-torch>=2.0
-polars>=0.19
-numpy
-scikit-learn
-tqdm
+```bash
+pip install -r requirements.txt
 ```
 
 ## Key Insights
