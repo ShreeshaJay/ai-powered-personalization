@@ -1,6 +1,12 @@
 # Errata
 
-Errata, 2026-11-10. Applies to chapters published before this date; corrected in the republished Chapters 4, 5, 6, 7, 8, 10, 14 and 16.
+Errata, 2026-11-10, updated 2026-11-18. Applies to chapters published before the date of each correction; corrected in the republished Chapters 1 (2026-11-18), 4, 5, 6, 7, 8, 10, 14 and 16.
+
+## Chapter 1: Introduction to Recommender Systems
+
+- **Figure 1.2.** The caption cites Grainger et al. (2024), AI-Powered Search. That book is now in the References: Grainger, T., Turnbull, D., and Irwin, M. (2024). AI-Powered Search. Manning.
+- **Section 1.7.** The roadmap sentence for Chapter 12 now says the chapter explores generative AI for recommender systems, including large language models and models trained on behavior sequences.
+- **Section 1.7.** The roadmap sentence for Chapter 15 now covers monitoring, reliability, and retraining, matching the chapter's title.
 
 ## Chapter 4: Scalable Data Pipelines and Feature Management
 
