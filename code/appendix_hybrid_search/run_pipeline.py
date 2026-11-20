@@ -37,7 +37,7 @@ from run_retrieval import (
     write_manifest,
 )
 from splits import build_splits, load_prefix_texts, write_bundle
-from tune_fusion import apply_frozen, tune
+from tune_fusion import iter_frozen, tune
 
 
 def sync(template: str | None, stage: str, step: str, output: Path) -> None:
@@ -165,13 +165,43 @@ def run_s1(args, output: Path, data, splits: dict) -> None:
             retrieve_splade(model_key, data, queries, product_ids, output, split, depth, device)
 
 
-def _write_fused(output: Path, split: str, fused: dict, depth: int, kind: str) -> None:
+def _write_fused(output: Path, split: str, queries: dict, selection: dict, depth: int, kind: str) -> None:
+    """Fuse, write, and drop one run at a time; a full test split holds only the five input runs."""
     run_dir = output / "runs" / split
-    for name, run in fused.items():
-        path = run_dir / f"{name}.{kind}.trec"
-        if _done(path):
-            continue
-        write_run(path, run, name, depth=None if kind == "p1" else depth)
+    runs = load_runs(run_dir, _systems(), kind)
+    for name, run in iter_frozen(
+        runs,
+        list(queries),
+        selection,
+        depth=depth,
+        skip=lambda name: _done(run_dir / f"{name}.{kind}.trec"),
+    ):
+        write_run(run_dir / f"{name}.{kind}.trec", run, name, depth=None if kind == "p1" else depth)
+        del run
+
+
+def _report_names(selection: dict) -> list[str]:
+    """Systems scored in each summary, once each and in a fixed order.
+
+    The selected systems are already in the list; the test guard refuses a
+    second scoring of the same configuration.
+    """
+    names = _systems() + [
+        "f1_rrf_bm25_dense",
+        "f2_rrf_bm25_splade_naver_dense",
+        "f2_rrf_bm25_splade_prithivi_dense",
+        "f2_rrf_bm25_splade_esci_dense",
+        "f3_rrf_splade_naver_dense",
+        "f3_rrf_splade_prithivi_dense",
+        "f3_rrf_splade_esci_dense",
+        "f4_convex_bm25_dense",
+        "f5_convex_three",
+        "f6_dbsf_three",
+        "f7_rrf_tuned",
+        selection["best_hybrid"],
+        selection["best_single"],
+    ]
+    return list(dict.fromkeys(names))
 
 
 def run_s2(args, output: Path, data, splits: dict) -> None:
@@ -194,27 +224,10 @@ def run_s2(args, output: Path, data, splits: dict) -> None:
         chosen = ids[: args.max_queries] if args.max_queries else ids
         queries = query_map(data, chosen)
         for kind in ("p1", "p2"):
-            runs = load_runs(output / "runs" / split, _systems(), kind)
-            fused = apply_frozen(runs, list(queries), selection, depth=depth)
-            _write_fused(output, split, fused, depth, kind)
-        names = _systems() + [
-            "f1_rrf_bm25_dense",
-            "f2_rrf_bm25_splade_naver_dense",
-            "f2_rrf_bm25_splade_prithivi_dense",
-            "f2_rrf_bm25_splade_esci_dense",
-            "f3_rrf_splade_naver_dense",
-            "f3_rrf_splade_prithivi_dense",
-            "f3_rrf_splade_esci_dense",
-            "f4_convex_bm25_dense",
-            "f5_convex_three",
-            "f6_dbsf_three",
-            "f7_rrf_tuned",
-            selection["best_hybrid"],
-            selection["best_single"],
-        ]
+            _write_fused(output, split, queries, selection, depth, kind)
         summary = output / "summaries" / f"{split}.json"
         if not _done(summary):
-            evaluate_split(output, split, queries, names, selection)
+            evaluate_split(output, split, queries, _report_names(selection), selection)
     if args.labels:
         from llm_labels_convert import convert
 
@@ -282,8 +295,7 @@ def run_s5(args, output: Path, data, splits: dict) -> None:
     shutil.copy2(output / "tuning" / "selection_development.json", repro / "tuning" / "selection_development.json")
     for split, ids in (("development", splits["development_ids"]), ("test", splits["test_ids"])):
         queries = query_map(data, ids[: args.max_queries] if args.max_queries else ids)
-        names = [path.name.split(".")[0] for path in (repro / "runs" / split).glob("*.p2.trec")]
-        evaluate_split(repro, split, queries, names, selection)
+        evaluate_split(repro, split, queries, _report_names(selection), selection)
     comparisons = []
     match = True
     for path in sorted(source_summaries.glob("*.json")):

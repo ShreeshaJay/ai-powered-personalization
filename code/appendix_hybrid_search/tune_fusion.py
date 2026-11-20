@@ -7,6 +7,7 @@ Ties break on condensed nDCG@10, then on the system name.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 
 from config import OFFICIAL_GAINS, load_plan
@@ -181,6 +182,20 @@ def tune(
 
 def apply_frozen(runs: dict[str, Run], query_ids: list[str], selection: dict, depth: int = 1000) -> dict[str, Run]:
     """Apply development-chosen fusion settings. This does not retune."""
+    return dict(iter_frozen(runs, query_ids, selection, depth))
+
+
+def iter_frozen(
+    runs: dict[str, Run],
+    query_ids: list[str],
+    selection: dict,
+    depth: int = 1000,
+    skip=None,
+) -> Iterator[tuple[str, Run]]:
+    """Yield the frozen fused runs one at a time, so a caller can write and drop each.
+
+    ``skip(name)`` returning true leaves that run out without computing it.
+    """
     variant = selection["best_splade_variant"]
     alpha = float(selection["tuned"]["f4_alpha"])
     weights = [float(value) for value in selection["tuned"]["f5_weights"]]
@@ -196,12 +211,12 @@ def apply_frozen(runs: dict[str, Run], query_ids: list[str], selection: dict, de
     for name in present:
         specs[f"f2_rrf_bm25_{name}_dense"] = (["bm25", name, "dense"], lambda legs: rrf(legs, k=60))
         specs[f"f3_rrf_{name}_dense"] = ([name, "dense"], lambda legs: rrf(legs, k=60))
-    fused: dict[str, Run] = {}
     for name, (legs, function) in specs.items():
         if any(leg not in runs for leg in legs):
+            continue
+        if skip is not None and skip(name):
             continue
         run: Run = {}
         for query_id in query_ids:
             run[query_id] = function([runs[leg].get(query_id, []) for leg in legs])[:depth]
-        fused[name] = run
-    return fused
+        yield name, run
