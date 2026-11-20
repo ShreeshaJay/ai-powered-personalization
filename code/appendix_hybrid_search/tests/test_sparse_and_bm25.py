@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from bm25_search import BM25Index
 from fusion import ranking_from_scores
-from splade_search import relative_score_gap, score_csc, score_torch, to_csr, top_ids
+from splade_search import relative_score_gap, score_csc, score_rows, score_torch, to_csr, top_ids
 
 
 class SparseAndBM25Tests(unittest.TestCase):
@@ -54,6 +54,26 @@ class SparseAndBM25Tests(unittest.TestCase):
             walked = score_csc(matrix, terms, query[row, terms])
             self.assertLess(relative_score_gap(walked, torch_scores[row]), 1e-4)
             self.assertEqual(top_ids(product_ids, walked, 10), top_ids(product_ids, torch_scores[row], 10))
+
+    def test_score_rows_is_identical_for_csr_and_csc(self) -> None:
+        rng = np.random.default_rng(2)
+        n_docs, vocab = 200, 60
+        rows, cols, data = [], [], []
+        for doc in range(n_docs):
+            for term in rng.choice(vocab, size=8, replace=False):
+                rows.append(doc)
+                cols.append(int(term))
+                data.append(float(rng.random()))
+        coo = sp.coo_matrix((np.array(data, dtype=np.float32), (rows, cols)), shape=(n_docs, vocab))
+        csc, csr = coo.tocsc(), coo.tocsr()
+        for trial in range(20):
+            query = sp.csr_matrix(
+                (rng.random(6).astype(np.float32), (np.zeros(6, dtype=int), rng.choice(vocab, 6, replace=False))),
+                shape=(1, vocab),
+            )
+            chosen = rng.choice(n_docs, size=int(rng.integers(1, 30)), replace=False).tolist()
+            self.assertEqual(score_rows(csr, query, chosen).tobytes(), score_rows(csc, query, chosen).tobytes())
+        self.assertEqual(len(score_rows(csr, query, [])), 0)
 
     def test_bm25_candidate_lookup_matches_full_scores(self) -> None:
         ids = ["b", "a", "c", "d"]

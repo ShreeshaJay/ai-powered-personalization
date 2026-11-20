@@ -217,12 +217,16 @@ def search_csc(
 
 
 def score_rows(
-    docs_csc: sp.csc_matrix,
+    docs: sp.spmatrix,
     query_csr_row: sp.csr_matrix,
     row_indices: list[int],
 ) -> np.ndarray:
-    """Dot one query with a subset of document rows."""
+    """Dot one query with a subset of document rows.
+
+    Pass a CSR matrix when calling this per query: selecting rows from a CSC
+    matrix scans every stored value, while CSR touches only the chosen rows.
+    """
     if not row_indices:
         return np.zeros(0, dtype=np.float64)
-    subset = docs_csc[row_indices]
+    subset = docs[row_indices]
     return np.asarray(query_csr_row.dot(subset.T).todense()).ravel()

@@ -229,6 +229,7 @@ def retrieve_splade(
         p1_rows = {product_id: row for row, product_id in enumerate(judged)}
         text_role = "qdrant_sensitivity"
         text_hash = sha256_text("\n".join(sensitivity) + ("\n" if sensitivity else ""))
+    p1_docs = p1_docs.tocsr()
     p1: Run = {}
     for row, (query_id, item) in enumerate(ordered):
         positions = []
