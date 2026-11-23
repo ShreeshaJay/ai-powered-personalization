@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from bm25_search import BM25Index
 from fusion import ranking_from_scores
-from splade_search import relative_score_gap, score_csc, score_rows, score_torch, to_csr, top_ids
+from splade_search import encode_documents, relative_score_gap, score_csc, score_rows, score_torch, to_csr, top_ids
 
 
 class SparseAndBM25Tests(unittest.TestCase):
@@ -74,6 +74,40 @@ class SparseAndBM25Tests(unittest.TestCase):
             chosen = rng.choice(n_docs, size=int(rng.integers(1, 30)), replace=False).tolist()
             self.assertEqual(score_rows(csr, query, chosen).tobytes(), score_rows(csc, query, chosen).tobytes())
         self.assertEqual(len(score_rows(csr, query, [])), 0)
+
+    def test_document_chunks_are_reused_only_for_the_same_products(self) -> None:
+        import tempfile
+
+        class Encoder:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def encode_document(self, texts, **_kwargs):
+                self.calls += 1
+                return sp.csr_matrix(np.array([[float(len(text)), float(text.count("a"))] for text in texts]))
+
+        first_ids = [f"d{index}" for index in range(5)]
+        first_texts = ["a" * (index + 1) for index in range(5)]
+        second_ids = [f"t{index}" for index in range(7)]
+        second_texts = ["b" * (index + 10) for index in range(7)]
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder) / "cache"
+            encoder = Encoder()
+            first = encode_documents(encoder, first_ids, first_texts, directory, 2, 16, checkpoint_every=2)
+            self.assertEqual(first.shape[0], 5)
+            calls = encoder.calls
+            (directory / "documents.npz").unlink()
+            again = encode_documents(encoder, first_ids, first_texts, directory, 2, 16, checkpoint_every=2)
+            self.assertEqual(encoder.calls, calls)
+            self.assertEqual((again != first).nnz, 0)
+            second = encode_documents(encoder, second_ids, second_texts, directory, 2, 16, checkpoint_every=2)
+            expected = np.array([[float(len(text)), 0.0] for text in second_texts])
+            self.assertTrue(np.array_equal(second.toarray(), expected))
+            (directory / "chunk_ids.sha256").unlink()
+            (directory / "documents.npz").unlink()
+            calls = encoder.calls
+            encode_documents(encoder, second_ids, second_texts, directory, 2, 16, checkpoint_every=2)
+            self.assertEqual(encoder.calls, calls + 4)
 
     def test_bm25_candidate_lookup_matches_full_scores(self) -> None:
         ids = ["b", "a", "c", "d"]

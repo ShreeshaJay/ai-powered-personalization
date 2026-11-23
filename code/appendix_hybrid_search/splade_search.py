@@ -8,6 +8,7 @@ not be redistributed.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -162,25 +163,41 @@ def encode_documents(
     max_length: int,
     checkpoint_every: int = 50_000,
 ) -> sp.csc_matrix:
-    """Encode documents in resumable chunks and store one CSC matrix."""
+    """Encode documents in resumable chunks and store one CSC matrix.
+
+    Chunks are reused only when ``chunk_ids.sha256`` records the same product
+    list and chunk size; the same directory may hold chunks for another list.
+    """
     directory.mkdir(parents=True, exist_ok=True)
     final_path = directory / "documents.npz"
     ids_path = directory / "product_ids.json"
     if final_path.exists() and ids_path.exists():
         saved_ids = json.loads(ids_path.read_text(encoding="utf-8"))
         if saved_ids == product_ids:
-            return sp.load_npz(final_path).tocsc()
+            matrix = sp.load_npz(final_path).tocsc()
+            if matrix.shape[0] == len(product_ids):
+                return matrix
+    digest = hashlib.sha256(
+        (f"{checkpoint_every}\n" + "\n".join(product_ids)).encode("utf-8")
+    ).hexdigest()
+    digest_path = directory / "chunk_ids.sha256"
+    reuse = digest_path.exists() and digest_path.read_text(encoding="utf-8").strip() == digest
+    digest_path.write_text(digest + "\n", encoding="utf-8")
     blocks = []
     for start in range(0, len(texts), checkpoint_every):
         chunk_path = directory / f"chunk_{start:08d}.npz"
         end = min(start + checkpoint_every, len(texts))
-        if chunk_path.exists():
-            blocks.append(sp.load_npz(chunk_path).tocsr())
-            continue
+        if reuse and chunk_path.exists():
+            block = sp.load_npz(chunk_path).tocsr()
+            if block.shape[0] == end - start:
+                blocks.append(block)
+                continue
         block = encode_texts(model, texts[start:end], "document", batch_size, max_length)
         sp.save_npz(chunk_path, block)
         blocks.append(block)
     matrix = sp.vstack(blocks, format="csc") if blocks else sp.csc_matrix((0, 0))
+    if matrix.shape[0] != len(product_ids):
+        raise RuntimeError(f"Encoded {matrix.shape[0]} rows for {len(product_ids)} products in {directory}.")
     sp.save_npz(final_path, matrix)
     ids_path.write_text(json.dumps(product_ids), encoding="utf-8")
     return matrix
