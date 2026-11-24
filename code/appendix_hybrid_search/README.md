@@ -1,6 +1,6 @@
 # Hybrid Search with Vector Databases
 
-This folder is the companion code for Appendix B of *AI-Powered Personalization*. It retrieves products for shopping queries with BM25, three public SPLADE checkpoints, and one dense encoder, then fuses those lists and scores them on the human ESCI labels.
+This folder is the companion code for [Appendix B: Hybrid Search with Vector Databases](../../chapters/Appendix%20B/) of *AI-Powered Personalization*. It retrieves products for shopping queries with BM25, three public SPLADE checkpoints, and one dense encoder, then fuses those lists and scores them on the human ESCI labels.
 
 The catalog is the US English `large_version` of the Amazon shopping-queries dataset. Task 1 of that dataset used `small_version`. This appendix uses `large_version` for every retriever.
 

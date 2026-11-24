@@ -60,7 +60,7 @@ While this is not a code-oriented book, there is just enough code within each ch
 
 ### Appendices
 - **Appendix A: Domain-Specialized Encoders as Sentence-Embedding Models**
-- **Appendix B: Hybrid Search with Vector Databases**
+- **[Appendix B: Hybrid Search with Vector Databases](chapters/Appendix%20B/)**
 - **Appendix C: Agentic Autoresearch for Recommender Systems**
 - **Appendix D: Benchmarking Structured-Output Scorers**
 
