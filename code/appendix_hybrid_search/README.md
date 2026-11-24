@@ -107,6 +107,12 @@ python run_pipeline.py --stages s1,s2,s5 --data-dir /content/esci --output-dir o
 
 The notebooks `colab/encode_and_retrieve.ipynb` and `colab/finetune_splade.ipynb` call the same runner. L4 batch sizes are in `analysis_plan.yaml`: 32 for the BERT SPLADE checkpoints, 64 for the DistilBERT SPLADE checkpoint and the cross-encoder, and 256 for the dense encoder.
 
+### Measured run
+
+The book's numbers come from one full-catalog run of S1, S2, and S5 on a Colab L4, under `analysis_plan.yaml` SHA-256 `36e8fe41…`. They are in `outputs/metrics/l4_full/`: the development and test summaries and query slices, the development fusion selection, the manifest of each system and split, the test-scoring log that records each configuration scored once, the reproduction report, and the environment. S3 and S4 were not run.
+
+The run resumed across several sessions, so its steps ran at more than one commit. `provenance.json` records which commit produced each step. The changes between those commits fixed speed and resume bugs without changing any score, and the analysis plan did not change. The runs, indexes, and per-query files are not published. Naver vectors must not be redistributed.
+
 ## Labels
 
 `provenance/llm_labeler.py` refuses to run. An earlier draft called a paid language-model API. That client is not included, and this folder does not call one. `llm_labels_convert.py` only reads a label file you already have. Protocol P3 and Exercise 4 are not reported. The saved label file does not store the sampling parameters, so the query sample is not reconstructed.

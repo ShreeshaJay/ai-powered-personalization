@@ -1,0 +1,19 @@
+{
+ "appendix": "B",
+ "title": "Hybrid Search with Vector Databases",
+ "analysis_plan_sha256": "36e8fe4156c49ec606941f2b206fd0fa5cb48c3611c0686d2e94a6183da49433",
+ "analysis_plan_unchanged_from_c2fcd37_to_a33b05a": true,
+ "gpu": "NVIDIA L4",
+ "python": "3.13.16",
+ "torch": "2.14.1+cu130",
+ "completed_git_head": "a33b05aaa4ad6cbb82c5a0c9c88579ae05b413f5",
+ "commits": {
+  "development_dense_and_three_splade_models": "c2fcd37a6f72bb9907c13113a2746aaead4c23cf",
+  "test_dense": "c2fcd37a6f72bb9907c13113a2746aaead4c23cf",
+  "test_splade_naver_and_splade_prithivi": "b3d38aa035002bde939a65b2d48b6fbe80f8ae96",
+  "test_splade_esci_bm25_both_splits_tuning_fusion_s2_s5": "a33b05aaa4ad6cbb82c5a0c9c88579ae05b413f5"
+ },
+ "changes_between_commits": "Performance fixes with identical outputs (partial top-k ranking, one sparse tensor per search, CSR row selection), s2 scores each system once and streams fusion, s5 scores the same ordered list as s2, and SPLADE chunk caches are keyed by product list. analysis_plan.yaml is unchanged.",
+ "reproduction_report_match": true,
+ "naver_vectors_redistributed": false
+}

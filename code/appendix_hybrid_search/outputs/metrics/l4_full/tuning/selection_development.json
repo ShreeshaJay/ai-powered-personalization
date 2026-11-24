@@ -1,0 +1,87 @@
+{
+  "best_hybrid": "f5_convex_three",
+  "best_single": "splade_naver",
+  "best_splade_variant": "splade_naver",
+  "hybrid_scores": {
+    "f1_rrf_bm25_dense": {
+      "condensed_ndcg_at_10": 0.8393425256170294,
+      "recall_at_100_exact": 0.6281344833678799
+    },
+    "f2_rrf_bm25_splade_esci_dense": {
+      "condensed_ndcg_at_10": 0.8551804905525073,
+      "recall_at_100_exact": 0.6671807616666836
+    },
+    "f2_rrf_bm25_splade_naver_dense": {
+      "condensed_ndcg_at_10": 0.8602606747951751,
+      "recall_at_100_exact": 0.6837851406810436
+    },
+    "f2_rrf_bm25_splade_prithivi_dense": {
+      "condensed_ndcg_at_10": 0.8624269473354164,
+      "recall_at_100_exact": 0.6859110864521919
+    },
+    "f3_rrf_splade_esci_dense": {
+      "condensed_ndcg_at_10": 0.8457320297842948,
+      "recall_at_100_exact": 0.6361324234417893
+    },
+    "f3_rrf_splade_naver_dense": {
+      "condensed_ndcg_at_10": 0.8614884962823821,
+      "recall_at_100_exact": 0.6760429316058196
+    },
+    "f3_rrf_splade_prithivi_dense": {
+      "condensed_ndcg_at_10": 0.8615219275456495,
+      "recall_at_100_exact": 0.6784122233900367
+    },
+    "f4_convex_bm25_dense": {
+      "condensed_ndcg_at_10": 0.8402625194931244,
+      "recall_at_100_exact": 0.6317570012102459
+    },
+    "f5_convex_three": {
+      "condensed_ndcg_at_10": 0.8663216983760279,
+      "recall_at_100_exact": 0.6932408718337556
+    },
+    "f6_dbsf_three": {
+      "condensed_ndcg_at_10": 0.8622981048220306,
+      "recall_at_100_exact": 0.678576930530018
+    },
+    "f7_rrf_tuned": {
+      "condensed_ndcg_at_10": 0.8602606747951751,
+      "recall_at_100_exact": 0.6837851406810436
+    }
+  },
+  "placeholders": {
+    "{best_hybrid}": "f5_convex_three",
+    "{best_single}": "splade_naver"
+  },
+  "single_scores": {
+    "bm25": {
+      "condensed_ndcg_at_10": 0.8004254327122253,
+      "recall_at_100_exact": 0.5719281710033256
+    },
+    "dense": {
+      "condensed_ndcg_at_10": 0.811110424584954,
+      "recall_at_100_exact": 0.5405565767601281
+    },
+    "splade_esci": {
+      "condensed_ndcg_at_10": 0.8303684413188852,
+      "recall_at_100_exact": 0.6066067051027565
+    },
+    "splade_naver": {
+      "condensed_ndcg_at_10": 0.8636081207711708,
+      "recall_at_100_exact": 0.680028736359296
+    },
+    "splade_prithivi": {
+      "condensed_ndcg_at_10": 0.8616579016105177,
+      "recall_at_100_exact": 0.6760417069167935
+    }
+  },
+  "split": "development",
+  "tuned": {
+    "f4_alpha": 0.5,
+    "f5_weights": [
+      0.2,
+      0.6000000000000001,
+      0.2
+    ],
+    "f7_k": 60
+  }
+}

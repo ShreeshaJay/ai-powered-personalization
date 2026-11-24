@@ -6,14 +6,17 @@ cache/
 *.index
 *.faiss
 
-# Generated runs and metrics. The results directory is the only place a
-# later full-catalog run may leave small CSV and JSON files.
+# Generated runs and metrics. Only small summary files are published:
+# outputs/results/ and the full-catalog run's metrics under outputs/metrics/l4_full/.
 outputs/*
 !outputs/results/
 outputs/results/*
 !outputs/results/.gitkeep
 !outputs/results/*.csv
 !outputs/results/*.json
+!outputs/metrics/
+outputs/metrics/*
+!outputs/metrics/l4_full/
 
 # Saved labels and disagreement scores are not part of this folder.
 **/llm_labels.json

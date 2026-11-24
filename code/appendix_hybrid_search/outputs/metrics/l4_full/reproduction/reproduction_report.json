@@ -1,0 +1,13 @@
+{
+  "files": [
+    {
+      "file": "development.json",
+      "match": true
+    },
+    {
+      "file": "test.json",
+      "match": true
+    }
+  ],
+  "match": true
+}
