@@ -118,60 +118,15 @@ Usage:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-
-@dataclass
-class ESMMConfig:
-    """Configuration for ESMM model.
-    
-    Attributes:
-        vocab_size: Size of feature ID vocabulary (hash buckets)
-        num_features: Number of feature slots per sample
-        embed_dim: Embedding dimension for sparse features
-        tower_dims: Hidden layer dimensions for CTR/CVR towers
-        dropout: Dropout rate
-        use_bn: Whether to use batch normalization
-        ctr_loss_weight: Weight for CTR loss
-        ctcvr_loss_weight: Weight for CTCVR loss
-        use_auxiliary_cvr_loss: Whether to add auxiliary CVR loss on clicked samples
-        auxiliary_cvr_weight: Weight for auxiliary CVR loss
-        use_focal_loss: Whether to use focal loss for class imbalance
-        focal_alpha: Focal loss alpha parameter
-        focal_gamma: Focal loss gamma parameter
-    """
-    # Feature configuration
-    vocab_size: int = 100_000
-    num_features: int = 50
-    
-    # Embedding
-    embed_dim: int = 16
-    
-    # Tower architecture
-    tower_dims: List[int] = field(default_factory=lambda: [256, 128, 64])
-    dropout: float = 0.2
-    use_bn: bool = True
-    
-    # Loss configuration
-    ctr_loss_weight: float = 1.0
-    ctcvr_loss_weight: float = 1.0
-    
-    # EXPERIMENTAL: Auxiliary CVR loss
-    # NOT in original ESMM paper - this is our own extension based on gradient analysis.
-    # Hypothesis: May help when CTR is very low and CVR tower gets weak gradients.
-    # Disabled by default to match original paper.
-    use_auxiliary_cvr_loss: bool = False
-    auxiliary_cvr_weight: float = 0.1
-    
-    # Focal loss for class imbalance
-    use_focal_loss: bool = True
-    focal_alpha: float = 0.25
-    focal_gamma: float = 2.0
-    
-    # Training
-    learning_rate: float = 1e-3
-    weight_decay: float = 1e-5
+try:
+    from config import ESMMConfig
+except ImportError:  # python models/esmm.py (script dir is on sys.path)
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from config import ESMMConfig
 
 
 class Tower(nn.Module):

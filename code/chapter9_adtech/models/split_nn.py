@@ -44,58 +44,21 @@ Usage:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict
+
+try:
+    from config import SplitNNConfig
+except ImportError:  # python models/split_nn.py (script dir is on sys.path)
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from config import SplitNNConfig
 
 
 # =============================================================================
 # Configuration (matches FedAds paper Sec 5.1.4)
+# SplitNNConfig is defined once in config.py and imported above.
 # =============================================================================
-
-@dataclass
-class SplitNNConfig:
-    """Configuration for Split Neural Network.
-    
-    Defaults match the FedAds paper (Wei et al., SIGIR 2023).
-    
-    Paper Table 3 expected results:
-        Local (label party only): AUC = 0.609
-        VanillaVFL:               AUC = 0.620
-        ORALE (centralized):      AUC = 0.658
-    """
-    # Vocabulary sizes for feature hashing
-    local_vocab_size: int = 50_000
-    fed_vocab_size: int = 50_000
-    
-    # Feature counts (from public FedAds CSV)
-    n_local_features: int = 17
-    n_fed_features: int = 5
-    
-    # Embedding: 8-dim per feature (paper Sec 5.1.4)
-    embed_dim: int = 8
-    
-    # f_N (non-label/publisher): 2-layer DNN with output sizes [128, 32]
-    local_layers: List[int] = field(default_factory=lambda: [128])
-    local_hidden_dim: int = 32
-    
-    # f_L bottom (label/advertiser): 2-layer DNN with output sizes [256, 128]
-    fed_layers: List[int] = field(default_factory=lambda: [256])
-    fed_hidden_dim: int = 128
-    
-    # f_L top (aggregation): single layer with sigmoid, no hidden layers
-    agg_layers: List[int] = field(default_factory=list)
-    
-    # Paper does not mention dropout or weight decay
-    dropout: float = 0.0
-    use_bn: bool = True
-    
-    # Standard cross-entropy (paper does not use focal loss)
-    learning_rate: float = 1e-3
-    weight_decay: float = 0.0
-    use_focal_loss: bool = False
-    focal_alpha: float = 0.25   # Only used if use_focal_loss=True
-    focal_gamma: float = 2.0    # Only used if use_focal_loss=True
-
 
 # Training defaults from paper
 PAPER_TRAINING_DEFAULTS = {

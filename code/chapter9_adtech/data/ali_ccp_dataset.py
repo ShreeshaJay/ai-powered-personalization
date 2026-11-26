@@ -390,8 +390,8 @@ if __name__ == "__main__":
         for k, v in batch.items():
             print(f"  {k}: {v.shape}")
         
-        print("\n✅ All tests passed!")
+        print("\nOK: All tests passed!")
         
     except FileNotFoundError as e:
-        print(f"\n❌ {e}")
+        print(f"\nERROR: {e}")
 

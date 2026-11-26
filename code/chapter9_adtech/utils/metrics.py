@@ -721,7 +721,7 @@ if __name__ == "__main__":
     print(f"  GAUC: {gauc:.4f}")
     print(f"  Global AUC: {compute_auc(labels, predictions):.4f}")
     print(f"  Valid users: {stats['valid_users']}/{stats['n_users']}")
-    print(f"  Mean user AUC: {stats['mean_user_auc']:.4f} ± {stats['std_user_auc']:.4f}")
+    print(f"  Mean user AUC: {stats['mean_user_auc']:.4f} +/- {stats['std_user_auc']:.4f}")
     
     # Test lift curve
     print("\n" + "=" * 50)

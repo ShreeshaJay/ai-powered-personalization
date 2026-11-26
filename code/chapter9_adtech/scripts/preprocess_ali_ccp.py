@@ -646,11 +646,11 @@ Examples:
   python preprocess_ali_ccp.py --n_samples 2000000
 
 Dataset size reference (full = 42.3M samples):
-  --pct 0.1  →  ~42K samples (quick test)
-  --pct 1    →  ~423K samples
-  --pct 5    →  ~2.1M samples (recommended for 16GB RAM)
-  --pct 10   →  ~4.2M samples
-  --pct 100  →  ~42.3M samples (requires 32GB+ RAM)
+  --pct 0.1  ->  ~42K samples (quick test)
+  --pct 1    ->  ~423K samples
+  --pct 5    ->  ~2.1M samples (recommended for 16GB RAM)
+  --pct 10   ->  ~4.2M samples
+  --pct 100  ->  ~42.3M samples (requires 32GB+ RAM)
         """
     )
     
@@ -746,7 +746,7 @@ Dataset size reference (full = 42.3M samples):
         output_dir=output_dir,
     )
     
-    print("\n✅ Preprocessing complete! You can now use the clean parquet files for training.")
+    print("\nOK: Preprocessing complete! You can now use the clean parquet files for training.")
 
 
 if __name__ == "__main__":

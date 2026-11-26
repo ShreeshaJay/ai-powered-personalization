@@ -87,7 +87,8 @@ def parse_args():
                         help='Tower hidden dimensions (comma-separated)')
     parser.add_argument('--dropout', type=float, default=0.2,
                         help='Dropout rate')
-    parser.add_argument('--use_focal_loss', action='store_true', default=True,
+    parser.add_argument('--use_focal_loss', action=argparse.BooleanOptionalAction,
+                        default=True,
                         help='Use focal loss for class imbalance')
     parser.add_argument('--use_auxiliary_cvr_loss', action='store_true',
                         help='Add auxiliary CVR loss on clicked samples')
