@@ -27,6 +27,10 @@ Usage:
 
     # Fine-tune on Amazon KDD with custom hyperparams
     python finetune_contrastive.py --dataset amazon --epochs 5 --batch_size 256
+
+    # Hold-out and training seed (default 42). Pass the same value to
+    # evaluate_finetuned.py --seed.
+    python finetune_contrastive.py --dataset amazon --seed 0
 """
 
 import argparse
@@ -499,12 +503,18 @@ def main():
     parser.add_argument("--max_train_pairs", type=int, default=None,
                         help="Cap training pairs")
     parser.add_argument("--output_dir", type=str, default=None)
+    parser.add_argument(
+        "--seed", type=int, default=DEFAULT_CONTRASTIVE_CONFIG.random_seed,
+        help="Seed for the session/user hold-out and the training RNGs "
+             "(default: 42). Pass the same value to evaluate_finetuned.py.",
+    )
 
     args = parser.parse_args()
 
     config = DEFAULT_CONTRASTIVE_CONFIG
 
-    # Allow CLI overrides
+    # Allow CLI overrides. Seed 0 must be applied; do not treat it as missing.
+    config.random_seed = args.seed
     if args.base_model:
         config.base_model = args.base_model
     if args.epochs:
@@ -532,7 +542,7 @@ def main():
     print("=" * 80)
     print(f"Fine-tuned model saved to: {model_dir}")
     print(f"\nNext step — evaluate with:")
-    print(f"  python evaluate_finetuned.py --dataset {args.dataset}")
+    print(f"  python evaluate_finetuned.py --dataset {args.dataset} --seed {config.random_seed}")
     print("=" * 80)
 
 

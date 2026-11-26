@@ -25,6 +25,9 @@ Usage:
 
     # Point to a specific fine-tuned checkpoint
     python evaluate_finetuned.py --dataset amazon --finetuned_path outputs/models/...
+
+    # Same --seed as finetune_contrastive.py (default 42)
+    python evaluate_finetuned.py --dataset amazon --seed 0
 """
 
 import argparse
@@ -39,6 +42,7 @@ import logging
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from cache_tags import amazon_finetuned_cache_tag, safe_model_tag as _safe_model_tag
 from config import (
     DEFAULT_CONTRASTIVE_CONFIG,
     DEFAULT_AMAZON_KDD_CONFIG,
@@ -65,11 +69,6 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # Encoding helpers
 # ============================================================================
-
-def _safe_model_tag(model_path_or_name: str) -> str:
-    """Create a filesystem-safe tag from a model name or path."""
-    return str(model_path_or_name).replace("/", "_").replace("\\", "_").replace(" ", "_")
-
 
 def encode_items(
     model_path_or_name: str,
@@ -344,7 +343,7 @@ def compare_amazon(
     results_rows.append(zs_metrics)
 
     # --- Fine-tuned ---
-    ft_tag = f"amazon_kdd_embeddings_finetuned_{safe_base}"
+    ft_tag = amazon_finetuned_cache_tag(base_model, finetuned_path)
     ft_emb, ft_ids = encode_items(str(finetuned_path), item_texts, ft_tag,
                                    force_recompute=force_recompute)
 
@@ -459,8 +458,14 @@ def main():
     parser.add_argument("--max_queries", type=int, default=20000)
     parser.add_argument("--force_recompute", action="store_true",
                         help="Ignore cached embeddings and re-encode")
+    parser.add_argument(
+        "--seed", type=int, default=DEFAULT_CONTRASTIVE_CONFIG.random_seed,
+        help="Hold-out seed. Must match finetune_contrastive.py --seed "
+             "(default: 42).",
+    )
 
     args = parser.parse_args()
+    DEFAULT_CONTRASTIVE_CONFIG.random_seed = args.seed
 
     # Resolve fine-tuned path
     if args.finetuned_path:

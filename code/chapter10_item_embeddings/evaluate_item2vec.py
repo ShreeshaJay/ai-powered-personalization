@@ -37,6 +37,7 @@ import logging
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from cache_tags import amazon_finetuned_cache_tag
 from config import (
     DEFAULT_AMAZON_KDD_CONFIG,
     DEFAULT_ITEM2VEC_CONFIG,
@@ -215,7 +216,8 @@ def run_comparison(
         models[f"Zero-shot ({base_model.split('/')[-1]})"] = (zs_emb, zs_ids)
 
     if include_finetuned:
-        ft_tag = f"amazon_kdd_embeddings_finetuned_{safe_base}"
+        ft_dir = MODELS_DIR / "contrastive_finetuned" / f"{base_model.replace('/', '_')}_amazon"
+        ft_tag = amazon_finetuned_cache_tag(base_model, ft_dir)
         try:
             ft_emb, ft_ids = load_text_embeddings(ft_tag)
             models[f"Fine-tuned ({base_model.split('/')[-1]})"] = (ft_emb, ft_ids)
