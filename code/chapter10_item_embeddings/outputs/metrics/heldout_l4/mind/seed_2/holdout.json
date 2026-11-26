@@ -1,0 +1,14 @@
+{
+  "dataset": "mind",
+  "splitter": "data/holdout.py:split_mind_users",
+  "key": "user_id",
+  "n_rows": 156965,
+  "n_train_rows": 125906,
+  "n_eval_rows": 31059,
+  "n_train_users": 40010,
+  "n_eval_users": 9990,
+  "n_key_intersection": 0,
+  "seed": 2,
+  "fraction": 0.2,
+  "hash": "blake2b(f'{seed}:{key}', digest_size=8) / 2**64 < fraction"
+}

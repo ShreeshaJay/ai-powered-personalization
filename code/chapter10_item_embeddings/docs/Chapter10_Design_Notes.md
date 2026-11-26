@@ -589,26 +589,30 @@ MLM pre-training alone does not yield useful sentence embeddings.
 Item2Vec trails zero-shot text by ~6 points MRR. See Section 10.5 design
 notes below for detailed analysis.
 
-### Section 10.6: Contrastive Fine-Tuning (Amazon KDD, 20K queries)
+### Section 10.6: Contrastive Fine-Tuning (held-out, seeds 0–2)
 
-> **Measured before the evaluation hold-out.** These fine-tuned numbers
-> come from the earlier protocol, in which `evaluate_finetuned.py` built its
-> ground truth from the same sessions the training pairs came from. They
-> overstate the fine-tuned model's gain. The scripts now hold out sessions
-> (Amazon KDD) or users (MIND); these tables will be replaced after a re-run.
+The fine-tuned column is the checkpoint the trainer saves (best validation
+cosine). Cells are the mean, with min–max in parentheses, rounded to 4
+decimal places from `outputs/metrics/heldout_l4/aggregate.json`.
 
-| Model | Dim | P@1 | MRR | R@50 | vs Zero-Shot |
-|-------|-----|-----|-----|------|-------------|
-| Zero-shot (MiniLM) | 384 | 0.222 | 0.309 | 0.619 | baseline |
-| Fine-tuned (MNR) | 384 | 0.224 | 0.319 | 0.668 | +1 MRR, +4.9 R@50 |
+| Metric | Zero-shot | Fine-tuned |
+|--------|-----------|------------|
+| P@1 | 0.1647 (0.1630–0.1657) | 0.1641 (0.1625–0.1650) |
+| R@1 | 0.1428 (0.1414–0.1434) | 0.1403 (0.1390–0.1412) |
+| R@50 | 0.5381 (0.5354–0.5410) | 0.5873 (0.5834–0.5900) |
+| nDCG@10 | 0.2646 (0.2628–0.2660) | 0.2705 (0.2674–0.2723) |
+| MRR | 0.2443 (0.2423–0.2455) | 0.2506 (0.2476–0.2525) |
+
+Amazon recall@50 is highest at epoch 3 on every seed, not at the saved
+checkpoint. MIND category precision@1 at that checkpoint is 0.8754
+(0.8706–0.8832) against a 0.7836 zero-shot, while category recall@50 stays
+at the ceiling (0.9931 zero-shot, 0.9947 fine-tuned). MIND co-click
+precision@1 stays near 0.007. Full grids are in the per-seed JSON files.
 
 ### 3-Way Comparison (All sections combined)
 
-> **Measured before the evaluation hold-out.** These fine-tuned numbers
-> come from the earlier protocol, in which `evaluate_finetuned.py` built its
-> ground truth from the same sessions the training pairs came from. They
-> overstate the fine-tuned model's gain. The scripts now hold out sessions
-> (Amazon KDD) or users (MIND); these tables will be replaced after a re-run.
+> Pre-hold-out comparison, kept as recorded. The held-out Section 10.6
+> numbers are in the table above.
 
 | Model | Signal | P@1 | MRR | R@50 |
 |-------|--------|-----|-----|------|
@@ -616,9 +620,10 @@ notes below for detailed analysis.
 | Zero-shot SBERT (10.4) | Content only | 0.222 | 0.309 | 0.619 |
 | Fine-tuned SBERT (10.6) | Content + Behavior | **0.224** | **0.319** | **0.668** |
 
-The progression validates the chapter's pedagogical arc: each section builds
-on the last.  Content alone is strong; behavior alone is weaker on this
-metadata-rich dataset; combining both (fine-tuning) yields the best results.
+The table above is the pre-hold-out comparison and is left as recorded.
+Content alone is strong on this metadata-rich catalog, and behavior alone
+is weaker. The held-out Section 10.6 numbers do not show fine-tuning ahead
+of zero-shot at precision@1.
 
 ### Section 10.7: Multi-Modal Fusion (Music4all, 5K queries, 109K tracks)
 
@@ -762,7 +767,7 @@ Item2Vec underperforms zero-shot text on Amazon KDD (rich metadata), but this re
 The median Amazon KDD item appears in only 5 sessions. Each item generates ~20-50 Skip-gram training examples. Compare this to SBERT's pre-training on billions of text examples. When behavioral signal is sparse, a model that starts from scratch (Item2Vec) cannot match one that leverages massive pre-trained knowledge (SBERT).
 
 ### 8. Content and Behavior Capture Different Signals
-Text embeddings capture semantic similarity ("blue fleece blanket" ≈ "grey sherpa throw"). Behavioral embeddings capture complementary associations ("phone case" ≈ "screen protector"). Neither subsumes the other. The 3-way comparison shows that fine-tuning (content + behavior) beats both pure approaches, motivating the fusion strategies in Section 10.7. Chapter 11 does not cover learned fusion weights.
+Text embeddings capture semantic similarity ("blue fleece blanket" ≈ "grey sherpa throw"). Behavioral embeddings capture complementary associations ("phone case" ≈ "screen protector"). Neither subsumes the other. The pre-hold-out 3-way table shows fine-tuning ahead of both; the held-out Section 10.6 remeasure does not show that at Amazon precision@1. Section 10.7 is a separate content-fusion study. Chapter 11 does not cover learned fusion weights.
 
 ### 9. More Modalities ≠ Better Embeddings
 On Music4all, genre TF-IDF alone (MRR 0.358) beats every fusion method — PCA (0.318) and CLIP (0.228). Adding weaker modalities (audio, lyrics) dilutes the strongest one. Always evaluate single modalities first before investing in fusion.
@@ -954,12 +959,12 @@ length 5.1, each item generates ~20-50 training examples. Compare this to
 SBERT which was pre-trained on billions of text examples. The behavioral
 signal is simply thinner than the pre-trained text knowledge.
 
-**5. The fine-tuned model (10.6) combines the best of both worlds:**
+**5. Fine-tuning adds a behavioral signal on top of the text encoder.**
 
-Fine-tuning takes a strong text baseline and injects behavioral signal on
-top. The result (MRR 0.319) beats both pure text (0.309) and pure behavior
-(0.247). This validates the chapter's progression: content → behavior →
-content+behavior.
+The 3-way table above is the pre-hold-out run. The held-out remeasure
+(Section 10.6) keeps Amazon top-1 flat or slightly lower than zero-shot
+and raises recall as the cutoff grows. It does not show the saved
+checkpoint beating both pure text and Item2Vec at every metric.
 
 ### Pedagogical Takeaways
 
@@ -1044,27 +1049,32 @@ The key comparison is **zero-shot vs fine-tuned on the exact same items**:
 This eliminates confounders — any improvement is directly attributable to
 the contrastive training objective.
 
-### Actual Results (Amazon KDD)
+### Actual Results (held-out Amazon KDD and MIND)
 
-Training: 450K pairs, 3 epochs, batch_size=128, MNR loss, fp16 on GPU.
-Best checkpoint at step 3500 (end of epoch 1), mild overfitting in epochs 2-3.
+Training: 450,000 Amazon pairs or 180,000 MIND pairs, 3 epochs, batch size
+128, MNR loss, fp16 on an L4. Seeds 0, 1, and 2. The trainer saves the
+highest validation cosine. Figures are the seed mean at that checkpoint,
+from `outputs/metrics/heldout_l4/aggregate.json`.
 
-| Metric | Zero-Shot | Fine-Tuned | Delta |
-|--------|-----------|-----------|-------|
-| P@1 | 0.222 | 0.224 | +0.002 |
-| MRR | 0.309 | 0.319 | +0.010 |
-| R@50 | 0.619 | 0.668 | +0.049 |
+| Metric | Zero-shot | Fine-tuned |
+|--------|-----------|------------|
+| Amazon P@1 | 0.1647 | 0.1641 |
+| Amazon R@50 | 0.5381 | 0.5873 |
+| Amazon MRR | 0.2443 | 0.2506 |
+| MIND category P@1 | 0.7836 | 0.8754 |
+| MIND co-click P@1 | 0.0071 | 0.0075 |
 
-Improvements are consistent but modest.  Why:
-1. Zero-shot SBERT is already a strong baseline on well-formed product text
-2. Each item appears in ~1-2 training pairs — sparse behavioral signal
-3. Next-item pairs capture browsing intent, not semantic equivalence
-4. Loss decreased steadily (1.61 → 1.47 → 1.41) but val sim peaked at epoch 1
+What the run supports:
+1. Zero-shot SBERT is already a strong baseline on product text, so Amazon top-1 stays flat or slightly lower.
+2. Next-item pairs capture browsing intent, not semantic equivalence.
+3. The older "~1–2 training pairs per item" figure is unverified. This run did not record per-item pair counts.
+4. Training loss fell on every seed while validation cosine peaked early (Amazon epoch 1 on seed 0 and epoch 2 on seeds 1 and 2; MIND epoch 1 on every seed) and then declined. Amazon recall@50 is highest at epoch 3.
 
-**Lesson for practitioners:** Contrastive fine-tuning always helps, but the
-magnitude depends on (a) how strong the base model already is and (b) how
-much task-specific data you have.  Production systems with billions of
-interactions see much larger gains.
+**Lesson for practitioners:** Contrastive fine-tuning does not improve every
+metric. On Amazon the gain shows up at higher recall cutoffs. On MIND,
+category precision@1 rises sharply and co-click retrieval stays near the
+floor. The checkpoint selected by validation cosine is not the checkpoint
+with the best retrieval score.
 
 ---
 
@@ -1333,6 +1343,11 @@ query-time weights can be implemented with about 50 lines of numpy.
 
 ## Change Log
 
+- **2026-11-25:** Held-out remeasure of Section 10.6 (seeds 0, 1, 2) published
+  under `outputs/metrics/heldout_l4/`. Amazon top-1 is flat or slightly
+  lower; recall@50 is highest at epoch 3; MIND category precision@1 rises
+  sharply; co-click stays near the floor. The 2026-02-23 and 2026-02-25
+  fine-tuned figures below are the pre-hold-out run.
 - **2026-11-09:** Section numbers follow the book (10.4 to 10.7 for the four
   code sections); the Superlinked appendix is removed; fine-tuning
   evaluation uses held-out sessions (Amazon KDD) or users (MIND); RexBERT
@@ -1352,7 +1367,7 @@ query-time weights can be implemented with about 50 lines of numpy.
 - **2026-02-25:** Section 10.5 results — Item2Vec trained & evaluated on Amazon KDD
   - 494K items embedded (128-dim) from 1.18M sessions in 339s on CPU
   - 3-way comparison (Item2Vec vs zero-shot vs fine-tuned) on 20K queries
-  - Item2Vec MRR=0.247 vs zero-shot 0.309 vs fine-tuned 0.319
+  - Item2Vec MRR=0.247 vs zero-shot 0.309 vs fine-tuned 0.319 (pre-hold-out)
   - Key insight: rich product metadata gives text encoders a strong advantage
   - Full catalog ≈ common subset due to high item coverage (p5=1 → min_count=1)
 - **2026-02-12:** Section numbering swapped: Item2Vec → 10.5, Contrastive → 10.6
@@ -1365,8 +1380,8 @@ query-time weights can be implemented with about 50 lines of numpy.
   - Percentile-based min_count; full_history sequence mode for Yandex
 - **2026-02-23:** Section 10.6 complete — Amazon KDD results
   - Fine-tuned MiniLM on 450K next-item pairs (MNR loss, 3 epochs)
-  - MRR +1 point, R@50 +4.9 points vs zero-shot baseline
-  - Best checkpoint at epoch 1; mild overfitting in epochs 2-3
+  - MRR +1 point, R@50 +4.9 points vs zero-shot baseline (pre-hold-out)
+  - Best checkpoint at epoch 1; mild overfitting in epochs 2-3 (pre-hold-out)
   - Manual PyTorch training loop (avoids HF Trainer version issues)
 - **2026-02-22:** Section 10.6 implemented
   - `finetune_contrastive.py`: MNR loss training on Amazon KDD + MIND

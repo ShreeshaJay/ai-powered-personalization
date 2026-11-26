@@ -209,3 +209,10 @@ __marimo__/
 # Chapter companion code: generated artifacts (models, embeddings, experiment outputs)
 code/chapter*/outputs/
 code/chapter*/cache/
+# Published Section 10.6 held-out metrics. Un-ignore each parent, then this tree only.
+!code/chapter10_item_embeddings/outputs/
+code/chapter10_item_embeddings/outputs/*
+!code/chapter10_item_embeddings/outputs/metrics/
+code/chapter10_item_embeddings/outputs/metrics/*
+!code/chapter10_item_embeddings/outputs/metrics/heldout_l4/
+!code/chapter10_item_embeddings/outputs/metrics/heldout_l4/**

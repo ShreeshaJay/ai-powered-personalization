@@ -1,0 +1,13 @@
+{
+  "commit": "7d6cb5f1b5f897bc41fc07ef50c4ac1bcac8de9b",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "checkpoint_selection": "The trainer keeps the weights with the highest validation cosine similarity, measured every 500 steps on a 10% slice of the non-holdout pairs. Files named metrics_best_by_val_sim are that checkpoint. metrics_epoch_N are end-of-epoch snapshots saved for this comparison; the trainer does not select them unless that step had the best validation cosine.",
+  "note": "Model weights and embedding caches are not published.",
+  "base_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "holdout": "20% of Amazon sessions or MIND users, blake2b(seed:key), same seed for training and evaluation.",
+  "aggregate": "aggregate.json is the mean and min-max over seeds 0, 1, and 2 at the saved checkpoint, plus the validation-cosine peak and Amazon recall@50 by epoch."
+}

@@ -186,6 +186,8 @@ yielding B*(B-1) contrastive pairs per batch for free.
 from 80% of the sessions (Amazon KDD) or users (MIND) only, and
 `evaluate_finetuned.py` builds its ground truth from the other 20%
 (`eval_holdout_fraction` in `config.py`, split in `data/holdout.py`).
+Pass the same `--seed` to both commands. The default is 42. Seeds 0, 1,
+and 2 are the held-out table below.
 
 **Why this matters:** Section 10.4 showed that RexBERT (pre-trained on
 about 2.3 trillion tokens, about 350 billion of them e-commerce text)
@@ -485,31 +487,65 @@ for details and diagnostic output.
 
 ## Results (Section 10.6)
 
-> **Measured before the evaluation hold-out.** These fine-tuned numbers
-> come from the earlier protocol, in which `evaluate_finetuned.py` built its
-> ground truth from the same sessions the training pairs came from. They
-> overstate the fine-tuned model's gain. The scripts now hold out sessions
-> (Amazon KDD) or users (MIND); these tables will be replaced after a re-run.
+Held-out remeasure at commit `7d6cb5f`. Training and evaluation use the same
+seed and disjoint sessions (Amazon) or users (MIND). The fine-tuned column
+is the checkpoint the trainer saves: highest validation cosine, not the
+best retrieval score. Each cell is the mean over seeds 0, 1, and 2, with
+the min and max in parentheses, rounded to 4 decimal places from
+`outputs/metrics/heldout_l4/aggregate.json`. Per-seed JSON and CSV files
+are in that directory.
 
-### Amazon KDD: Zero-Shot vs Fine-Tuned (20K queries, 500K products)
+### Amazon KDD next-item retrieval (20,000 queries, 500,180 products)
 
-| Model | P@1 | P@5 | P@10 | MRR | R@20 | R@50 |
-|-------|-----|-----|------|-----|------|------|
-| zero-shot (all-MiniLM-L6-v2) | 0.222 | 0.108 | 0.068 | 0.309 | 0.499 | 0.619 |
-| **fine-tuned (MNR, 450K pairs)** | **0.224** | **0.112** | **0.073** | **0.319** | **0.527** | **0.668** |
-| Delta | +0.002 | +0.004 | +0.004 | +0.010 | +0.028 | +0.049 |
+| Metric | Zero-shot | Fine-tuned (best validation cosine) |
+|--------|-----------|-------------------------------------|
+| P@1 | 0.1647 (0.1630–0.1657) | 0.1641 (0.1625–0.1650) |
+| R@1 | 0.1428 (0.1414–0.1434) | 0.1403 (0.1390–0.1412) |
+| R@5 | 0.3117 (0.3093–0.3147) | 0.3174 (0.3131–0.3200) |
+| R@10 | 0.3781 (0.3760–0.3801) | 0.3935 (0.3887–0.3959) |
+| R@20 | 0.4439 (0.4409–0.4466) | 0.4728 (0.4664–0.4776) |
+| R@50 | 0.5381 (0.5354–0.5410) | 0.5873 (0.5834–0.5900) |
+| nDCG@10 | 0.2646 (0.2628–0.2660) | 0.2705 (0.2674–0.2723) |
+| MRR | 0.2443 (0.2423–0.2455) | 0.2506 (0.2476–0.2525) |
+
+### MIND category and co-click (saved checkpoint)
+
+Category zero-shot does not depend on the user split, so its min and max
+match. Co-click ground truth is the held-out users. Category queries are
+capped at 20,000. Co-click query counts are in the per-seed JSON
+(`cc_num_queries`).
+
+| Metric | Zero-shot | Fine-tuned (best validation cosine) |
+|--------|-----------|-------------------------------------|
+| Category P@1 | 0.7836 (0.7836–0.7836) | 0.8754 (0.8706–0.8832) |
+| Category R@10 | 0.2137 (0.2137–0.2137) | 0.2112 (0.2107–0.2116) |
+| Category R@50 | 0.9931 (0.9931–0.9931) | 0.9947 (0.9936–0.9954) |
+| Category MRR | 0.8520 (0.8520–0.8520) | 0.9166 (0.9126–0.9221) |
+| Co-click P@1 | 0.0071 (0.0066–0.0078) | 0.0075 (0.0068–0.0079) |
+| Co-click R@10 | 0.0414 (0.0391–0.0428) | 0.0423 (0.0412–0.0434) |
+| Co-click R@50 | 0.1460 (0.1404–0.1500) | 0.1525 (0.1488–0.1577) |
+| Co-click MRR | 0.0209 (0.0208–0.0210) | 0.0217 (0.0210–0.0224) |
+
+**Where the cosine peaked.** Amazon validation cosine peaked at step 3000
+(epoch 1) for seed 0, step 6000 (epoch 2) for seed 1, and step 5000
+(epoch 2) for seed 2. There are 3,515 steps per epoch. MIND peaked inside
+epoch 1 on every seed (steps 500, 1000, and 1000 of 1,406). Final
+validation cosine is below that peak on every seed. Amazon recall@50 is
+highest at epoch 3 on every seed (0.5936, 0.5922, 0.5888), above the
+saved checkpoint. Selecting by validation cosine is not selecting by the
+retrieval metric.
 
 **Key findings:**
-- Consistent improvement across all metrics, largest at higher recall (+4.9 points R@50)
-- MRR improved by 1 point — the fine-tuned model ranks the true next item ~1 position higher
-- Best checkpoint was at epoch 1 (step 3500); epochs 2-3 showed mild overfitting
-- Training loss decreased steadily: 1.61 → 1.47 → 1.41 over 3 epochs
+- On Amazon, the gain grows with the cutoff. Recall@1 and precision@1 are flat or slightly lower than zero-shot; recall@50 is higher on every seed.
+- MIND category precision@1 rises sharply (0.7836 to 0.8754). Category recall@50 is already at the ceiling (0.9931 zero-shot) and barely moves, and category recall@10 is slightly lower.
+- MIND co-click stays near the floor. Precision@1 remains about 0.007 and recall@50 about 0.15.
+- The saved checkpoint is the best validation cosine. On Amazon that peak is epoch 1 for one seed and epoch 2 for the other two, and it is not the best recall@50.
 
-**Why improvements are modest (pedagogical note):**
-1. The zero-shot baseline was already strong — SBERT's general text understanding captures product similarity well
-2. Next-item pairs encode *browsing* behavior, not deep semantic similarity (phone case → screen protector)
-3. Each item appears in only ~1-2 training pairs on average — more interaction data would help
-4. Real production systems typically see larger gains because they fine-tune on orders of magnitude more data
+**Why some improvements are modest:**
+1. The Amazon zero-shot baseline is already strong on product text, so top-1 does not move.
+2. Next-item pairs encode browsing behavior (phone case, then screen protector) rather than a deeper semantic match. That is the training signal, not a pair this run scored.
+3. The older claim that each item appears in about 1–2 training pairs is **unverified**. This run did not record per-item pair counts.
+4. The modest description fits Amazon next-item retrieval and MIND co-click. It does not fit MIND category precision@1.
 
 ### 3-Way Comparison (after completing Section 10.6)
 
@@ -520,15 +556,6 @@ for details and diagnostic output.
 | Zero-shot (all-MiniLM-L6-v2) | 384 | 500K | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 | Item2Vec (Skip-gram) | 128 | _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 | Fine-tuned (MNR) | 384 | 500K | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
-
-### MIND: Zero-Shot vs Fine-Tuned
-
-> Run `python finetune_contrastive.py --dataset mind` then `python evaluate_finetuned.py --dataset mind`
-
-| Model | Cat P@5 | Cat MRR | CoClick P@5 | CoClick MRR |
-|-------|---------|---------|-------------|-------------|
-| zero-shot (all-MiniLM-L6-v2) | 0.769 | 0.850 | 0.0067 | 0.025 |
-| fine-tuned (MNR on co-clicks) | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 
 ## Results (Section 10.7)
 

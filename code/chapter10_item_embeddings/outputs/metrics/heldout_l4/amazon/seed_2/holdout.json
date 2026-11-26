@@ -1,0 +1,14 @@
+{
+  "dataset": "amazon",
+  "splitter": "data/holdout.py:split_amazon_sessions",
+  "key": "prev_items|next_item",
+  "n_sessions": 1182181,
+  "n_train_rows": 946082,
+  "n_eval_rows": 236099,
+  "n_train_keys": 918103,
+  "n_eval_keys": 229001,
+  "n_key_intersection": 0,
+  "seed": 2,
+  "fraction": 0.2,
+  "hash": "blake2b(f'{seed}:{key}', digest_size=8) / 2**64 < fraction"
+}
