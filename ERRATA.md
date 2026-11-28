@@ -1,6 +1,6 @@
 # Errata
 
-Errata, 2026-11-10, updated 2026-11-23. Applies to chapters published before the date of each correction; corrected in the republished Chapters 1 (2026-11-18), 4, 5, 6, 7, 8, 10 (again 2026-11-18), 12 (2026-11-23), 14 and 16, and Appendix A (2026-11-18, again 2026-11-23).
+Errata, 2026-11-10, updated 2026-11-28. Applies to chapters published before the date of each correction; corrected in the republished Chapters 1 (2026-11-18), 4, 5, 6, 7, 8, 10 (again 2026-11-18 and 2026-11-28), 12 (2026-11-23), 14 and 16, and Appendix A (2026-11-18, again 2026-11-23).
 
 ## Chapter 1: Introduction to Recommender Systems
 
@@ -43,6 +43,7 @@ Errata, 2026-11-10, updated 2026-11-23. Applies to chapters published before the
 - **Section 10.4 (2026-11-18).** RexBERT is no longer described as having deep knowledge of product terminology and catalog structure. The sentence now says it has seen far more product terminology than general-purpose encoders, and it cites Bajaj and Garg (2026), now in the References.
 - **Section 10.4 (2026-11-18).** The zero-shot SBERT-versus-RexBERT comparison is now attributed to the Appendix on Domain-Specialized Encoders as Sentence-Embedding Models: on Amazon KDD sessions, a general-purpose contrastively trained SBERT model used zero-shot retrieves better than an MLM-only domain model. The appendix also fine-tunes the domain model with a contrastive objective and finds any advantage over a general sibling to be small.
 - **Section 10.6 (2026-11-18).** The closing paragraph no longer says this section shows what happens when a contrastive objective is added to the domain model. That comparison is in the same appendix; Section 10.6 fine-tunes SBERT on behavioral pairs.
+- **Sections 10.6 and 10.12 (2026-11-28).** Measured outcomes of the contrastive fine-tune are no longer stated in the prose. Section 10.6 now says the companion code trains the encoder on the pairs, scores it on held-out sessions and users, and records the metrics, including the comparison of the saved checkpoint with the zero-shot encoder. The summary says that comparison is in the companion code. The discussion still notes that the zero-shot baseline is strong, that the pairs encode browsing patterns, and that production systems with more interaction data typically see larger gains.
 
 ## Chapter 12: Generative AI for Recommender Systems
 
